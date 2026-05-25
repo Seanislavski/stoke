@@ -1,5 +1,5 @@
 # Product Spec — Reciprocal Community Platform
-*Codename: TBD | Last updated: 05/24/2026*
+*Stoke.community | Last updated: 05/25/2026*
 
 ## Vision
 
@@ -75,6 +75,7 @@ Discord-style onboarding — low friction, guided, you're live quickly:
 ### Resource Library
 - Files and links curated by organizers
 - Accessible to all community members
+- Members can submit resources; all submissions require organizer/mod approval before going live
 
 ---
 
@@ -101,6 +102,7 @@ Discord-style onboarding — low friction, guided, you're live quickly:
 - Profiles visible only within shared communities
 - No public directory of people
 - Discovery is community-first, not person-first
+- Members can optionally show their community memberships on their profile
 
 ### Community Directory
 - Organizer chooses: **Listed** (appears in directory) or **Unlisted** (link-only)
@@ -141,7 +143,7 @@ Same stack as Plish — completely separate codebase and infrastructure.
 
 ## Open Questions
 
-- [ ] What GitHub repo name to use (pending platform name)?
-- [ ] Profile visibility: does your profile show your community memberships to other members, or just your name/avatar/bio?
-- [ ] Events: who can create them — organizers only, or any member?
-- [ ] Resource library: can members contribute, or organizers only?
+- [x] What GitHub repo name to use? → `stoke-community` (domain: stoke.community)
+- [x] Profile visibility: does your profile show your community memberships? → opt-in per member
+- [x] Events: who can create them? → organizers only
+- [x] Resource library: can members contribute? → yes, with organizer/mod approval required
