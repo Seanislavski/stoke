@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JoinButton from '@/components/community/JoinButton'
+import CommunityGear from '@/components/community/CommunityGear'
 import SubmitPostForm from '@/components/bulletin/SubmitPostForm'
 import ModActions from '@/components/bulletin/ModActions'
 
@@ -45,6 +46,23 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
         .order('role')
     : { data: null }
 
+  // pending + banned counts for gear (mods/organizers/owner only)
+  const { count: pendingCount } = (isMod || isOwner)
+    ? await admin
+        .from('community_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('community_id', community.id)
+        .eq('status', 'pending')
+    : { count: 0 }
+
+  const { count: bannedCount } = (isMod || isOwner)
+    ? await admin
+        .from('community_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('community_id', community.id)
+        .eq('status', 'banned')
+    : { count: 0 }
+
   // published bulletin posts (all members)
   const { data: publishedPosts } = canSee
     ? await admin
@@ -75,7 +93,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
     <div className="max-w-2xl mx-auto py-8 space-y-8">
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-stone-200 p-6">
+      <div className="relative bg-white rounded-xl border border-stone-200 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold text-stone-900">{community.name}</h1>
@@ -105,14 +123,15 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
           </div>
         </div>
 
-        {isOwner && (
-          <div className="mt-4 pt-4 border-t border-stone-100">
-            <Link
-              href={`/communities/${slug}/settings`}
-              className="text-sm text-stone-400 hover:text-stone-700"
-            >
-              Community settings →
-            </Link>
+        {(isMod || isOwner) && (
+          <div className="absolute top-4 right-4">
+            <CommunityGear
+              slug={slug}
+              callerRole={isOwner ? 'owner' : myMembership?.role as 'organizer' | 'moderator'}
+              joinMode={community.join_mode}
+              pendingCount={pendingCount ?? 0}
+              bannedCount={bannedCount ?? 0}
+            />
           </div>
         )}
       </div>

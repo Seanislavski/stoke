@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,8 +12,37 @@ type Profile = {
   avatar_url: string | null
 }
 
-export default function AppNav({ profile }: { profile: Profile | null }) {
+type PlatformRole = 'owner' | 'platform_moderator' | 'community_manager' | 'support' | null
+
+function GearIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  )
+}
+
+export default function AppNav({
+  profile,
+  platformRole = null,
+}: {
+  profile: Profile | null
+  platformRole?: PlatformRole
+}) {
   const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -20,31 +51,117 @@ export default function AppNav({ profile }: { profile: Profile | null }) {
     router.refresh()
   }
 
+  const initials = ((profile?.display_name ?? profile?.username) || '?')[0].toUpperCase()
+
   return (
     <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/home" className="font-semibold text-orange-500 text-lg tracking-tight">
-          Stoke
-        </Link>
-
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
+          <Link href="/home" className="font-semibold text-orange-500 text-lg tracking-tight">
+            Stoke
+          </Link>
           <Link href="/communities" className="text-sm text-stone-600 hover:text-stone-900">
             Discover
           </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href={profile?.username ? `/profile/${profile.username}` : '/settings/profile'}
-              className="text-sm text-stone-600 hover:text-stone-900"
-            >
-              {profile?.display_name ?? profile?.username ?? ''}
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-stone-400 hover:text-stone-700"
-            >
-              Sign out
-            </button>
-          </div>
+        </div>
+
+        <div ref={ref} className="relative">
+          <button
+            onClick={() => setOpen(v => !v)}
+            className="flex items-center gap-2 text-stone-600 hover:text-stone-900 focus:outline-none"
+          >
+            {/* Avatar */}
+            <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden flex items-center justify-center text-sm font-semibold text-stone-500 flex-shrink-0">
+              {profile?.avatar_url ? (
+                <Image src={profile.avatar_url} alt="avatar" width={32} height={32} className="w-full h-full object-cover" />
+              ) : initials}
+            </div>
+            <GearIcon />
+          </button>
+
+          {open && (
+            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-stone-200 shadow-lg py-1 z-20">
+              {/* Identity */}
+              <div className="px-4 py-2 border-b border-stone-100">
+                <p className="text-sm font-medium text-stone-900 truncate">
+                  {profile?.display_name ?? profile?.username}
+                </p>
+                {profile?.username && (
+                  <p className="text-xs text-stone-400 truncate">@{profile.username}</p>
+                )}
+              </div>
+
+              {/* Common */}
+              <div className="py-1">
+                <Link
+                  href="/settings/profile"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                >
+                  Edit profile
+                </Link>
+                <Link
+                  href="/support"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                >
+                  Support
+                </Link>
+              </div>
+
+              {/* Platform team items */}
+              {platformRole && (
+                <div className="py-1 border-t border-stone-100">
+                  {(platformRole === 'platform_moderator' || platformRole === 'owner') && (
+                    <Link
+                      href="/admin/moderation"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Moderation
+                    </Link>
+                  )}
+                  {(platformRole === 'community_manager' || platformRole === 'owner') && (
+                    <Link
+                      href="/admin/communities"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Communities
+                    </Link>
+                  )}
+                  {(platformRole === 'support' || platformRole === 'owner') && (
+                    <Link
+                      href="/admin/support"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Support dashboard
+                    </Link>
+                  )}
+                  {platformRole === 'owner' && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Admin panel
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              {/* Sign out */}
+              <div className="py-1 border-t border-stone-100">
+                <button
+                  onClick={() => { setOpen(false); handleSignOut() }}
+                  className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
