@@ -24,10 +24,12 @@ create trigger profiles_updated_at
   for each row execute function set_updated_at();
 
 -- auto-create profile on signup
-create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer
+set search_path = public
+as $func$
 begin
-  insert into profiles (id, username, display_name)
+  insert into public.profiles (id, username, display_name)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
@@ -35,7 +37,7 @@ begin
   );
   return new;
 end;
-$$;
+$func$;
 
 create trigger on_auth_user_created
   after insert on auth.users
