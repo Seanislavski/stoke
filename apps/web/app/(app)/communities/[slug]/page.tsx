@@ -136,9 +136,9 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
               if (!profile) return null
               return (
                 <div key={m.user_id} className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm font-medium text-stone-800">
+                  <Link href={`/profile/${profile.username}`} className="text-sm font-medium text-stone-800 hover:text-orange-600">
                     {profile.display_name ?? profile.username}
-                  </span>
+                  </Link>
                   <span className="text-xs text-stone-400 capitalize">{m.role}</span>
                 </div>
               )
@@ -167,7 +167,11 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
                 return (
                   <div key={post.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <p className="text-xs text-stone-400 mb-1">
-                      {author?.display_name ?? author?.username ?? 'Unknown'}
+                      {author?.username ? (
+                        <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                          {author.display_name ?? author.username}
+                        </Link>
+                      ) : 'Unknown'}
                     </p>
                     <h3 className="font-medium text-stone-900 text-sm">{post.title}</h3>
                     <p className="text-stone-600 text-sm mt-1 whitespace-pre-wrap">{post.content}</p>
@@ -189,7 +193,13 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
                 return (
                   <div key={post.id} className="bg-white border border-stone-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-xs text-stone-400 mb-2">
-                      <span>{author?.display_name ?? author?.username ?? 'Unknown'}</span>
+                      <span>
+                        {author?.username ? (
+                          <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                            {author.display_name ?? author.username}
+                          </Link>
+                        ) : 'Unknown'}
+                      </span>
                       {date && <><span>·</span><span>{date}</span></>}
                     </div>
                     <h3 className="font-semibold text-stone-900">{post.title}</h3>
