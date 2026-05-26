@@ -15,6 +15,7 @@ apps/server/dist/
 
 # Supabase CLI
 supabase/.temp/
+**/supabase/.temp/
 
 # misc
 .DS_Store
