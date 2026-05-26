@@ -103,14 +103,16 @@ create table community_members (
 );
 
 -- auto-add owner as organizer when community is created
-create or replace function handle_new_community()
-returns trigger language plpgsql security definer as $$
+create or replace function public.handle_new_community()
+returns trigger language plpgsql security definer
+set search_path = public
+as $func$
 begin
-  insert into community_members (community_id, user_id, role, status)
+  insert into public.community_members (community_id, user_id, role, status)
   values (new.id, new.owner_id, 'organizer', 'active');
   return new;
 end;
-$$;
+$func$;
 
 create trigger on_community_created
   after insert on communities
