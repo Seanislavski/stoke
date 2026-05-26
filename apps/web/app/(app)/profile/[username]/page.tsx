@@ -24,7 +24,7 @@ export default async function ProfilePage({
   const { data: { user } } = await supabase.auth.getUser()
   const isOwn = user?.id === profile.id
 
-  let memberships: { communities: { name: string; slug: string } | null }[] = []
+  let memberships: { communities: { name: string; slug: string }[] }[] = []
   if (profile.show_memberships) {
     const { data } = await admin
       .from('community_members')
