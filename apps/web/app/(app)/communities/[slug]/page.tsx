@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JoinButton from '@/components/community/JoinButton'
@@ -28,9 +29,10 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
 
   const isMember = myMembership?.status === 'active'
 
-  // active members (only visible to members + owner)
+  // active members — use admin client to bypass RLS (avoids recursive policy)
+  const admin = createAdminClient()
   const { data: members } = (isMember || isOwner)
-    ? await supabase
+    ? await admin
         .from('community_members')
         .select('user_id, role, profiles(username, display_name, avatar_url)')
         .eq('community_id', community.id)

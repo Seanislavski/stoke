@@ -163,18 +163,27 @@ create policy "communities_update" on communities
     )
   );
 
--- community_members: active members can see other members in shared communities
+-- security definer helper: check if caller is organizer/mod (bypasses RLS, prevents recursion)
+create or replace function public.is_community_mod(p_community_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $func$
+  select exists (
+    select 1 from community_members
+    where community_id = p_community_id
+      and user_id = auth.uid()
+      and role in ('organizer', 'moderator')
+      and status = 'active'
+  );
+$func$;
+
+-- community_members: users see only their own rows (admin client used for full member lists)
 create policy "members_select" on community_members
   for select to authenticated
-  using (
-    user_id = auth.uid()
-    or exists (
-      select 1 from community_members cm2
-      where cm2.community_id = community_members.community_id
-        and cm2.user_id = auth.uid()
-        and cm2.status = 'active'
-    )
-  );
+  using (user_id = auth.uid());
 
 create policy "members_insert" on community_members
   for insert to authenticated
@@ -182,25 +191,8 @@ create policy "members_insert" on community_members
 
 create policy "members_update" on community_members
   for update to authenticated
-  using (
-    exists (
-      select 1 from community_members cm2
-      where cm2.community_id = community_members.community_id
-        and cm2.user_id = auth.uid()
-        and cm2.role in ('organizer', 'moderator')
-        and cm2.status = 'active'
-    )
-  );
+  using (is_community_mod(community_id));
 
 create policy "members_delete" on community_members
   for delete to authenticated
-  using (
-    user_id = auth.uid()
-    or exists (
-      select 1 from community_members cm2
-      where cm2.community_id = community_members.community_id
-        and cm2.user_id = auth.uid()
-        and cm2.role in ('organizer', 'moderator')
-        and cm2.status = 'active'
-    )
-  );
+  using (user_id = auth.uid() or is_community_mod(community_id));
