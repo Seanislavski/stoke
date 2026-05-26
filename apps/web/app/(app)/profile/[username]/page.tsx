@@ -1,0 +1,107 @@
+import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+  const admin = createAdminClient()
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('id, username, display_name, bio, avatar_url, show_memberships, created_at')
+    .eq('username', username)
+    .single()
+
+  if (!profile) notFound()
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isOwn = user?.id === profile.id
+
+  let memberships: { community: { name: string; slug: string } | null }[] = []
+  if (profile.show_memberships) {
+    const { data } = await admin
+      .from('community_members')
+      .select('communities(name, slug)')
+      .eq('user_id', profile.id)
+      .eq('status', 'active')
+    memberships = (data ?? []) as typeof memberships
+  }
+
+  const joinedYear = new Date(profile.created_at).getFullYear()
+  const initials = (profile.display_name ?? profile.username)[0].toUpperCase()
+
+  return (
+    <div className="max-w-2xl">
+      {/* Header */}
+      <div className="flex items-start gap-5 mb-6">
+        <div className="w-20 h-20 rounded-full bg-stone-200 overflow-hidden flex-shrink-0">
+          {profile.avatar_url ? (
+            <Image
+              src={profile.avatar_url}
+              alt={profile.display_name ?? profile.username}
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-stone-400 text-2xl font-semibold">
+              {initials}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-semibold text-stone-900">
+              {profile.display_name ?? profile.username}
+            </h1>
+            {isOwn && (
+              <Link
+                href="/settings/profile"
+                className="text-xs text-orange-600 hover:underline"
+              >
+                Edit profile
+              </Link>
+            )}
+          </div>
+          <p className="text-sm text-stone-500">@{profile.username}</p>
+          <p className="text-xs text-stone-400 mt-1">Member since {joinedYear}</p>
+        </div>
+      </div>
+
+      {/* Bio */}
+      {profile.bio && (
+        <p className="text-stone-700 text-sm mb-6 whitespace-pre-wrap">{profile.bio}</p>
+      )}
+
+      {/* Communities */}
+      {profile.show_memberships && memberships.length > 0 && (
+        <div>
+          <h2 className="text-sm font-medium text-stone-700 mb-3">Communities</h2>
+          <div className="flex flex-wrap gap-2">
+            {memberships.map((m, i) => {
+              const community = Array.isArray(m.communities) ? m.communities[0] : m.communities
+              if (!community) return null
+              return (
+                <Link
+                  key={i}
+                  href={`/communities/${community.slug}`}
+                  className="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-full text-sm text-stone-700 transition-colors"
+                >
+                  {community.name}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

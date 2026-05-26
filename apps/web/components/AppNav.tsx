@@ -31,10 +31,13 @@ export default function AppNav({ profile }: { profile: Profile | null }) {
           <Link href="/communities" className="text-sm text-stone-600 hover:text-stone-900">
             Discover
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-stone-600">
+          <div className="flex items-center gap-3">
+            <Link
+              href={profile?.username ? `/profile/${profile.username}` : '/settings/profile'}
+              className="text-sm text-stone-600 hover:text-stone-900"
+            >
               {profile?.display_name ?? profile?.username ?? ''}
-            </span>
+            </Link>
             <button
               onClick={handleSignOut}
               className="text-sm text-stone-400 hover:text-stone-700"
