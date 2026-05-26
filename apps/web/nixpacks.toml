@@ -1,8 +1,8 @@
 [phases.install]
-cmds = ["npm install --prefix ../.."]
+cmds = ["cd ../.. && npm install"]
 
 [phases.build]
-cmds = ["npm run build --workspace=apps/web"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "node apps/web/.next/standalone/server.js"
+cmd = "node .next/standalone/server.js"

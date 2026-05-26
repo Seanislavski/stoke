@@ -1,8 +1,8 @@
 [phases.install]
-cmds = ["npm install --prefix ../.."]
+cmds = ["cd ../.. && npm install"]
 
 [phases.build]
-cmds = ["npm run build --workspace=apps/server"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "node apps/server/dist/index.js"
+cmd = "node dist/index.js"
