@@ -45,7 +45,6 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (profile?.is_banned) {
-      await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/banned', request.url))
     }
   }
