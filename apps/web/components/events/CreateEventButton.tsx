@@ -14,6 +14,12 @@ export default function CreateEventButton({ communityId }: { communityId: string
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    const startsAt = formData.get('starts_at') as string
+    const endsAt = formData.get('ends_at') as string
+    if (endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      alert('End time must be after start time.')
+      return
+    }
     startTransition(async () => {
       await createEvent(communityId, formData)
       setOpen(false)
@@ -46,7 +52,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
                 <input
                   name="title"
                   required
-                  className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
                   placeholder="Event title"
                 />
               </div>
@@ -56,7 +62,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
                 <textarea
                   name="description"
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+                  className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
                   placeholder="What's this event about?"
                 />
               </div>
@@ -68,7 +74,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
                     name="starts_at"
                     type="datetime-local"
                     required
-                    className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
                   />
                 </div>
                 <div>
@@ -76,7 +82,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
                   <input
                     name="ends_at"
                     type="datetime-local"
-                    className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
                   />
                 </div>
               </div>
@@ -106,7 +112,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
                   <input
                     name="location_online"
                     type="url"
-                    className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
                     placeholder="https://zoom.us/j/..."
                   />
                 </div>
@@ -117,7 +123,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
                   <label className="block text-sm font-medium text-stone-700 mb-1">Address</label>
                   <input
                     name="location_address"
-                    className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
                     placeholder="123 Main St, City, State"
                   />
                 </div>
