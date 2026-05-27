@@ -8,6 +8,8 @@ import SubmitPostForm from '@/components/bulletin/SubmitPostForm'
 import ModActions from '@/components/bulletin/ModActions'
 import CreateEventButton from '@/components/events/CreateEventButton'
 import RsvpButton from '@/components/events/RsvpButton'
+import SubmitResourceForm from '@/components/resources/SubmitResourceForm'
+import ResourceModActions from '@/components/resources/ResourceModActions'
 
 export default async function CommunityPage({
   params,
@@ -101,6 +103,26 @@ export default async function CommunityPage({
         .order('created_at')).data
     : null
 
+  // Resources tab data
+  const [publishedResources, pendingResources] = await Promise.all([
+    (tab === 'resources' && canSee)
+      ? admin.from('resources')
+          .select('id, title, description, url, resource_type, published_at, profiles(username, display_name)')
+          .eq('community_id', community.id)
+          .eq('status', 'published')
+          .order('published_at', { ascending: false })
+          .then(r => r.data)
+      : Promise.resolve(null),
+    (tab === 'resources' && (isMod || isOwner))
+      ? admin.from('resources')
+          .select('id, title, description, url, resource_type, created_at, profiles(username, display_name)')
+          .eq('community_id', community.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .then(r => r.data)
+      : Promise.resolve(null),
+  ])
+
   // Events tab data
   let events: Event[] | null = null
   let rsvpCountMap: Record<string, { yes: number; maybe: number; no: number }> = {}
@@ -141,6 +163,7 @@ export default async function CommunityPage({
   const TABS = [
     { key: 'bulletin', label: 'Bulletin' },
     { key: 'events', label: 'Events' },
+    { key: 'resources', label: 'Resources' },
     { key: 'channels', label: 'Channels' },
   ]
 
@@ -357,6 +380,92 @@ export default async function CommunityPage({
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {/* Resources tab */}
+          {tab === 'resources' && (
+            <div className="space-y-4">
+              {(isMod || isOwner) && pendingResources && pendingResources.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
+                    Awaiting review ({pendingResources.length})
+                  </p>
+                  {pendingResources.map(resource => {
+                    const author = Array.isArray(resource.profiles) ? resource.profiles[0] : resource.profiles
+                    return (
+                      <div key={resource.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs text-stone-400 mb-1">
+                              {author?.username ? (
+                                <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                                  {author.display_name ?? author.username}
+                                </Link>
+                              ) : 'Unknown'}
+                              {' · '}
+                              <span className="capitalize">{resource.resource_type}</span>
+                            </p>
+                            <h3 className="font-medium text-stone-900 text-sm">{resource.title}</h3>
+                            <a href={resource.url} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-orange-600 hover:underline truncate block mt-0.5">
+                              {resource.url}
+                            </a>
+                            {resource.description && (
+                              <p className="text-stone-600 text-sm mt-1">{resource.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <ResourceModActions resourceId={resource.id} communityId={community.id} slug={community.slug} />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {publishedResources && publishedResources.length > 0 ? (
+                <div className="space-y-3">
+                  {publishedResources.map(resource => {
+                    const author = Array.isArray(resource.profiles) ? resource.profiles[0] : resource.profiles
+                    const date = resource.published_at
+                      ? new Date(resource.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : ''
+                    return (
+                      <div key={resource.id} className="bg-white border border-stone-200 rounded-xl p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap text-xs text-stone-400 mb-1">
+                              <span className="capitalize bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">
+                                {resource.resource_type}
+                              </span>
+                              {author?.username && (
+                                <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                                  {author.display_name ?? author.username}
+                                </Link>
+                              )}
+                              {date && <span>{date}</span>}
+                            </div>
+                            <h3 className="font-semibold text-stone-900">{resource.title}</h3>
+                            <a href={resource.url} target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-orange-600 hover:underline break-all">
+                              {resource.url}
+                            </a>
+                            {resource.description && (
+                              <p className="text-stone-600 text-sm mt-1">{resource.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white border border-stone-200 rounded-xl p-6 text-center text-stone-400 text-sm">
+                  No resources yet.
+                </div>
+              )}
+
+              <SubmitResourceForm communityId={community.id} slug={community.slug} isMod={isMod || isOwner} />
             </div>
           )}
 
