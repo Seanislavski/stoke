@@ -77,10 +77,22 @@ export default function ChannelView({
             }
           }
 
-          setMessages(ms => [
-            ...ms,
-            { ...row, profiles: profile },
-          ])
+          setMessages(ms => {
+            // replace matching optimistic message from same author with confirmed row
+            const optimisticIdx = ms.findIndex(m =>
+              m.id.startsWith('optimistic-') &&
+              m.author_id === row.author_id &&
+              m.content === row.content
+            )
+            if (optimisticIdx !== -1) {
+              const next = [...ms]
+              next[optimisticIdx] = { ...row, profiles: profile }
+              return next
+            }
+            // skip duplicates
+            if (ms.some(m => m.id === row.id)) return ms
+            return [...ms, { ...row, profiles: profile }]
+          })
         }
       )
       .subscribe()
@@ -96,12 +108,25 @@ export default function ChannelView({
     setSending(true)
     setInput('')
 
+    // optimistic update — show message immediately
+    const optimisticId = `optimistic-${Date.now()}`
+    const optimistic: Message = {
+      id: optimisticId,
+      content,
+      created_at: new Date().toISOString(),
+      edited_at: null,
+      author_id: currentUserId,
+      profiles: profiles[currentUserId] ?? null,
+    }
+    setMessages(ms => [...ms, optimistic])
+
     const { error } = await supabase
       .from('messages')
       .insert({ channel_id: channelId, author_id: currentUserId, content })
 
     if (error) {
       setInput(content)
+      setMessages(ms => ms.filter(m => m.id !== optimisticId))
     }
     setSending(false)
   }
