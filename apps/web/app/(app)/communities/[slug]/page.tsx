@@ -46,6 +46,16 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
         .order('role')
     : { data: null }
 
+  // channels
+  const { data: channels } = canSee
+    ? await admin
+        .from('channels')
+        .select('id, name, description')
+        .eq('community_id', community.id)
+        .order('position')
+        .order('created_at')
+    : { data: null }
+
   // pending + banned counts for gear (mods/organizers/owner only)
   const { count: pendingCount } = (isMod || isOwner)
     ? await admin
@@ -237,15 +247,35 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
         </section>
       )}
 
-      {/* Channels stub */}
+      {/* Channels */}
       {(isMember || isOwner) && (
         <section>
           <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
             Gathering Spaces
           </h2>
-          <div className="bg-white rounded-xl border border-stone-200 p-6 text-center text-stone-400 text-sm">
-            No channels yet. Text channels coming soon.
-          </div>
+          {channels && channels.length > 0 ? (
+            <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
+              {channels.map(ch => (
+                <Link
+                  key={ch.id}
+                  href={`/communities/${slug}/channels/${ch.id}`}
+                  className="flex items-center gap-2 px-4 py-3 hover:bg-stone-50 transition-colors"
+                >
+                  <span className="text-stone-400 text-sm">#</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-stone-800">{ch.name}</p>
+                    {ch.description && (
+                      <p className="text-xs text-stone-400 truncate">{ch.description}</p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-stone-200 p-6 text-center text-stone-400 text-sm">
+              No channels yet.{(isMod || isOwner) ? ' Create one in community settings.' : ''}
+            </div>
+          )}
         </section>
       )}
 

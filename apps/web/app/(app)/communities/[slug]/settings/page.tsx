@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import CommunityInfoForm from '@/components/community/settings/CommunityInfoForm'
 import MembersManager from '@/components/community/settings/MembersManager'
+import ChannelManager from '@/components/community/settings/ChannelManager'
 
 export default async function CommunitySettingsPage({
   params,
@@ -43,7 +44,7 @@ export default async function CommunitySettingsPage({
 
   if (!callerRole) redirect(`/communities/${slug}`)
 
-  const [{ data: categories }, { data: members }] = await Promise.all([
+  const [{ data: categories }, { data: members }, { data: channels }] = await Promise.all([
     supabase.from('categories').select('id, name').order('name'),
     admin
       .from('community_members')
@@ -51,6 +52,12 @@ export default async function CommunitySettingsPage({
       .eq('community_id', community.id)
       .in('status', ['active', 'pending', 'banned'])
       .order('role'),
+    admin
+      .from('channels')
+      .select('id, name, description')
+      .eq('community_id', community.id)
+      .order('position')
+      .order('created_at'),
   ])
 
   const normalizedMembers = (members ?? []).map(m => ({
@@ -77,6 +84,18 @@ export default async function CommunitySettingsPage({
         <CommunityInfoForm
           community={community}
           categories={categories ?? []}
+        />
+      </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Channels */}
+      <section>
+        <h2 className="text-base font-semibold text-stone-800 mb-4">Gathering Spaces</h2>
+        <ChannelManager
+          communityId={community.id}
+          slug={slug}
+          initialChannels={channels ?? []}
         />
       </section>
 
