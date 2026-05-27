@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import CommunityInfoForm from '@/components/community/settings/CommunityInfoForm'
 import MembersManager from '@/components/community/settings/MembersManager'
 import ChannelManager from '@/components/community/settings/ChannelManager'
+import InviteManager from '@/components/community/settings/InviteManager'
 
 export default async function CommunitySettingsPage({
   params,
@@ -44,7 +46,12 @@ export default async function CommunitySettingsPage({
 
   if (!callerRole) redirect(`/communities/${slug}`)
 
-  const [{ data: categories }, { data: members }, { data: channels }] = await Promise.all([
+  const headersList = await headers()
+  const host = headersList.get('host') ?? 'localhost:3000'
+  const proto = headersList.get('x-forwarded-proto') ?? 'http'
+  const baseUrl = `${proto}://${host}`
+
+  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }] = await Promise.all([
     supabase.from('categories').select('id, name').order('name'),
     admin
       .from('community_members')
@@ -58,6 +65,11 @@ export default async function CommunitySettingsPage({
       .eq('community_id', community.id)
       .order('position')
       .order('created_at'),
+    admin
+      .from('invites')
+      .select('id, token, max_uses, use_count, expires_at, created_at')
+      .eq('community_id', community.id)
+      .order('created_at', { ascending: false }),
   ])
 
   const normalizedMembers = (members ?? []).map(m => ({
@@ -96,6 +108,20 @@ export default async function CommunitySettingsPage({
           communityId={community.id}
           slug={slug}
           initialChannels={channels ?? []}
+        />
+      </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Invites */}
+      <section>
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Invite links</h2>
+        <p className="text-sm text-stone-500 mb-4">Share a link to bring people to this community. They'll join the approval queue even if the community is invite-only.</p>
+        <InviteManager
+          communityId={community.id}
+          slug={slug}
+          baseUrl={baseUrl}
+          initialInvites={invites ?? []}
         />
       </section>
 

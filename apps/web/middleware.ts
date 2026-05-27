@@ -27,8 +27,9 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup')
   const isAuthCallback = pathname.startsWith('/auth/callback')
   const isBannedPage = pathname.startsWith('/banned')
+  const isInvitePage = pathname.startsWith('/invite/')
 
-  if (!user && !isAuthRoute && !isAuthCallback) {
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -37,7 +38,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check platform ban for authenticated users on protected routes
-  if (user && !isAuthRoute && !isAuthCallback && !isBannedPage) {
+  if (user && !isAuthRoute && !isAuthCallback && !isBannedPage && !isInvitePage) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_banned')
