@@ -14,8 +14,25 @@ async function requirePlatformRole(...allowed: string[]) {
 }
 
 export async function platformBanUser(userId: string, ban: boolean) {
-  await requirePlatformRole('owner', 'platform_moderator')
+  const caller = await requirePlatformRole('owner', 'platform_moderator')
   const admin = createAdminClient()
+
+  // Prevent banning anyone with a platform role (only owner can ban platform roles)
+  const { data: targetRole } = await admin
+    .from('platform_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (targetRole) {
+    const { data: callerRole } = await admin
+      .from('platform_roles')
+      .select('role')
+      .eq('user_id', caller.id)
+      .maybeSingle()
+    if (callerRole?.role !== 'owner') throw new Error('Only the owner can ban platform team members')
+  }
+
   await admin.from('profiles').update({ is_banned: ban }).eq('id', userId)
   revalidatePath('/admin/users')
   revalidatePath('/admin/moderation')
