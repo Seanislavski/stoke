@@ -63,7 +63,7 @@ export default function CommunityGear({
               Community settings
             </Link>
 
-            {joinMode === 'request' && (
+            {(joinMode !== 'open' || pendingCount > 0) && (
               <Link
                 href={`/communities/${slug}/settings`}
                 onClick={() => setOpen(false)}
