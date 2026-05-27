@@ -8,12 +8,14 @@ export default function AdminNav({ role }: { role: string }) {
   const isOwner = role === 'owner'
   const canModerate = role === 'platform_moderator' || isOwner
   const canManageCommunities = role === 'community_manager' || isOwner
+  const canSupport = role === 'support' || role === 'platform_moderator' || isOwner
 
   const links = [
     ...(isOwner ? [{ href: '/admin', label: 'Overview', exact: true }] : []),
     ...(canModerate ? [{ href: '/admin/users', label: 'Users', exact: false }] : []),
     ...(canManageCommunities ? [{ href: '/admin/communities', label: 'Communities', exact: false }] : []),
     ...(canModerate ? [{ href: '/admin/moderation', label: 'Moderation', exact: false }] : []),
+    ...(canSupport ? [{ href: '/admin/support', label: 'Support', exact: false }] : []),
   ]
 
   return (
