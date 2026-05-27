@@ -82,13 +82,15 @@ export default async function AdminSupportPage({
           <select
             name="category"
             defaultValue={category}
-            onChange={e => e.currentTarget.form?.submit()}
             className="px-2 py-1 text-xs border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none"
           >
             {CATEGORIES.map(c => (
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
+          <button type="submit" className="px-2 py-1 text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors">
+            Filter
+          </button>
         </form>
       </div>
 
