@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ACTION_LABELS } from '@/lib/audit'
+import Link from 'next/link'
 
 export default async function AdminAuditLogPage() {
   const admin = createAdminClient()
@@ -26,6 +27,17 @@ export default async function AdminAuditLogPage() {
               const label = ACTION_LABELS[entry.action] ?? entry.action
               const meta = entry.metadata as Record<string, unknown> | null
               const isPlatform = !entry.community_id
+              const communitySlug = community?.slug
+
+              const targetLink = (() => {
+                const type = entry.target_type
+                if (type === 'post' && communitySlug) return `/communities/${communitySlug}?tab=bulletin`
+                if (type === 'resource' && communitySlug) return `/communities/${communitySlug}?tab=resources`
+                if (type === 'event' && communitySlug) return `/communities/${communitySlug}?tab=events`
+                if (type === 'message' && communitySlug && typeof meta?.channel_id === 'string') return `/communities/${communitySlug}/channels/${meta.channel_id}`
+                if (targetUser?.username) return `/profile/${targetUser.username}`
+                return null
+              })()
 
               return (
                 <div key={entry.id} className="flex items-start gap-3 px-4 py-3 text-sm">
@@ -48,6 +60,11 @@ export default async function AdminAuditLogPage() {
                     )}
                     {community && (
                       <span className="ml-2 text-xs text-stone-300">in {community.name}</span>
+                    )}
+                    {targetLink && (
+                      <Link href={targetLink} className="ml-2 text-xs text-orange-500 hover:text-orange-700 hover:underline">
+                        View →
+                      </Link>
                     )}
                   </div>
                   {isPlatform && (

@@ -161,6 +161,17 @@ export default async function CommunitySettingsPage({
               const targetUser = Array.isArray(entry.target_user) ? entry.target_user[0] : entry.target_user
               const label = ACTION_LABELS[entry.action] ?? entry.action
               const meta = entry.metadata as Record<string, unknown> | null
+
+              const targetLink = (() => {
+                const type = entry.target_type
+                if ((type === 'post') && slug) return `/communities/${slug}?tab=bulletin`
+                if ((type === 'resource') && slug) return `/communities/${slug}?tab=resources`
+                if ((type === 'event') && slug) return `/communities/${slug}?tab=events`
+                if (type === 'message' && typeof meta?.channel_id === 'string') return `/communities/${slug}/channels/${meta.channel_id}`
+                if (targetUser?.username) return `/profile/${targetUser.username}`
+                return null
+              })()
+
               return (
                 <div key={entry.id} className="flex items-start gap-3 px-4 py-3 text-sm bg-white">
                   <span className="text-stone-400 text-xs shrink-0 mt-0.5 w-32">
@@ -176,6 +187,11 @@ export default async function CommunitySettingsPage({
                     )}
                     {entry.action === 'member.role_changed' && meta && (
                       <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
+                    )}
+                    {targetLink && (
+                      <Link href={targetLink} className="ml-2 text-xs text-orange-500 hover:text-orange-700 hover:underline shrink-0">
+                        View →
+                      </Link>
                     )}
                   </div>
                 </div>

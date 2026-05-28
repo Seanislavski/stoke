@@ -38,7 +38,7 @@ export async function deleteMessage(
     targetUserId: message.author_id,
     targetId: messageId,
     targetType: 'message',
-    metadata: { content: message.content, self: isAuthor },
+    metadata: { content: message.content, self: isAuthor, channel_id: channelId },
   })
 
   return {}
@@ -66,7 +66,7 @@ export async function restoreMessage(
 
   await admin.from('messages').update({ deleted_at: null, deleted_by: null }).eq('id', messageId)
 
-  logAction({ actorId: user.id, communityId, action: 'message.restored', targetId: messageId, targetType: 'message' })
+  logAction({ actorId: user.id, communityId, action: 'message.restored', targetId: messageId, targetType: 'message', metadata: { channel_id: channelId } })
 
   return {}
 }
