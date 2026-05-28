@@ -1,27 +1,37 @@
 function FlameIcon({ size = 40 }: { size?: number }) {
   return (
     <svg
-      viewBox="0 0 32 38"
+      viewBox="325 125 150 200"
       width={size}
-      height={Math.round(size * (38 / 32))}
-      fill="none"
+      height={Math.round(size * (200 / 150))}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Outer flame body — two organic peaks, wider base */}
-      <path
-        d="M11 5C13 1 15 7 16 11C17 7 19 0 21 3C24 7 26 15 25 22C24 28 22 31 20 34C19 37 13 37 12 34C10 31 8 28 7 22C6 15 8 7 11 5Z"
-        fill="#f97316"
-      />
-      {/* Amber inner glow */}
-      <path
-        d="M16 14C14 18 13 22 13 26C13 30 14.5 33 16 33C17.5 33 19 30 19 26C19 22 18 18 16 14Z"
-        fill="#fbbf24"
-      />
-      {/* Light core */}
-      <path
-        d="M16 21C15.2 23 15 25 15 27C15 29 15.5 31 16 31C16.5 31 17 29 17 27C17 25 16.8 23 16 21Z"
-        fill="#fef9c3"
-      />
+      <defs>
+        <linearGradient id="flameBase" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#ad3a18" />
+          <stop offset="100%" stopColor="#d95d26" />
+        </linearGradient>
+        <linearGradient id="flameCore" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#e67e22" />
+          <stop offset="50%" stopColor="#f39c12" />
+          <stop offset="100%" stopColor="#f1c40f" />
+        </linearGradient>
+        <linearGradient id="flameTop" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#f1c40f" />
+          <stop offset="100%" stopColor="#fff0aa" />
+        </linearGradient>
+      </defs>
+      <g transform="translate(0, 10)">
+        {/* Wide rounded base */}
+        <path d="M 330,270 C 330,310 470,310 470,270 C 470,240 440,230 400,230 C 360,230 330,240 330,270 Z" fill="url(#flameBase)" />
+        {/* Main flame body */}
+        <path d="M 350,260 C 350,295 450,295 450,260 C 450,210 415,180 415,150 C 415,190 385,200 350,260 Z" fill="url(#flameCore)" />
+        {/* Bright inner core */}
+        <path d="M 375,250 C 375,275 425,275 425,250 C 425,210 400,190 400,165 C 400,195 375,210 375,250 Z" fill="url(#flameTop)" />
+        {/* Spark droplets */}
+        <path d="M 396,140 C 396,145 404,145 404,140 C 404,130 400,125 400,120 C 400,125 396,130 396,140 Z" fill="#f1c40f" />
+        <path d="M 416,160 C 416,163 422,163 422,160 C 422,153 419,150 419,146 C 419,150 416,153 416,160 Z" fill="#f39c12" />
+      </g>
     </svg>
   )
 }
