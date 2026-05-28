@@ -1,5 +1,3 @@
-import { fraunces } from '@/lib/fonts'
-
 function FlameIcon({ size = 40 }: { size?: number }) {
   return (
     <svg
@@ -9,9 +7,9 @@ function FlameIcon({ size = 40 }: { size?: number }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Outer flame body — two organic peaks sharing one base */}
+      {/* Outer flame body — two organic peaks, wider base */}
       <path
-        d="M11 5C13 1 15 7 16 11C17 7 19 0 21 3C24 7 26 15 25 22C24 28 22 32 18 35C17 37 15 37 14 35C10 32 8 28 7 22C6 15 8 7 11 5Z"
+        d="M11 5C13 1 15 7 16 11C17 7 19 0 21 3C24 7 26 15 25 22C24 28 22 31 20 34C19 37 13 37 12 34C10 31 8 28 7 22C6 15 8 7 11 5Z"
         fill="#f97316"
       />
       {/* Amber inner glow */}
@@ -40,7 +38,7 @@ export default function StokeWordmark({
       <FlameIcon size={iconSize} />
       {showText && (
         <span
-          className={`${fraunces.className} text-stone-900 leading-none`}
+          className="font-sans font-bold text-stone-900 leading-none"
           style={{ fontSize: iconSize * 0.72, letterSpacing: '-0.02em' }}
         >
           Stoke
