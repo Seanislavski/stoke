@@ -33,7 +33,7 @@ export default async function ChannelPage({
   // verify user is active member
   const { data: membership } = await admin
     .from('community_members')
-    .select('status')
+    .select('status, role')
     .eq('community_id', channel.community_id)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -80,7 +80,7 @@ export default async function ChannelPage({
     if (myProfile) profileCache[user.id] = myProfile
   }
 
-  const isMod = isOwner || ['organizer', 'moderator'].includes(membership?.status === 'active' ? (membership as { role: string }).role : '')
+  const isMod = isOwner || (membership?.status === 'active' && ['organizer', 'moderator'].includes(membership.role ?? ''))
 
   return (
     <ChannelView
