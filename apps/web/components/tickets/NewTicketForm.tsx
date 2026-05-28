@@ -36,14 +36,16 @@ export default function NewTicketForm({ orgCommunities }: { orgCommunities: Comm
   }
 
   return (
-    <div>
+    <div className="mb-6">
       {!open ? (
-        <button
-          onClick={() => setOpen(true)}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          + New ticket
-        </button>
+        <div className="flex justify-end">
+          <button
+            onClick={() => setOpen(true)}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            + New ticket
+          </button>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="bg-stone-50 border border-stone-200 rounded-xl p-5 space-y-4">
           <h2 className="text-sm font-semibold text-stone-700">New support ticket</h2>
