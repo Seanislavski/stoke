@@ -1,10 +1,10 @@
 CREATE TABLE audit_log (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at timestamptz DEFAULT now() NOT NULL,
-  actor_id uuid REFERENCES profiles(user_id) ON DELETE SET NULL,
+  actor_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
   community_id uuid REFERENCES communities(id) ON DELETE CASCADE,
   action text NOT NULL,
-  target_user_id uuid REFERENCES profiles(user_id) ON DELETE SET NULL,
+  target_user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
   target_id text,
   target_type text,
   metadata jsonb DEFAULT '{}'
