@@ -316,7 +316,7 @@ export default async function CommunityPage({
                           </div>
                           {(isMod || isOwner) && (
                             <DeleteItemButton
-                              action={() => deletePost(post.id, community.id, slug)}
+                              action={deletePost.bind(null, post.id, community.id, slug)}
                               confirm="Delete this post?"
                             />
                           )}
@@ -457,7 +457,7 @@ export default async function CommunityPage({
                               </div>
                               {(isMod || isOwner) && (
                                 <DeleteItemButton
-                                  action={() => deleteResource(resource.id, community.id, slug)}
+                                  action={deleteResource.bind(null, resource.id, community.id, slug)}
                                   confirm="Delete this resource?"
                                 />
                               )}
@@ -562,7 +562,7 @@ function EventCard({
             <h3 className="font-semibold text-stone-900">{event.title}</h3>
             {canDelete && (
               <DeleteItemButton
-                action={() => deleteEvent(event.id, communityId)}
+                action={deleteEvent.bind(null, event.id, communityId)}
                 confirm="Delete this event?"
               />
             )}
