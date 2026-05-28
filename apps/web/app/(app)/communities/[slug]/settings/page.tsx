@@ -8,6 +8,7 @@ import MembersManager from '@/components/community/settings/MembersManager'
 import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
 import { ACTION_LABELS } from '@/lib/audit'
+import LocalDate from '@/components/LocalDate'
 
 export default async function CommunitySettingsPage({
   params,
@@ -175,7 +176,7 @@ export default async function CommunitySettingsPage({
               return (
                 <div key={entry.id} className="flex items-start gap-3 px-4 py-3 text-sm bg-white">
                   <span className="text-stone-400 text-xs shrink-0 mt-0.5 w-32">
-                    {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    <LocalDate ts={entry.created_at} />
                   </span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-stone-800">

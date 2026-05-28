@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ACTION_LABELS } from '@/lib/audit'
+import LocalDate from '@/components/LocalDate'
 import Link from 'next/link'
 
 export default async function AdminAuditLogPage() {
@@ -42,7 +43,7 @@ export default async function AdminAuditLogPage() {
               return (
                 <div key={entry.id} className="flex items-start gap-3 px-4 py-3 text-sm">
                   <span className="text-stone-400 text-xs shrink-0 mt-0.5 w-36">
-                    {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    <LocalDate ts={entry.created_at} />
                   </span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-stone-800">
