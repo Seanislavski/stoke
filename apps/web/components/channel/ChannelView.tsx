@@ -222,16 +222,34 @@ export default function ChannelView({
                 const profile = msg.profiles ?? profiles[msg.author_id] ?? null
 
                 const canDelete = msg.author_id === currentUserId || isMod
+                const trashButton = canDelete && !msg.deleted_at && !msg.id.startsWith('optimistic-') ? (
+                  <button
+                    onClick={() => handleDeleteMessage(msg.id)}
+                    className="opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity touch-manipulation flex-shrink-0"
+                    title="Delete message"
+                    aria-label="Delete message"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4h6v2" />
+                    </svg>
+                  </button>
+                ) : null
+
                 return (
-                  <div key={msg.id} className={`group relative flex gap-3 ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
+                  <div key={msg.id} className={`group flex gap-3 items-start ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
                     {sameAuthor ? (
-                      <div className="w-8 flex-shrink-0" />
+                      trashButton
+                        ? <div className="w-8 flex-shrink-0 flex items-center justify-center">{trashButton}</div>
+                        : <div className="w-8 flex-shrink-0" />
                     ) : (
                       <Link href={`/profile/${profile?.username}`}>
                         <Avatar profile={profile} />
                       </Link>
                     )}
-                    <div className="min-w-0 flex-1 pr-6">
+                    <div className="min-w-0 flex-1">
                       {!sameAuthor && (
                         <div className="flex items-baseline gap-2 mb-0.5">
                           <Link
@@ -241,6 +259,7 @@ export default function ChannelView({
                             {profile?.display_name ?? profile?.username ?? 'Unknown'}
                           </Link>
                           <span className="text-xs text-stone-400">{formatTime(msg.created_at)}</span>
+                          {trashButton}
                         </div>
                       )}
                       {msg.deleted_at ? (
@@ -259,21 +278,6 @@ export default function ChannelView({
                         <p className="text-sm text-stone-700 break-words whitespace-pre-wrap">{msg.content}</p>
                       )}
                     </div>
-                    {canDelete && !msg.deleted_at && !msg.id.startsWith('optimistic-') && (
-                      <button
-                        onClick={() => handleDeleteMessage(msg.id)}
-                        className="absolute right-0 top-0 opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity p-1 rounded touch-manipulation"
-                        title="Delete message"
-                        aria-label="Delete message"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6l-1 14H6L5 6" />
-                          <path d="M10 11v6M14 11v6" />
-                          <path d="M9 6V4h6v2" />
-                        </svg>
-                      </button>
-                    )}
                   </div>
                 )
               })}
