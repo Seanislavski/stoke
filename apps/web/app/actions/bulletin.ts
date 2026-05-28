@@ -77,3 +77,34 @@ export async function rejectPost(postId: string, communityId: string, slug: stri
   revalidatePath(`/communities/${slug}`)
   return { ok: true }
 }
+
+export async function deletePost(postId: string, communityId: string, slug: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authorized.' }
+
+  const admin = createAdminClient()
+  const [{ data: post }, { data: community }] = await Promise.all([
+    admin.from('bulletin_posts').select('submitted_by').eq('id', postId).single(),
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+  ])
+
+  if (!post) return { error: 'Post not found.' }
+
+  const { data: membership } = await admin
+    .from('community_members')
+    .select('role')
+    .eq('community_id', communityId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const isAuthor = post.submitted_by === user.id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
+  const isOwner = community?.owner_id === user.id
+
+  if (!isAuthor && !isMod && !isOwner) return { error: 'Not authorized.' }
+
+  await admin.from('bulletin_posts').delete().eq('id', postId)
+  revalidatePath(`/communities/${slug}`)
+  return {}
+}

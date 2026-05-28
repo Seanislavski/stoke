@@ -80,3 +80,18 @@ export async function rejectResource(resourceId: string, communityId: string, sl
   revalidatePath(`/communities/${slug}`)
   return {}
 }
+
+export async function deleteResource(resourceId: string, communityId: string, slug: string): Promise<{ error?: string }> {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  if (!user) return { error: 'Not logged in' }
+
+  const admin = createAdminClient()
+  const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
+  const isOwner = user.id === community?.owner_id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
+  if (!isMod && !isOwner) return { error: 'Not authorized' }
+
+  await admin.from('resources').delete().eq('id', resourceId)
+  revalidatePath(`/communities/${slug}`)
+  return {}
+}

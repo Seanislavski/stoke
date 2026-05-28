@@ -10,6 +10,10 @@ import CreateEventButton from '@/components/events/CreateEventButton'
 import RsvpButton from '@/components/events/RsvpButton'
 import SubmitResourceForm from '@/components/resources/SubmitResourceForm'
 import ResourceModActions from '@/components/resources/ResourceModActions'
+import DeleteItemButton from '@/components/DeleteItemButton'
+import { deletePost } from '@/app/actions/bulletin'
+import { deleteEvent } from '@/app/actions/events'
+import { deleteResource } from '@/app/actions/resources'
 
 export default async function CommunityPage({
   params,
@@ -299,15 +303,23 @@ export default async function CommunityPage({
                       : ''
                     return (
                       <div key={post.id} className="bg-white border border-stone-200 rounded-xl p-4">
-                        <div className="flex items-center gap-2 text-xs text-stone-400 mb-2">
-                          <span>
-                            {author?.username ? (
-                              <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
-                                {author.display_name ?? author.username}
-                              </Link>
-                            ) : 'Unknown'}
-                          </span>
-                          {date && <><span>·</span><span>{date}</span></>}
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 text-xs text-stone-400">
+                            <span>
+                              {author?.username ? (
+                                <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                                  {author.display_name ?? author.username}
+                                </Link>
+                              ) : 'Unknown'}
+                            </span>
+                            {date && <><span>·</span><span>{date}</span></>}
+                          </div>
+                          {(isMod || isOwner) && (
+                            <DeleteItemButton
+                              action={() => deletePost(post.id, community.id, slug)}
+                              confirm="Delete this post?"
+                            />
+                          )}
                         </div>
                         <h3 className="font-semibold text-stone-900">{post.title}</h3>
                         <p className="text-stone-600 text-sm mt-1 whitespace-pre-wrap">{post.content}</p>
@@ -430,17 +442,25 @@ export default async function CommunityPage({
                     return (
                       <div key={resource.id} className="bg-white border border-stone-200 rounded-xl p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap text-xs text-stone-400 mb-1">
-                              <span className="capitalize bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">
-                                {resource.resource_type}
-                              </span>
-                              {author?.username && (
-                                <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
-                                  {author.display_name ?? author.username}
-                                </Link>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-stone-400 mb-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="capitalize bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">
+                                  {resource.resource_type}
+                                </span>
+                                {author?.username && (
+                                  <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                                    {author.display_name ?? author.username}
+                                  </Link>
+                                )}
+                                {date && <span>{date}</span>}
+                              </div>
+                              {(isMod || isOwner) && (
+                                <DeleteItemButton
+                                  action={() => deleteResource(resource.id, community.id, slug)}
+                                  confirm="Delete this resource?"
+                                />
                               )}
-                              {date && <span>{date}</span>}
                             </div>
                             <h3 className="font-semibold text-stone-900">{resource.title}</h3>
                             <a href={resource.url} target="_blank" rel="noopener noreferrer"
@@ -537,8 +557,16 @@ function EventCard({
   return (
     <div className={`bg-white border rounded-xl p-4 ${past ? 'border-stone-100 opacity-70' : 'border-stone-200'}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-semibold text-stone-900">{event.title}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-stone-900">{event.title}</h3>
+            {canDelete && (
+              <DeleteItemButton
+                action={() => deleteEvent(event.id, communityId)}
+                confirm="Delete this event?"
+              />
+            )}
+          </div>
           <p className="text-sm text-stone-500 mt-0.5">
             {dateStr} · {timeStr}{endTimeStr ? ` – ${endTimeStr}` : ''}
           </p>

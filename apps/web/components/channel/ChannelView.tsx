@@ -31,6 +31,7 @@ export default function ChannelView({
   channelName,
   communitySlug,
   currentUserId,
+  isMod,
   initialMessages,
   initialProfiles,
 }: {
@@ -38,6 +39,7 @@ export default function ChannelView({
   channelName: string
   communitySlug: string
   currentUserId: string
+  isMod: boolean
   initialMessages: Message[]
   initialProfiles: Record<string, Profile>
 }) {
@@ -131,6 +133,12 @@ export default function ChannelView({
     setSending(false)
   }
 
+  async function handleDeleteMessage(messageId: string) {
+    if (!window.confirm('Delete this message?')) return
+    setMessages(ms => ms.filter(m => m.id !== messageId))
+    await supabase.from('messages').delete().eq('id', messageId)
+  }
+
   function formatTime(ts: string) {
     return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
@@ -181,8 +189,9 @@ export default function ChannelView({
                 const sameAuthor = prev?.author_id === msg.author_id
                 const profile = msg.profiles ?? profiles[msg.author_id] ?? null
 
+                const canDelete = msg.author_id === currentUserId || isMod
                 return (
-                  <div key={msg.id} className={`flex gap-3 ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
+                  <div key={msg.id} className={`group flex gap-3 ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
                     {sameAuthor ? (
                       <div className="w-8 flex-shrink-0" />
                     ) : (
@@ -202,7 +211,18 @@ export default function ChannelView({
                           <span className="text-xs text-stone-400">{formatTime(msg.created_at)}</span>
                         </div>
                       )}
-                      <p className="text-sm text-stone-700 break-words whitespace-pre-wrap">{msg.content}</p>
+                      <div className="flex items-start gap-2">
+                        <p className="text-sm text-stone-700 break-words whitespace-pre-wrap flex-1">{msg.content}</p>
+                        {canDelete && !msg.id.startsWith('optimistic-') && (
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="opacity-0 group-hover:opacity-100 text-xs text-stone-300 hover:text-red-500 transition-opacity shrink-0 mt-0.5"
+                            title="Delete message"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )

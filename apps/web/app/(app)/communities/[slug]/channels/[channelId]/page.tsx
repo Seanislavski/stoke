@@ -80,12 +80,15 @@ export default async function ChannelPage({
     if (myProfile) profileCache[user.id] = myProfile
   }
 
+  const isMod = isOwner || ['organizer', 'moderator'].includes(membership?.status === 'active' ? (membership as { role: string }).role : '')
+
   return (
     <ChannelView
       channelId={channelId}
       channelName={channel.name}
       communitySlug={slug}
       currentUserId={user.id}
+      isMod={isMod}
       initialMessages={normalizedMessages as Parameters<typeof ChannelView>[0]['initialMessages']}
       initialProfiles={profileCache}
     />
