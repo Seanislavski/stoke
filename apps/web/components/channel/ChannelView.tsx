@@ -219,10 +219,16 @@ export default function ChannelView({
                         {canDelete && !msg.id.startsWith('optimistic-') && (
                           <button
                             onClick={() => handleDeleteMessage(msg.id)}
-                            className="opacity-0 group-hover:opacity-100 text-xs text-stone-300 hover:text-red-500 transition-opacity shrink-0 mt-0.5"
+                            className="opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity shrink-0 p-1 -mr-1 rounded touch-manipulation"
                             title="Delete message"
+                            aria-label="Delete message"
                           >
-                            ×
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6l-1 14H6L5 6" />
+                              <path d="M10 11v6M14 11v6" />
+                              <path d="M9 6V4h6v2" />
+                            </svg>
                           </button>
                         )}
                       </div>
