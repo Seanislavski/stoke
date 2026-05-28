@@ -47,21 +47,22 @@ export async function createEvent(communityId: string, formData: FormData) {
   revalidatePath(`/communities/${community?.slug}`)
 }
 
-export async function deleteEvent(eventId: string, communityId: string) {
+export async function deleteEvent(eventId: string, communityId: string): Promise<{ error?: string }> {
   const { user, membership } = await getMembershipOrThrow(communityId)
 
   const admin = createAdminClient()
   const { data: event } = await admin.from('events').select('created_by').eq('id', eventId).single()
-  if (!event) throw new Error('Event not found')
+  if (!event) return { error: 'Event not found' }
 
   const isCreator = event.created_by === user.id
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
-  if (!isCreator && !isMod) throw new Error('Not authorized to delete this event')
+  if (!isCreator && !isMod) return { error: 'Not authorized' }
 
   await admin.from('events').delete().eq('id', eventId)
 
   const { data: community } = await admin.from('communities').select('slug').eq('id', communityId).single()
   revalidatePath(`/communities/${community?.slug}`)
+  return {}
 }
 
 export async function upsertRsvp(eventId: string, communityId: string, status: string | null) {
