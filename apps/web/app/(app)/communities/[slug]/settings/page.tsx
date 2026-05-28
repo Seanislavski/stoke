@@ -85,6 +85,12 @@ export default async function CommunitySettingsPage({
     profiles: Array.isArray(m.profiles) ? m.profiles[0] ?? null : m.profiles,
   }))
 
+  const memberIds = normalizedMembers.map(m => m.user_id)
+  const { data: platformRoleRows } = memberIds.length
+    ? await admin.from('platform_roles').select('user_id, role').in('user_id', memberIds).in('role', ['owner', 'platform_moderator'])
+    : { data: [] }
+  const platformStaffIds = new Set((platformRoleRows ?? []).map(r => r.user_id))
+
   return (
     <div className="max-w-2xl mx-auto py-8 space-y-10">
       <div className="flex items-center gap-3">
@@ -144,6 +150,7 @@ export default async function CommunitySettingsPage({
           callerRole={callerRole}
           callerId={user.id}
           initialMembers={normalizedMembers as Parameters<typeof MembersManager>[0]['initialMembers']}
+          platformStaffIds={[...platformStaffIds]}
         />
       </section>
 

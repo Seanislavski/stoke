@@ -7,6 +7,17 @@ import { logAction } from '@/lib/audit'
 
 type CallerRole = 'owner' | 'organizer' | 'moderator'
 
+async function isPlatformProtected(userId: string): Promise<boolean> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('platform_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .in('role', ['owner', 'platform_moderator'])
+    .maybeSingle()
+  return !!data
+}
+
 async function getCallerRole(communityId: string): Promise<{ userId: string; role: CallerRole } | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -60,6 +71,7 @@ export async function updateMemberRole(communityId: string, slug: string, userId
   const caller = await getCallerRole(communityId)
   if (!caller || !['owner', 'organizer'].includes(caller.role)) return { error: 'Not authorized' }
   if (caller.userId === userId) return { error: 'Cannot change your own role' }
+  if (await isPlatformProtected(userId)) return { error: 'Cannot modify platform staff' }
 
   const admin = createAdminClient()
   const { data: prev } = await admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', userId).single()
@@ -79,6 +91,7 @@ export async function removeMember(communityId: string, slug: string, userId: st
   const caller = await getCallerRole(communityId)
   if (!caller) return { error: 'Not authorized' }
   if (caller.userId === userId) return { error: 'Cannot remove yourself' }
+  if (await isPlatformProtected(userId)) return { error: 'Cannot remove platform staff' }
 
   const admin = createAdminClient()
   const { error } = await admin
@@ -97,6 +110,7 @@ export async function banMember(communityId: string, slug: string, userId: strin
   const caller = await getCallerRole(communityId)
   if (!caller) return { error: 'Not authorized' }
   if (caller.userId === userId) return { error: 'Cannot ban yourself' }
+  if (await isPlatformProtected(userId)) return { error: 'Cannot ban platform staff' }
 
   const admin = createAdminClient()
   const { error } = await admin

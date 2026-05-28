@@ -26,18 +26,21 @@ export default function MembersManager({
   callerRole,
   callerId,
   initialMembers,
+  platformStaffIds = [],
 }: {
   communityId: string
   slug: string
   callerRole: CallerRole
   callerId: string
   initialMembers: Member[]
+  platformStaffIds?: string[]
 }) {
   const [members, setMembers] = useState(initialMembers)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   const canChangeRoles = ['owner', 'organizer'].includes(callerRole)
+  const staffSet = new Set(platformStaffIds)
 
   async function act(key: string, fn: () => Promise<{ error?: string; success?: boolean }>) {
     setBusy(key)
@@ -119,13 +122,19 @@ export default function MembersManager({
             const profile = m.profiles
             if (!profile) return null
             const isSelf = m.user_id === callerId
+            const isProtected = staffSet.has(m.user_id)
             return (
               <div key={m.user_id} className="flex items-center justify-between px-4 py-3 gap-4">
-                <Link href={`/profile/${profile.username}`} className="text-sm font-medium text-stone-800 hover:text-orange-600 min-w-0 truncate">
-                  {profile.display_name ?? profile.username}
-                </Link>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Link href={`/profile/${profile.username}`} className="text-sm font-medium text-stone-800 hover:text-orange-600 truncate">
+                    {profile.display_name ?? profile.username}
+                  </Link>
+                  {isProtected && (
+                    <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded shrink-0">platform</span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {canChangeRoles && !isSelf ? (
+                  {canChangeRoles && !isSelf && !isProtected ? (
                     <select
                       value={m.role}
                       disabled={!!busy}
@@ -147,7 +156,7 @@ export default function MembersManager({
                     <span className="text-xs text-stone-400 capitalize">{m.role}</span>
                   )}
 
-                  {!isSelf && (
+                  {!isSelf && !isProtected && (
                     <>
                       <button
                         disabled={!!busy}
