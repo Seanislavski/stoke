@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import StokeWordmark from '@/components/StokeWordmark'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -76,7 +77,7 @@ export default async function HomePage() {
     <div className="max-w-4xl mx-auto py-8">
       {/* Logo header */}
       <div className="mb-8">
-        <img src="/stoke-wordmark.svg" alt="Stoke" className="h-9" />
+        <StokeWordmark iconSize={40} />
       </div>
 
       <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
@@ -210,7 +211,7 @@ export default async function HomePage() {
 function WelcomeScreen() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <img src="/stoke-icon.svg" alt="Stoke" className="h-16 mb-4" />
+      <div className="mb-4"><StokeWordmark iconSize={64} showText={false} /></div>
       <h1 className="text-2xl font-semibold text-stone-900 mb-2">Welcome to Stoke</h1>
       <p className="text-stone-500 max-w-sm mb-8">
         Find a community to belong to, or start one of your own.
