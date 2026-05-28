@@ -70,6 +70,16 @@ export default async function ChannelPage({
     }
   }
 
+  // ensure current user's profile is always in cache (needed for optimistic messages)
+  if (!profileCache[user.id]) {
+    const { data: myProfile } = await admin
+      .from('profiles')
+      .select('username, display_name, avatar_url')
+      .eq('id', user.id)
+      .single()
+    if (myProfile) profileCache[user.id] = myProfile
+  }
+
   return (
     <ChannelView
       channelId={channelId}
