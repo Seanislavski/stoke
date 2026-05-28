@@ -167,7 +167,7 @@ export default async function CommunitySettingsPage({
                 if ((type === 'post') && slug) return `/communities/${slug}?tab=bulletin`
                 if ((type === 'resource') && slug) return `/communities/${slug}?tab=resources`
                 if ((type === 'event') && slug) return `/communities/${slug}?tab=events`
-                if (type === 'message' && typeof meta?.channel_id === 'string') return `/communities/${slug}/channels/${meta.channel_id}`
+                if (type === 'message' && typeof meta?.channel_id === 'string') return `/communities/${slug}/channels/${meta.channel_id}?message=${entry.target_id}`
                 if (targetUser?.username) return `/profile/${targetUser.username}`
                 return null
               })()

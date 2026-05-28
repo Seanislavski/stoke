@@ -34,7 +34,7 @@ export default async function AdminAuditLogPage() {
                 if (type === 'post' && communitySlug) return `/communities/${communitySlug}?tab=bulletin`
                 if (type === 'resource' && communitySlug) return `/communities/${communitySlug}?tab=resources`
                 if (type === 'event' && communitySlug) return `/communities/${communitySlug}?tab=events`
-                if (type === 'message' && communitySlug && typeof meta?.channel_id === 'string') return `/communities/${communitySlug}/channels/${meta.channel_id}`
+                if (type === 'message' && communitySlug && typeof meta?.channel_id === 'string') return `/communities/${communitySlug}/channels/${meta.channel_id}?message=${entry.target_id}`
                 if (targetUser?.username) return `/profile/${targetUser.username}`
                 return null
               })()

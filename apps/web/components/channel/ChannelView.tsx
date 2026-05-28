@@ -38,6 +38,7 @@ export default function ChannelView({
   isMod,
   initialMessages,
   initialProfiles,
+  highlightMessageId,
 }: {
   channelId: string
   channelName: string
@@ -47,18 +48,30 @@ export default function ChannelView({
   isMod: boolean
   initialMessages: Message[]
   initialProfiles: Record<string, Profile>
+  highlightMessageId?: string
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [profiles, setProfiles] = useState<Record<string, Profile>>(initialProfiles)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   // scroll to bottom on new messages
   useEffect(() => {
+    if (highlightedId) return
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // scroll to and pulse highlighted message from audit log link
+  useEffect(() => {
+    if (!highlightedId) return
+    const el = document.getElementById(`msg-${highlightedId}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timer = setTimeout(() => setHighlightedId(null), 3000)
+    return () => clearTimeout(timer)
+  }, [])
 
   // realtime subscription
   useEffect(() => {
@@ -238,8 +251,9 @@ export default function ChannelView({
                   </button>
                 ) : null
 
+                const isHighlighted = highlightedId === msg.id
                 return (
-                  <div key={msg.id} className={`group flex gap-3 items-start ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
+                  <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-sm px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-50 outline outline-1 outline-blue-200 animate-pulse' : ''}`}>
                     {sameAuthor ? (
                       trashButton
                         ? <div className="w-8 flex-shrink-0 flex items-center justify-center">{trashButton}</div>

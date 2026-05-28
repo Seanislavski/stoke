@@ -5,10 +5,13 @@ import ChannelView from '@/components/channel/ChannelView'
 
 export default async function ChannelPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; channelId: string }>
+  searchParams: Promise<{ message?: string }>
 }) {
   const { slug, channelId } = await params
+  const { message: highlightMessageId } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -96,6 +99,7 @@ export default async function ChannelPage({
       isMod={isMod}
       initialMessages={normalizedMessages as Parameters<typeof ChannelView>[0]['initialMessages']}
       initialProfiles={profileCache}
+      highlightMessageId={highlightMessageId}
     />
   )
 }
