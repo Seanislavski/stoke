@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 40" fill="none">
+  <!-- Flame icon scaled to fit 36px height, vertically centered -->
+  <g transform="translate(2, 2) scale(1)">
+    <path d="M16 2C13.5 6 9 10.5 8 16.5C7 21.5 9 27 12.5 30C11 26.5 11.5 22.5 13.5 20C13 23 14 26 16 28C18 26 19 23 18.5 20C20.5 22.5 21 26.5 19.5 30C23 27 25 21.5 24 16.5C23 10.5 18.5 6 16 2Z" fill="#f97316"/>
+    <path d="M16 16C14.8 18 14 20 14 22C14 24.2 14.9 26 16 26C17.1 26 18 24.2 18 22C18 20 17.2 18 16 16Z" fill="#fed7aa"/>
+  </g>
+  <!-- Wordmark text -->
+  <text x="42" y="28" font-family="'Inter', ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="700" letter-spacing="-0.5" fill="#1c1917">Stoke</text>
+</svg>

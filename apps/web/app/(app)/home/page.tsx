@@ -74,6 +74,11 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
+      {/* Logo header */}
+      <div className="mb-8">
+        <img src="/stoke-wordmark.svg" alt="Stoke" className="h-9" />
+      </div>
+
       <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
 
         {/* Left: communities list */}
@@ -205,7 +210,7 @@ export default async function HomePage() {
 function WelcomeScreen() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="text-4xl mb-4">🔥</div>
+      <img src="/stoke-icon.svg" alt="Stoke" className="h-16 mb-4" />
       <h1 className="text-2xl font-semibold text-stone-900 mb-2">Welcome to Stoke</h1>
       <p className="text-stone-500 max-w-sm mb-8">
         Find a community to belong to, or start one of your own.
