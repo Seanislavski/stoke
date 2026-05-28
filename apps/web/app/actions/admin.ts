@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 async function requirePlatformRole(...allowed: string[]) {
   const supabase = await createClient()
@@ -34,17 +35,20 @@ export async function platformBanUser(userId: string, ban: boolean) {
   }
 
   await admin.from('profiles').update({ is_banned: ban }).eq('id', userId)
+  logAction({ actorId: caller.id, action: ban ? 'platform.user.banned' : 'platform.user.unbanned', targetUserId: userId })
   revalidatePath('/admin/users')
   revalidatePath('/admin/moderation')
 }
 
 export async function assignPlatformRole(userId: string, role: string | null) {
-  await requirePlatformRole('owner')
+  const caller = await requirePlatformRole('owner')
   const admin = createAdminClient()
   if (role === null) {
     await admin.from('platform_roles').delete().eq('user_id', userId)
+    logAction({ actorId: caller.id, action: 'platform.role.removed', targetUserId: userId })
   } else {
     await admin.from('platform_roles').upsert({ user_id: userId, role })
+    logAction({ actorId: caller.id, action: 'platform.role.assigned', targetUserId: userId, metadata: { role } })
   }
   revalidatePath('/admin/users')
 }

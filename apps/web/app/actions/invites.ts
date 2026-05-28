@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 async function requireModOrThrow(communityId: string) {
   const supabase = await createClient()
@@ -45,6 +46,7 @@ export async function createInvite(communityId: string, slug: string, maxUses: n
   }).select('token').single()
 
   if (error || !data) return { error: error?.message ?? 'Failed to create invite' }
+  logAction({ actorId: user.id, communityId, action: 'invite.created', targetId: data.token, targetType: 'invite', metadata: { max_uses: maxUses, expires_in: expiresIn } })
   revalidatePath(`/communities/${slug}/settings`)
   return { token: data.token }
 }
@@ -55,7 +57,9 @@ export async function revokeInvite(inviteId: string, slug: string) {
   if (!user) throw new Error('Unauthorized')
 
   const admin = createAdminClient()
+  const { data: invite } = await admin.from('invites').select('community_id, token').eq('id', inviteId).single()
   await admin.from('invites').delete().eq('id', inviteId)
+  if (invite) logAction({ actorId: user.id, communityId: invite.community_id, action: 'invite.revoked', targetId: invite.token, targetType: 'invite' })
   revalidatePath(`/communities/${slug}/settings`)
 }
 

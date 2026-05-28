@@ -86,6 +86,7 @@ export default async function ChannelPage({
     <ChannelView
       channelId={channelId}
       channelName={channel.name}
+      communityId={channel.community_id}
       communitySlug={slug}
       currentUserId={user.id}
       isMod={isMod}

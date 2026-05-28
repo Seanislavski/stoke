@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { deleteMessage } from '@/app/actions/messages'
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null }
 type Message = {
@@ -29,6 +30,7 @@ function Avatar({ profile }: { profile: Profile | null }) {
 export default function ChannelView({
   channelId,
   channelName,
+  communityId,
   communitySlug,
   currentUserId,
   isMod,
@@ -37,6 +39,7 @@ export default function ChannelView({
 }: {
   channelId: string
   channelName: string
+  communityId: string
   communitySlug: string
   currentUserId: string
   isMod: boolean
@@ -136,7 +139,7 @@ export default function ChannelView({
   async function handleDeleteMessage(messageId: string) {
     if (!window.confirm('Delete this message?')) return
     setMessages(ms => ms.filter(m => m.id !== messageId))
-    await supabase.from('messages').delete().eq('id', messageId)
+    await deleteMessage(messageId, channelId, communityId)
   }
 
   function formatTime(ts: string) {

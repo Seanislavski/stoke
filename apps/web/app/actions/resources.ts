@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 async function getMembershipOrThrow(communityId: string) {
   const supabase = await createClient()
@@ -62,6 +63,7 @@ export async function approveResource(resourceId: string, communityId: string, s
   if (!isMod && !isOwner) return { error: 'Not authorized' }
 
   await admin.from('resources').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', resourceId)
+  logAction({ actorId: user.id, communityId, action: 'resource.approved', targetId: resourceId, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)
   return {}
 }
@@ -77,6 +79,7 @@ export async function rejectResource(resourceId: string, communityId: string, sl
   if (!isMod && !isOwner) return { error: 'Not authorized' }
 
   await admin.from('resources').update({ status: 'rejected' }).eq('id', resourceId)
+  logAction({ actorId: user.id, communityId, action: 'resource.rejected', targetId: resourceId, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)
   return {}
 }
@@ -92,6 +95,7 @@ export async function deleteResource(resourceId: string, communityId: string, sl
   if (!isMod && !isOwner) return { error: 'Not authorized' }
 
   await admin.from('resources').delete().eq('id', resourceId)
+  logAction({ actorId: user.id, communityId, action: 'resource.deleted', targetId: resourceId, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)
   return {}
 }

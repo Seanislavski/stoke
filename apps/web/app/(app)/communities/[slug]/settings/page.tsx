@@ -7,6 +7,7 @@ import CommunityInfoForm from '@/components/community/settings/CommunityInfoForm
 import MembersManager from '@/components/community/settings/MembersManager'
 import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
+import { ACTION_LABELS } from '@/lib/audit'
 
 export default async function CommunitySettingsPage({
   params,
@@ -51,7 +52,7 @@ export default async function CommunitySettingsPage({
   const proto = headersList.get('x-forwarded-proto') ?? 'http'
   const baseUrl = `${proto}://${host}`
 
-  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }] = await Promise.all([
+  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }] = await Promise.all([
     supabase.from('categories').select('id, name').order('name'),
     admin
       .from('community_members')
@@ -70,6 +71,12 @@ export default async function CommunitySettingsPage({
       .select('id, token, max_uses, use_count, expires_at, created_at')
       .eq('community_id', community.id)
       .order('created_at', { ascending: false }),
+    admin
+      .from('audit_log')
+      .select('id, created_at, action, target_user_id, target_id, target_type, metadata, actor:actor_id(username, display_name), target_user:target_user_id(username, display_name)')
+      .eq('community_id', community.id)
+      .order('created_at', { ascending: false })
+      .limit(100),
   ])
 
   const normalizedMembers = (members ?? []).map(m => ({
@@ -137,6 +144,45 @@ export default async function CommunitySettingsPage({
           callerId={user.id}
           initialMembers={normalizedMembers as Parameters<typeof MembersManager>[0]['initialMembers']}
         />
+      </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Audit log */}
+      <section className="pb-8">
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Audit log</h2>
+        <p className="text-sm text-stone-500 mb-4">Recent moderation actions in this community.</p>
+        {!auditLog || auditLog.length === 0 ? (
+          <p className="text-sm text-stone-400">No actions logged yet.</p>
+        ) : (
+          <div className="divide-y divide-stone-100 border border-stone-200 rounded-lg overflow-hidden">
+            {auditLog.map((entry) => {
+              const actor = Array.isArray(entry.actor) ? entry.actor[0] : entry.actor
+              const targetUser = Array.isArray(entry.target_user) ? entry.target_user[0] : entry.target_user
+              const label = ACTION_LABELS[entry.action] ?? entry.action
+              const meta = entry.metadata as Record<string, unknown> | null
+              return (
+                <div key={entry.id} className="flex items-start gap-3 px-4 py-3 text-sm bg-white">
+                  <span className="text-stone-400 text-xs shrink-0 mt-0.5 w-32">
+                    {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-stone-800">
+                      {actor?.display_name ?? actor?.username ?? 'Unknown'}
+                    </span>
+                    <span className="text-stone-500"> — {label}</span>
+                    {targetUser && (
+                      <span className="text-stone-400"> · {targetUser.display_name ?? targetUser.username}</span>
+                    )}
+                    {entry.action === 'member.role_changed' && meta && (
+                      <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </section>
     </div>
   )

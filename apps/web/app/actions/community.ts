@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 type CallerRole = 'owner' | 'organizer' | 'moderator'
 
@@ -61,6 +62,7 @@ export async function updateMemberRole(communityId: string, slug: string, userId
   if (caller.userId === userId) return { error: 'Cannot change your own role' }
 
   const admin = createAdminClient()
+  const { data: prev } = await admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', userId).single()
   const { error } = await admin
     .from('community_members')
     .update({ role })
@@ -68,6 +70,7 @@ export async function updateMemberRole(communityId: string, slug: string, userId
     .eq('user_id', userId)
 
   if (error) return { error: error.message }
+  logAction({ actorId: caller.userId, communityId, action: 'member.role_changed', targetUserId: userId, metadata: { from_role: prev?.role, to_role: role } })
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
@@ -85,6 +88,7 @@ export async function removeMember(communityId: string, slug: string, userId: st
     .eq('user_id', userId)
 
   if (error) return { error: error.message }
+  logAction({ actorId: caller.userId, communityId, action: 'member.removed', targetUserId: userId })
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
@@ -102,6 +106,7 @@ export async function banMember(communityId: string, slug: string, userId: strin
     .eq('user_id', userId)
 
   if (error) return { error: error.message }
+  logAction({ actorId: caller.userId, communityId, action: 'member.banned', targetUserId: userId })
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
@@ -118,6 +123,7 @@ export async function unbanMember(communityId: string, slug: string, userId: str
     .eq('user_id', userId)
 
   if (error) return { error: error.message }
+  logAction({ actorId: caller.userId, communityId, action: 'member.unbanned', targetUserId: userId })
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
@@ -135,6 +141,7 @@ export async function approveRequest(communityId: string, slug: string, userId: 
     .eq('status', 'pending')
 
   if (error) return { error: error.message }
+  logAction({ actorId: caller.userId, communityId, action: 'member.approved', targetUserId: userId })
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
@@ -152,6 +159,7 @@ export async function rejectRequest(communityId: string, slug: string, userId: s
     .eq('status', 'pending')
 
   if (error) return { error: error.message }
+  logAction({ actorId: caller.userId, communityId, action: 'member.rejected', targetUserId: userId })
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }

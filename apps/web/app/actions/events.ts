@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 async function getMembershipOrThrow(communityId: string) {
   const supabase = await createClient()
@@ -59,6 +60,7 @@ export async function deleteEvent(eventId: string, communityId: string): Promise
   if (!isCreator && !isMod) return { error: 'Not authorized' }
 
   await admin.from('events').delete().eq('id', eventId)
+  logAction({ actorId: user.id, communityId, action: 'event.deleted', targetId: eventId, targetType: 'event', metadata: { self: isCreator } })
 
   const { data: community } = await admin.from('communities').select('slug').eq('id', communityId).single()
   revalidatePath(`/communities/${community?.slug}`)

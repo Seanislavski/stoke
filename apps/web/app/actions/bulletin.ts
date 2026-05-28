@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 async function getUserMembership(communityId: string) {
   const supabase = await createClient()
@@ -43,8 +44,8 @@ export async function submitPost(communityId: string, slug: string, formData: Fo
 }
 
 export async function approvePost(postId: string, communityId: string, slug: string) {
-  const { membership } = await getUserMembership(communityId)
-  if (!membership || !['organizer', 'moderator'].includes(membership.role)) {
+  const { user, membership } = await getUserMembership(communityId)
+  if (!user || !membership || !['organizer', 'moderator'].includes(membership.role)) {
     return { error: 'Not authorized.' }
   }
 
@@ -56,13 +57,14 @@ export async function approvePost(postId: string, communityId: string, slug: str
 
   if (error) return { error: 'Could not approve post.' }
 
+  logAction({ actorId: user.id, communityId, action: 'post.approved', targetId: postId, targetType: 'post' })
   revalidatePath(`/communities/${slug}`)
   return { ok: true }
 }
 
 export async function rejectPost(postId: string, communityId: string, slug: string) {
-  const { membership } = await getUserMembership(communityId)
-  if (!membership || !['organizer', 'moderator'].includes(membership.role)) {
+  const { user, membership } = await getUserMembership(communityId)
+  if (!user || !membership || !['organizer', 'moderator'].includes(membership.role)) {
     return { error: 'Not authorized.' }
   }
 
@@ -74,6 +76,7 @@ export async function rejectPost(postId: string, communityId: string, slug: stri
 
   if (error) return { error: 'Could not reject post.' }
 
+  logAction({ actorId: user.id, communityId, action: 'post.rejected', targetId: postId, targetType: 'post' })
   revalidatePath(`/communities/${slug}`)
   return { ok: true }
 }
@@ -105,6 +108,7 @@ export async function deletePost(postId: string, communityId: string, slug: stri
   if (!isAuthor && !isMod && !isOwner) return { error: 'Not authorized.' }
 
   await admin.from('bulletin_posts').delete().eq('id', postId)
+  logAction({ actorId: user.id, communityId, action: 'post.deleted', targetId: postId, targetType: 'post', metadata: { self: isAuthor } })
   revalidatePath(`/communities/${slug}`)
   return {}
 }
