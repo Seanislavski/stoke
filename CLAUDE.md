@@ -147,6 +147,9 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 - Public people directory
 - Mobile native apps
 
+## Next.js Patterns
+- Server actions passed as props to client components MUST use `.bind(null, ...args)` — arrow functions `() => serverAction(args)` are plain closures, not serializable across the server→client boundary, and cause runtime crashes (Next.js error digest). Example: `deletePost.bind(null, post.id, communityId, slug)` not `() => deletePost(post.id, communityId, slug)`
+
 ## Git
 - No Co-Authored-By lines in commits
 - Use PowerShell with semicolons not `&&`

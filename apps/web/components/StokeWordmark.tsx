@@ -1,52 +1,29 @@
 import { fraunces } from '@/lib/fonts'
 
-function CampfireIcon({ size = 40 }: { size?: number }) {
+function FlameIcon({ size = 40 }: { size?: number }) {
   return (
     <svg
-      viewBox="0 0 44 48"
+      viewBox="0 0 32 38"
       width={size}
-      height={size * (48 / 44)}
+      height={Math.round(size * (38 / 32))}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Left flame tongue — shorter, leans left */}
+      {/* Outer flame body — two organic peaks sharing one base */}
       <path
-        d="M15 34C12 28 10 21 13 13C14 19 15 25 15 34Z"
-        fill="#fb923c"
-      />
-      {/* Right flame tongue — medium, leans right */}
-      <path
-        d="M29 34C29 25 30 19 31 13C34 21 32 28 29 34Z"
-        fill="#fb923c"
-      />
-      {/* Center flame — tallest, main body */}
-      <path
-        d="M22 34C17 24 16 15 22 3C28 15 27 24 22 34Z"
+        d="M11 5C13 1 15 7 16 11C17 7 19 0 21 3C24 7 26 15 25 22C24 28 22 32 18 35C17 37 15 37 14 35C10 32 8 28 7 22C6 15 8 7 11 5Z"
         fill="#f97316"
       />
-      {/* Inner amber glow */}
+      {/* Amber inner glow */}
       <path
-        d="M22 28C20 22 20 16 22 9C24 16 24 22 22 28Z"
-        fill="#fcd34d"
+        d="M16 14C14 18 13 22 13 26C13 30 14.5 33 16 33C17.5 33 19 30 19 26C19 22 18 18 16 14Z"
+        fill="#fbbf24"
       />
-      {/* Log 1 — angled lower-left to upper-right */}
-      <rect
-        x="5" y="34" width="26" height="9" rx="4.5"
-        fill="#92400e"
-        transform="rotate(-22 18 38.5)"
+      {/* Light core */}
+      <path
+        d="M16 21C15.2 23 15 25 15 27C15 29 15.5 31 16 31C16.5 31 17 29 17 27C17 25 16.8 23 16 21Z"
+        fill="#fef9c3"
       />
-      {/* Log end cap (left) */}
-      <ellipse cx="7" cy="36" rx="4" ry="4.5" fill="#78350f" transform="rotate(-22 7 36)" />
-      {/* Log 2 — angled lower-right to upper-left */}
-      <rect
-        x="13" y="34" width="26" height="9" rx="4.5"
-        fill="#a16207"
-        transform="rotate(22 26 38.5)"
-      />
-      {/* Log end cap (right) */}
-      <ellipse cx="37" cy="36" rx="4" ry="4.5" fill="#854d0e" transform="rotate(22 37 36)" />
-      {/* Ember glow at base */}
-      <ellipse cx="22" cy="41" rx="10" ry="4" fill="#b45309" opacity="0.6" />
     </svg>
   )
 }
@@ -60,7 +37,7 @@ export default function StokeWordmark({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <CampfireIcon size={iconSize} />
+      <FlameIcon size={iconSize} />
       {showText && (
         <span
           className={`${fraunces.className} text-stone-900 leading-none`}
