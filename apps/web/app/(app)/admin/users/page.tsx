@@ -90,8 +90,12 @@ export default async function AdminUsersPage({
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {isOwner && <RoleSelect userId={u.id} currentRole={roleMap[u.id] ?? null} />}
-              <BanButton userId={u.id} isBanned={u.is_banned ?? false} />
+              {isOwner && roleMap[u.id] !== 'owner' && (
+                <RoleSelect userId={u.id} currentRole={roleMap[u.id] ?? null} />
+              )}
+              {u.id !== user!.id && roleMap[u.id] !== 'owner' && (
+                <BanButton userId={u.id} isBanned={u.is_banned ?? false} />
+              )}
             </div>
           </div>
         ))}
