@@ -76,10 +76,11 @@ export async function createTicket(formData: FormData) {
   return { ticketId: ticket.id }
 }
 
-export async function addReply(ticketId: string, content: string) {
+export async function addReply(ticketId: string, content: string): Promise<{ error?: string }> {
   const { user } = await getAccessOrThrow(ticketId)
   const admin = createAdminClient()
-  await admin.from('ticket_replies').insert({ ticket_id: ticketId, author_id: user.id, content })
+  const { error } = await admin.from('ticket_replies').insert({ ticket_id: ticketId, author_id: user.id, content })
+  if (error) return { error: error.message }
   await admin.from('tickets').update({ updated_at: new Date().toISOString() }).eq('id', ticketId)
   revalidatePath(`/support/${ticketId}`)
   revalidatePath('/admin/support')
