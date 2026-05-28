@@ -192,7 +192,7 @@ export default async function CommunityPage({
               )}
             </div>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
             <JoinButton
               communityId={community.id}
               joinMode={community.join_mode}
@@ -200,20 +200,17 @@ export default async function CommunityPage({
               memberStatus={myMembership?.status ?? null}
               isOwner={isOwner}
             />
+            {(isMod || isOwner) && (
+              <CommunityGear
+                slug={slug}
+                callerRole={isOwner ? 'owner' : myMembership?.role as 'organizer' | 'moderator'}
+                joinMode={community.join_mode}
+                pendingCount={pendingCount ?? 0}
+                bannedCount={bannedCount ?? 0}
+              />
+            )}
           </div>
         </div>
-
-        {(isMod || isOwner) && (
-          <div className="absolute top-4 right-4">
-            <CommunityGear
-              slug={slug}
-              callerRole={isOwner ? 'owner' : myMembership?.role as 'organizer' | 'moderator'}
-              joinMode={community.join_mode}
-              pendingCount={pendingCount ?? 0}
-              bannedCount={bannedCount ?? 0}
-            />
-          </div>
-        )}
       </div>
 
       {/* Gate: non-members */}
