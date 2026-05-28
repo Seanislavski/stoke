@@ -223,7 +223,7 @@ export default function ChannelView({
 
                 const canDelete = msg.author_id === currentUserId || isMod
                 return (
-                  <div key={msg.id} className={`group flex gap-3 ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
+                  <div key={msg.id} className={`group relative flex gap-3 ${sameAuthor ? 'mt-0.5' : 'mt-3'}`}>
                     {sameAuthor ? (
                       <div className="w-8 flex-shrink-0" />
                     ) : (
@@ -231,7 +231,7 @@ export default function ChannelView({
                         <Avatar profile={profile} />
                       </Link>
                     )}
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-6">
                       {!sameAuthor && (
                         <div className="flex items-baseline gap-2 mb-0.5">
                           <Link
@@ -243,41 +243,37 @@ export default function ChannelView({
                           <span className="text-xs text-stone-400">{formatTime(msg.created_at)}</span>
                         </div>
                       )}
-                      <div className="flex items-start gap-2">
-                        {msg.deleted_at ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <p className="text-sm text-stone-400 italic">[Message deleted]</p>
-                            {isMod && (
-                              <button
-                                onClick={() => handleRestoreMessage(msg.id)}
-                                className="text-xs text-orange-500 hover:text-orange-700 transition-colors shrink-0"
-                              >
-                                Restore
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm text-stone-700 break-words whitespace-pre-wrap flex-1">{msg.content}</p>
-                            {canDelete && !msg.id.startsWith('optimistic-') && (
-                              <button
-                                onClick={() => handleDeleteMessage(msg.id)}
-                                className="opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity shrink-0 p-1 -mr-1 rounded touch-manipulation"
-                                title="Delete message"
-                                aria-label="Delete message"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6l-1 14H6L5 6" />
-                                  <path d="M10 11v6M14 11v6" />
-                                  <path d="M9 6V4h6v2" />
-                                </svg>
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      {msg.deleted_at ? (
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-stone-400 italic">[Message deleted]</p>
+                          {isMod && (
+                            <button
+                              onClick={() => handleRestoreMessage(msg.id)}
+                              className="text-xs text-orange-500 hover:text-orange-700 transition-colors"
+                            >
+                              Restore
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-stone-700 break-words whitespace-pre-wrap">{msg.content}</p>
+                      )}
                     </div>
+                    {canDelete && !msg.deleted_at && !msg.id.startsWith('optimistic-') && (
+                      <button
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        className="absolute right-0 top-0 opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity p-1 rounded touch-manipulation"
+                        title="Delete message"
+                        aria-label="Delete message"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14H6L5 6" />
+                          <path d="M10 11v6M14 11v6" />
+                          <path d="M9 6V4h6v2" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 )
               })}
