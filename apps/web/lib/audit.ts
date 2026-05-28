@@ -42,6 +42,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'invite.created': 'Created invite link',
   'invite.revoked': 'Revoked invite link',
   'message.deleted': 'Deleted message',
+  'message.restored': 'Restored message',
   'platform.user.banned': 'Platform banned user',
   'platform.user.unbanned': 'Platform unbanned user',
   'platform.role.assigned': 'Assigned platform role',

@@ -49,13 +49,19 @@ export default async function ChannelPage({
     redirect(`/communities/${slug}`)
   }
 
-  // load last 50 messages
-  const { data: messages } = await admin
+  const isMod = isOwner || (membership?.status === 'active' && ['organizer', 'moderator'].includes(membership.role ?? ''))
+
+  // load last 50 messages — mods see deleted ones too
+  let messagesQuery = admin
     .from('messages')
-    .select('id, content, created_at, edited_at, author_id, profiles(username, display_name, avatar_url)')
+    .select('id, content, created_at, edited_at, author_id, deleted_at, deleted_by, profiles(username, display_name, avatar_url)')
     .eq('channel_id', channelId)
     .order('created_at', { ascending: true })
     .limit(50)
+
+  if (!isMod) messagesQuery = messagesQuery.is('deleted_at', null)
+
+  const { data: messages } = await messagesQuery
 
   const normalizedMessages = (messages ?? []).map(m => ({
     ...m,
@@ -79,8 +85,6 @@ export default async function ChannelPage({
       .single()
     if (myProfile) profileCache[user.id] = myProfile
   }
-
-  const isMod = isOwner || (membership?.status === 'active' && ['organizer', 'moderator'].includes(membership.role ?? ''))
 
   return (
     <ChannelView

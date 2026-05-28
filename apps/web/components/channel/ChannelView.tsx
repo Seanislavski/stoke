@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { deleteMessage } from '@/app/actions/messages'
+import { deleteMessage, restoreMessage } from '@/app/actions/messages'
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null }
 type Message = {
@@ -13,6 +13,8 @@ type Message = {
   created_at: string
   edited_at: string | null
   author_id: string
+  deleted_at: string | null
+  deleted_by: string | null
   profiles: Profile | null
 }
 
@@ -66,7 +68,7 @@ export default function ChannelView({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const row = payload.new as { id: string; content: string; created_at: string; edited_at: string | null; author_id: string }
+          const row = payload.new as { id: string; content: string; created_at: string; edited_at: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
 
           // fetch author profile if not cached
           let profile = profiles[row.author_id] ?? null
@@ -100,6 +102,22 @@ export default function ChannelView({
           })
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
+        (payload) => {
+          const row = payload.new as { id: string; deleted_at: string | null; deleted_by: string | null }
+          setMessages(ms => {
+            if (isMod) {
+              // mods see deleted placeholder — update in place
+              return ms.map(m => m.id === row.id ? { ...m, deleted_at: row.deleted_at, deleted_by: row.deleted_by } : m)
+            } else {
+              // non-mods: remove deleted messages, restore adds them back on next page load
+              return row.deleted_at ? ms.filter(m => m.id !== row.id) : ms
+            }
+          })
+        }
+      )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -121,6 +139,8 @@ export default function ChannelView({
       created_at: new Date().toISOString(),
       edited_at: null,
       author_id: currentUserId,
+      deleted_at: null,
+      deleted_by: null,
       profiles: profiles[currentUserId] ?? null,
     }
     setMessages(ms => [...ms, optimistic])
@@ -138,8 +158,17 @@ export default function ChannelView({
 
   async function handleDeleteMessage(messageId: string) {
     if (!window.confirm('Delete this message?')) return
-    setMessages(ms => ms.filter(m => m.id !== messageId))
+    const now = new Date().toISOString()
+    setMessages(ms => isMod
+      ? ms.map(m => m.id === messageId ? { ...m, deleted_at: now, deleted_by: currentUserId } : m)
+      : ms.filter(m => m.id !== messageId)
+    )
     await deleteMessage(messageId, channelId, communityId)
+  }
+
+  async function handleRestoreMessage(messageId: string) {
+    setMessages(ms => ms.map(m => m.id === messageId ? { ...m, deleted_at: null, deleted_by: null } : m))
+    await restoreMessage(messageId, channelId, communityId)
   }
 
   function formatTime(ts: string) {
@@ -215,21 +244,37 @@ export default function ChannelView({
                         </div>
                       )}
                       <div className="flex items-start gap-2">
-                        <p className="text-sm text-stone-700 break-words whitespace-pre-wrap flex-1">{msg.content}</p>
-                        {canDelete && !msg.id.startsWith('optimistic-') && (
-                          <button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity shrink-0 p-1 -mr-1 rounded touch-manipulation"
-                            title="Delete message"
-                            aria-label="Delete message"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14H6L5 6" />
-                              <path d="M10 11v6M14 11v6" />
-                              <path d="M9 6V4h6v2" />
-                            </svg>
-                          </button>
+                        {msg.deleted_at ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <p className="text-sm text-stone-400 italic">[Message deleted]</p>
+                            {isMod && (
+                              <button
+                                onClick={() => handleRestoreMessage(msg.id)}
+                                className="text-xs text-orange-500 hover:text-orange-700 transition-colors shrink-0"
+                              >
+                                Restore
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-stone-700 break-words whitespace-pre-wrap flex-1">{msg.content}</p>
+                            {canDelete && !msg.id.startsWith('optimistic-') && (
+                              <button
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity shrink-0 p-1 -mr-1 rounded touch-manipulation"
+                                title="Delete message"
+                                aria-label="Delete message"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6l-1 14H6L5 6" />
+                                  <path d="M10 11v6M14 11v6" />
+                                  <path d="M9 6V4h6v2" />
+                                </svg>
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
