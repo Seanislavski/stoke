@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import ReplyForm from '@/components/tickets/ReplyForm'
+import TicketThread from '@/components/tickets/TicketThread'
 import StatusSelect from '@/components/tickets/StatusSelect'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -59,6 +59,20 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
     .eq('ticket_id', ticketId)
     .order('created_at', { ascending: true })
 
+  const normalizedReplies = (replies ?? []).map(r => ({
+    ...r,
+    profiles: Array.isArray(r.profiles) ? r.profiles[0] ?? null : r.profiles,
+  }))
+
+  const profileCache: Record<string, { username: string; display_name: string | null; avatar_url?: string | null }> = {}
+  for (const r of normalizedReplies) {
+    if (r.profiles && r.author_id) profileCache[r.author_id] = r.profiles
+  }
+  if (!profileCache[user!.id]) {
+    const { data: myProfile } = await admin.from('profiles').select('username, display_name, avatar_url').eq('id', user!.id).single()
+    if (myProfile) profileCache[user!.id] = myProfile
+  }
+
   const community = Array.isArray(ticket.communities) ? ticket.communities[0] : ticket.communities
   const submitter = Array.isArray(ticket.profiles) ? ticket.profiles[0] : ticket.profiles
 
@@ -97,39 +111,14 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
         </div>
       </div>
 
-      {/* Thread */}
-      <div className="space-y-4 mb-6">
-        {replies?.map(reply => {
-          const author = Array.isArray(reply.profiles) ? reply.profiles[0] : reply.profiles
-          const isOwn = reply.author_id === user!.id
-          const date = new Date(reply.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
-            ' at ' + new Date(reply.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-
-          return (
-            <div key={reply.id} className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
-              <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-xs font-semibold text-stone-500 shrink-0">
-                {((author?.display_name ?? author?.username) || '?')[0].toUpperCase()}
-              </div>
-              <div className={`max-w-[80%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
-                <div className={`rounded-xl px-4 py-3 text-sm ${isOwn ? 'bg-orange-500 text-white' : 'bg-white border border-stone-200 text-stone-800'}`}>
-                  <p className="whitespace-pre-wrap">{reply.content}</p>
-                </div>
-                <p className="text-xs text-stone-400 mt-1 px-1">
-                  {author?.display_name ?? author?.username} · {date}
-                </p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Reply form (not for closed tickets) */}
-      {ticket.status !== 'closed' && (
-        <ReplyForm ticketId={ticket.id} />
-      )}
-      {ticket.status === 'closed' && (
-        <p className="text-sm text-stone-400 text-center">This ticket is closed.</p>
-      )}
+      {/* Thread + reply */}
+      <TicketThread
+        ticketId={ticket.id}
+        currentUserId={user!.id}
+        initialReplies={normalizedReplies as Parameters<typeof TicketThread>[0]['initialReplies']}
+        initialProfiles={profileCache}
+        isClosed={ticket.status === 'closed'}
+      />
     </div>
   )
 }
