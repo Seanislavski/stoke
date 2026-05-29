@@ -36,7 +36,7 @@ export default async function AdminModerationPage() {
   const resolvedPlatform = (platformReports ?? []).filter(r => r.status !== 'open')
   const resolvedCommunity = (communityReports ?? []).filter(r => r.status !== 'open')
 
-  function ReportRow({ r, communitySlug }: { r: NonNullable<typeof platformReports>[0] & { community?: { name: string; slug: string } | null }, communitySlug?: string }) {
+  function ReportRow({ r, communitySlug }: { r: NonNullable<typeof platformReports>[0] & { community?: { name: string; slug: string }[] | { name: string; slug: string } | null }, communitySlug?: string }) {
     const reporter = Array.isArray(r.reporter) ? r.reporter[0] : r.reporter
     const reported = Array.isArray(r.reported_user) ? r.reported_user[0] : r.reported_user
     return (
