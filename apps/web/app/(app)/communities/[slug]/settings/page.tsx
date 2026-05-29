@@ -171,7 +171,7 @@ export default async function CommunitySettingsPage({
           <p className="text-sm text-stone-400">No reports.</p>
         ) : (
           <div className="space-y-4">
-            {(['open', 'reviewed', 'dismissed'] as const).map(status => {
+            {(['open', 'resolved', 'dismissed'] as const).map(status => {
               const group = reports.filter(r => r.status === status)
               if (group.length === 0) return null
               return (

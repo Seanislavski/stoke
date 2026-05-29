@@ -19,7 +19,7 @@ export default function ReportActions({
         onClick={() => startTransition(() => void resolveReport(reportId, communitySlug))}
         className="text-xs px-2.5 py-1 bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 rounded-lg font-medium transition-colors"
       >
-        Reviewed
+        Resolve
       </button>
       <button
         disabled={pending}

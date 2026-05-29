@@ -37,7 +37,7 @@ export async function resolveReport(reportId: string, communitySlug?: string): P
   const admin = createAdminClient()
   const { error } = await admin
     .from('reports')
-    .update({ status: 'reviewed', resolved_by: user.id, resolved_at: new Date().toISOString() })
+    .update({ status: 'resolved', resolved_by: user.id, resolved_at: new Date().toISOString() })
     .eq('id', reportId)
 
   if (error) return { error: error.message }
