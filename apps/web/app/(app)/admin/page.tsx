@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import LocalDate from '@/components/LocalDate'
 
 export default async function AdminOverviewPage() {
   const supabase = await createClient()
@@ -65,7 +66,7 @@ export default async function AdminOverviewPage() {
                 <span className="text-xs text-stone-400 ml-2">@{u.username}</span>
               </div>
               <span className="text-xs text-stone-400 shrink-0" title="Joined">
-                {new Date(u.created_at).toLocaleDateString('en-US')}
+                <LocalDate ts={u.created_at} dateOnly />
               </span>
             </div>
           ))}
