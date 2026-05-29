@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import StokeWordmark from '@/components/StokeWordmark'
 
 type Profile = {
   username: string | null
@@ -57,8 +58,8 @@ export default function AppNav({
     <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/home" className="font-semibold text-orange-500 text-lg tracking-tight">
-            Stoke
+          <Link href="/home">
+            <StokeWordmark iconSize={28} />
           </Link>
           <Link href="/communities" className="text-sm text-stone-600 hover:text-stone-900">
             Discover
