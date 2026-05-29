@@ -64,7 +64,7 @@ export default async function AdminOverviewPage() {
                 </Link>
                 <span className="text-xs text-stone-400 ml-2">@{u.username}</span>
               </div>
-              <span className="text-xs text-stone-400 shrink-0">
+              <span className="text-xs text-stone-400 shrink-0" title="Joined">
                 {new Date(u.created_at).toLocaleDateString('en-US')}
               </span>
             </div>
