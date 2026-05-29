@@ -1,9 +1,9 @@
 'use client'
 
 import LinkPreview from '@/components/LinkPreview'
-import { extractUrls } from '@/lib/embeds'
+import { extractUrls, normalizeUrl } from '@/lib/embeds'
 
-const URL_RE = /https?:\/\/[^\s<>"']+/g
+const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"']+/g
 
 export default function RichContent({
   content,
@@ -22,11 +22,12 @@ export default function RichContent({
   const re = new RegExp(URL_RE.source, 'g')
 
   while ((match = re.exec(content)) !== null) {
-    const url = match[0].replace(/[.,;:!?)\]'"]+$/, '')
+    const raw = match[0].replace(/[.,;:!?)\]'"]+$/, '')
+    const href = normalizeUrl(raw)
     if (match.index > last) parts.push(content.slice(last, match.index))
     parts.push(
-      <a key={match.index} href={url} target="_blank" rel="noopener noreferrer" className={linkClassName}>
-        {url}
+      <a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className={linkClassName}>
+        {raw}
       </a>
     )
     last = match.index + match[0].length
