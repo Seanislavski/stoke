@@ -316,19 +316,33 @@ export default function ChannelView({
                 const profile = msg.profiles ?? profiles[msg.author_id] ?? null
 
                 const canDelete = msg.author_id === currentUserId || isMod
+                const trashIcon = (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6" />
+                    <path d="M9 6V4h6v2" />
+                  </svg>
+                )
+                // desktop: hover-reveal in avatar slot; mobile: always-visible on right side of message
                 const trashButton = canDelete && !msg.deleted_at && !msg.id.startsWith('optimistic-') ? (
                   <button
                     onClick={() => handleDeleteMessage(msg.id)}
-                    className="opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity touch-manipulation flex-shrink-0"
+                    className="hidden md:flex opacity-0 group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-red-500 active:text-red-500 transition-opacity touch-manipulation flex-shrink-0 items-center justify-center"
                     title="Delete message"
                     aria-label="Delete message"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14H6L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                      <path d="M9 6V4h6v2" />
-                    </svg>
+                    {trashIcon}
+                  </button>
+                ) : null
+                const mobileTrashButton = canDelete && !msg.deleted_at && !msg.id.startsWith('optimistic-') ? (
+                  <button
+                    onClick={() => handleDeleteMessage(msg.id)}
+                    className="md:hidden p-1.5 text-stone-300 active:text-red-500 touch-manipulation flex-shrink-0"
+                    title="Delete message"
+                    aria-label="Delete message"
+                  >
+                    {trashIcon}
                   </button>
                 ) : null
 
@@ -374,6 +388,7 @@ export default function ChannelView({
                         <RichContent content={msg.content} />
                       )}
                     </div>
+                    {mobileTrashButton}
                   </div>
                 )
               })}

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
+import { sendEmail, joinApprovedHtml, joinRejectedHtml } from '@/lib/email'
 
 type CallerRole = 'owner' | 'organizer' | 'moderator'
 
@@ -139,15 +140,22 @@ export async function approveRequest(communityId: string, slug: string, userId: 
   if (!caller) return { error: 'Not authorized' }
 
   const admin = createAdminClient()
-  const { error } = await admin
-    .from('community_members')
-    .update({ status: 'active' })
-    .eq('community_id', communityId)
-    .eq('user_id', userId)
-    .eq('status', 'pending')
+  const [{ error }, { data: community }] = await Promise.all([
+    admin.from('community_members').update({ status: 'active' }).eq('community_id', communityId).eq('user_id', userId).eq('status', 'pending'),
+    admin.from('communities').select('name').eq('id', communityId).single(),
+  ])
 
   if (error) return { error: error.message }
   logAction({ actorId: caller.userId, communityId, action: 'member.approved', targetUserId: userId })
+
+  if (community) {
+    void (async () => {
+      const { data } = await admin.auth.admin.getUserById(userId)
+      const email = data.user?.email
+      if (email) await sendEmail(email, `You've been approved to join ${community.name}`, joinApprovedHtml(community.name, slug))
+    })()
+  }
+
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
@@ -157,15 +165,22 @@ export async function rejectRequest(communityId: string, slug: string, userId: s
   if (!caller) return { error: 'Not authorized' }
 
   const admin = createAdminClient()
-  const { error } = await admin
-    .from('community_members')
-    .delete()
-    .eq('community_id', communityId)
-    .eq('user_id', userId)
-    .eq('status', 'pending')
+  const [{ error }, { data: community }] = await Promise.all([
+    admin.from('community_members').delete().eq('community_id', communityId).eq('user_id', userId).eq('status', 'pending'),
+    admin.from('communities').select('name').eq('id', communityId).single(),
+  ])
 
   if (error) return { error: error.message }
   logAction({ actorId: caller.userId, communityId, action: 'member.rejected', targetUserId: userId })
+
+  if (community) {
+    void (async () => {
+      const { data } = await admin.auth.admin.getUserById(userId)
+      const email = data.user?.email
+      if (email) await sendEmail(email, `Update on your request to join ${community.name}`, joinRejectedHtml(community.name))
+    })()
+  }
+
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }

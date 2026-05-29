@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendEmail, ticketReplyHtml } from '@/lib/email'
 
 async function getAccessOrThrow(ticketId: string) {
   const supabase = await createClient()
@@ -77,11 +78,34 @@ export async function createTicket(formData: FormData) {
 }
 
 export async function addReply(ticketId: string, content: string): Promise<{ error?: string }> {
-  const { user } = await getAccessOrThrow(ticketId)
+  const { user, ticket, isStaff } = await getAccessOrThrow(ticketId)
   const admin = createAdminClient()
-  const { error } = await admin.from('ticket_replies').insert({ ticket_id: ticketId, author_id: user.id, content })
+
+  const [{ data: replyRow, error }, { data: authorProfile }] = await Promise.all([
+    admin.from('ticket_replies').insert({ ticket_id: ticketId, author_id: user.id, content }).select('id').single(),
+    admin.from('profiles').select('display_name, username').eq('id', user.id).single(),
+  ])
   if (error) return { error: error.message }
+
   await admin.from('tickets').update({ updated_at: new Date().toISOString() }).eq('id', ticketId)
+
+  // Notify the other party
+  void (async () => {
+    const replierName = authorProfile?.display_name ?? authorProfile?.username ?? 'Someone'
+    const html = ticketReplyHtml(ticketId, ticket.title ?? ticket.subject ?? 'Support ticket', replierName)
+    const subject = `New reply on: ${ticket.title ?? ticket.subject ?? 'Support ticket'}`
+    if (isStaff) {
+      // Staff replied → notify submitter
+      const { data } = await admin.auth.admin.getUserById(ticket.submitted_by)
+      const email = data.user?.email
+      if (email) await sendEmail(email, subject, html)
+    } else {
+      // User replied → notify platform support staff via support inbox env var
+      const supportEmail = process.env.SUPPORT_EMAIL
+      if (supportEmail) await sendEmail(supportEmail, `[Staff reply needed] ${subject}`, html)
+    }
+  })()
+
   revalidatePath(`/support/${ticketId}`)
   revalidatePath('/admin/support')
   return {}
