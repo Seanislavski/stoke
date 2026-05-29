@@ -34,25 +34,20 @@ export default async function ChannelPage({
   if (communitySlug !== slug) notFound()
 
   // verify user is active member
-  const { data: membership } = await admin
-    .from('community_members')
-    .select('status, role')
-    .eq('community_id', channel.community_id)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const [{ data: membership }, { data: community }, { data: platformRole }] = await Promise.all([
+    admin.from('community_members').select('status, role').eq('community_id', channel.community_id).eq('user_id', user.id).maybeSingle(),
+    admin.from('communities').select('owner_id').eq('id', channel.community_id).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).maybeSingle(),
+  ])
 
-  const isOwner = await admin
-    .from('communities')
-    .select('owner_id')
-    .eq('id', channel.community_id)
-    .single()
-    .then(({ data }) => data?.owner_id === user.id)
+  const isOwner = community?.owner_id === user.id
+  const isPlatformStaff = ['owner', 'platform_moderator'].includes(platformRole?.role ?? '')
 
-  if (membership?.status !== 'active' && !isOwner) {
+  if (membership?.status !== 'active' && !isOwner && !isPlatformStaff) {
     redirect(`/communities/${slug}`)
   }
 
-  const isMod = isOwner || (membership?.status === 'active' && ['organizer', 'moderator'].includes(membership.role ?? ''))
+  const isMod = isOwner || isPlatformStaff || (membership?.status === 'active' && ['organizer', 'moderator'].includes(membership.role ?? ''))
 
   // load last 50 messages — mods see deleted ones too
   let messagesQuery = admin
