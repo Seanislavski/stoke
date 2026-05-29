@@ -11,19 +11,17 @@ async function requireModOrThrow(communityId: string) {
   if (!user) throw new Error('Unauthorized')
 
   const admin = createAdminClient()
-  const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
-  const isOwner = community?.owner_id === user.id
+  const [{ data: community }, { data: membership }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('community_members').select('role, status').eq('community_id', communityId).eq('user_id', user.id).maybeSingle(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
 
-  if (!isOwner) {
-    const { data: membership } = await admin
-      .from('community_members')
-      .select('role, status')
-      .eq('community_id', communityId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '') && membership?.status === 'active'
-    if (!isMod) throw new Error('Forbidden')
-  }
+  const isOwner = community?.owner_id === user.id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '') && membership?.status === 'active'
+  const isPlatformStaff = !!platformRole
+
+  if (!isOwner && !isMod && !isPlatformStaff) throw new Error('Forbidden')
 
   return user
 }

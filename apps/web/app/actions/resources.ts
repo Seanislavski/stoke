@@ -52,16 +52,26 @@ export async function submitResource(communityId: string, slug: string, formData
   return { status: autoPublish ? 'published' : 'pending' }
 }
 
+async function requireModAccess(communityId: string, userId: string, membership: { role: string; status: string } | null) {
+  const admin = createAdminClient()
+  const [{ data: community }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', userId).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
+  const isOwner = userId === community?.owner_id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
+  const isPlatformStaff = !!platformRole
+  return { allowed: isMod || isOwner || isPlatformStaff }
+}
+
 export async function approveResource(resourceId: string, communityId: string, slug: string) {
   const { user, membership } = await getMembershipOrThrow(communityId)
   if (!user) return { error: 'Not logged in' }
 
-  const admin = createAdminClient()
-  const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
-  const isOwner = user.id === community?.owner_id
-  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
-  if (!isMod && !isOwner) return { error: 'Not authorized' }
+  const { allowed } = await requireModAccess(communityId, user.id, membership)
+  if (!allowed) return { error: 'Not authorized' }
 
+  const admin = createAdminClient()
   await admin.from('resources').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', resourceId)
   logAction({ actorId: user.id, communityId, action: 'resource.approved', targetId: resourceId, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)
@@ -72,12 +82,10 @@ export async function rejectResource(resourceId: string, communityId: string, sl
   const { user, membership } = await getMembershipOrThrow(communityId)
   if (!user) return { error: 'Not logged in' }
 
-  const admin = createAdminClient()
-  const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
-  const isOwner = user.id === community?.owner_id
-  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
-  if (!isMod && !isOwner) return { error: 'Not authorized' }
+  const { allowed } = await requireModAccess(communityId, user.id, membership)
+  if (!allowed) return { error: 'Not authorized' }
 
+  const admin = createAdminClient()
   await admin.from('resources').update({ status: 'rejected' }).eq('id', resourceId)
   logAction({ actorId: user.id, communityId, action: 'resource.rejected', targetId: resourceId, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)
@@ -88,12 +96,10 @@ export async function deleteResource(resourceId: string, communityId: string, sl
   const { user, membership } = await getMembershipOrThrow(communityId)
   if (!user) return { error: 'Not logged in' }
 
-  const admin = createAdminClient()
-  const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
-  const isOwner = user.id === community?.owner_id
-  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
-  if (!isMod && !isOwner) return { error: 'Not authorized' }
+  const { allowed } = await requireModAccess(communityId, user.id, membership)
+  if (!allowed) return { error: 'Not authorized' }
 
+  const admin = createAdminClient()
   await admin.from('resources').delete().eq('id', resourceId)
   logAction({ actorId: user.id, communityId, action: 'resource.deleted', targetId: resourceId, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)

@@ -23,23 +23,15 @@ async function getCallerRole(communityId: string): Promise<{ userId: string; rol
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: community } = await supabase
-    .from('communities')
-    .select('owner_id')
-    .eq('id', communityId)
-    .single()
+  const admin = createAdminClient()
+  const [{ data: community }, { data: platformRole }, { data: member }] = await Promise.all([
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+    admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', user.id).eq('status', 'active').single(),
+  ])
 
   if (community?.owner_id === user.id) return { userId: user.id, role: 'owner' }
-
-  const admin = createAdminClient()
-  const { data: member } = await admin
-    .from('community_members')
-    .select('role')
-    .eq('community_id', communityId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .single()
-
+  if (platformRole) return { userId: user.id, role: 'organizer' }
   if (!member || member.role === 'member') return null
   return { userId: user.id, role: member.role as 'organizer' | 'moderator' }
 }

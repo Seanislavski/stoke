@@ -24,14 +24,19 @@ async function getMembershipOrThrow(communityId: string) {
 export async function createEvent(communityId: string, formData: FormData) {
   const { user, membership } = await getMembershipOrThrow(communityId)
 
-  const isOwner = !membership // owner may not be in community_members
+  const admin = createAdminClient()
+  const [{ data: communityRow }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id, slug').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
+  const isOwner = communityRow?.owner_id === user.id
+  const isPlatformStaff = !!platformRole
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
-  if (!isMod && !isOwner) throw new Error('Only organizers and moderators can create events')
+  if (!isMod && !isOwner && !isPlatformStaff) throw new Error('Only organizers and moderators can create events')
 
   const startsAt = formData.get('starts_at') as string
   const endsAt = formData.get('ends_at') as string
 
-  const admin = createAdminClient()
   await admin.from('events').insert({
     community_id: communityId,
     created_by: user.id,
@@ -44,8 +49,7 @@ export async function createEvent(communityId: string, formData: FormData) {
     location_address: (formData.get('location_address') as string) || null,
   })
 
-  const { data: community } = await admin.from('communities').select('slug').eq('id', communityId).single()
-  revalidatePath(`/communities/${community?.slug}`)
+  revalidatePath(`/communities/${communityRow?.slug}`)
 }
 
 export async function deleteEvent(eventId: string, communityId: string): Promise<{ error?: string }> {
@@ -55,15 +59,20 @@ export async function deleteEvent(eventId: string, communityId: string): Promise
   const { data: event } = await admin.from('events').select('created_by').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
 
+  const [{ data: communityRow }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id, slug').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
   const isCreator = event.created_by === user.id
+  const isOwner = communityRow?.owner_id === user.id
+  const isPlatformStaff = !!platformRole
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
-  if (!isCreator && !isMod) return { error: 'Not authorized' }
+  if (!isCreator && !isMod && !isOwner && !isPlatformStaff) return { error: 'Not authorized' }
 
   await admin.from('events').delete().eq('id', eventId)
   logAction({ actorId: user.id, communityId, action: 'event.deleted', targetId: eventId, targetType: 'event', metadata: { self: isCreator } })
 
-  const { data: community } = await admin.from('communities').select('slug').eq('id', communityId).single()
-  revalidatePath(`/communities/${community?.slug}`)
+  revalidatePath(`/communities/${communityRow?.slug}`)
   return {}
 }
 

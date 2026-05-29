@@ -45,11 +45,18 @@ export async function submitPost(communityId: string, slug: string, formData: Fo
 
 export async function approvePost(postId: string, communityId: string, slug: string) {
   const { user, membership } = await getUserMembership(communityId)
-  if (!user || !membership || !['organizer', 'moderator'].includes(membership.role)) {
-    return { error: 'Not authorized.' }
-  }
+  if (!user) return { error: 'Not authorized.' }
 
   const admin = createAdminClient()
+  const [{ data: community }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
+  const isOwner = community?.owner_id === user.id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
+  const isPlatformStaff = !!platformRole
+  if (!isMod && !isOwner && !isPlatformStaff) return { error: 'Not authorized.' }
+
   const { error } = await admin
     .from('bulletin_posts')
     .update({ status: 'published', published_at: new Date().toISOString() })
@@ -64,11 +71,18 @@ export async function approvePost(postId: string, communityId: string, slug: str
 
 export async function rejectPost(postId: string, communityId: string, slug: string) {
   const { user, membership } = await getUserMembership(communityId)
-  if (!user || !membership || !['organizer', 'moderator'].includes(membership.role)) {
-    return { error: 'Not authorized.' }
-  }
+  if (!user) return { error: 'Not authorized.' }
 
   const admin = createAdminClient()
+  const [{ data: community }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
+  const isOwner = community?.owner_id === user.id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
+  const isPlatformStaff = !!platformRole
+  if (!isMod && !isOwner && !isPlatformStaff) return { error: 'Not authorized.' }
+
   const { error } = await admin
     .from('bulletin_posts')
     .update({ status: 'rejected' })
@@ -87,25 +101,21 @@ export async function deletePost(postId: string, communityId: string, slug: stri
   if (!user) return { error: 'Not authorized.' }
 
   const admin = createAdminClient()
-  const [{ data: post }, { data: community }] = await Promise.all([
+  const [{ data: post }, { data: community }, { data: membership }, { data: platformRole }] = await Promise.all([
     admin.from('bulletin_posts').select('submitted_by').eq('id', postId).single(),
     admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', user.id).maybeSingle(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
   ])
 
   if (!post) return { error: 'Post not found.' }
 
-  const { data: membership } = await admin
-    .from('community_members')
-    .select('role')
-    .eq('community_id', communityId)
-    .eq('user_id', user.id)
-    .maybeSingle()
-
   const isAuthor = post.submitted_by === user.id
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
   const isOwner = community?.owner_id === user.id
+  const isPlatformStaff = !!platformRole
 
-  if (!isAuthor && !isMod && !isOwner) return { error: 'Not authorized.' }
+  if (!isAuthor && !isMod && !isOwner && !isPlatformStaff) return { error: 'Not authorized.' }
 
   await admin.from('bulletin_posts').delete().eq('id', postId)
   logAction({ actorId: user.id, communityId, action: 'post.deleted', targetId: postId, targetType: 'post', metadata: { self: isAuthor } })

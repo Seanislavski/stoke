@@ -15,19 +15,21 @@ export async function deleteMessage(
 
   const admin = createAdminClient()
 
-  const [{ data: message }, { data: membership }, { data: community }] = await Promise.all([
+  const [{ data: message }, { data: membership }, { data: community }, { data: platformRole }] = await Promise.all([
     admin.from('messages').select('author_id, content').eq('id', messageId).single(),
     admin.from('community_members').select('role, status').eq('community_id', communityId).eq('user_id', user.id).maybeSingle(),
     admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
   ])
 
   if (!message) return { error: 'Message not found' }
 
   const isAuthor = message.author_id === user.id
   const isOwner = community?.owner_id === user.id
+  const isPlatformStaff = !!platformRole
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '') && membership?.status === 'active'
 
-  if (!isAuthor && !isMod && !isOwner) return { error: 'Not authorized' }
+  if (!isAuthor && !isMod && !isOwner && !isPlatformStaff) return { error: 'Not authorized' }
 
   await admin.from('messages').update({ deleted_at: new Date().toISOString(), deleted_by: user.id }).eq('id', messageId)
 
