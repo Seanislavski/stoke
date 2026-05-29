@@ -117,6 +117,16 @@ export default function AppNav({
               {/* Platform team items */}
               {platformRole && (
                 <div className="py-1 border-t border-stone-100">
+                  <p className="px-4 pt-1 pb-0.5 text-xs font-semibold text-stone-400 uppercase tracking-wide">Admin</p>
+                  {platformRole === 'owner' && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Admin panel
+                    </Link>
+                  )}
                   {(platformRole === 'platform_moderator' || platformRole === 'owner') && (
                     <Link
                       href="/admin/moderation"
@@ -132,7 +142,7 @@ export default function AppNav({
                       onClick={() => setOpen(false)}
                       className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
                     >
-                      Communities
+                      Manage communities
                     </Link>
                   )}
                   {(platformRole === 'support' || platformRole === 'owner') && (
@@ -141,16 +151,7 @@ export default function AppNav({
                       onClick={() => setOpen(false)}
                       className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
                     >
-                      Support dashboard
-                    </Link>
-                  )}
-                  {platformRole === 'owner' && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setOpen(false)}
-                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                    >
-                      Admin panel
+                      Support queue
                     </Link>
                   )}
                 </div>
