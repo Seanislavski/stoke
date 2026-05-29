@@ -198,9 +198,7 @@ export default async function CommunitySettingsPage({
                               <p className="text-xs text-stone-500 mt-0.5 italic">"{r.details}"</p>
                             )}
                           </div>
-                          {status === 'open' && (
-                            <ReportActions reportId={r.id} communitySlug={slug} />
-                          )}
+                          <ReportActions reportId={r.id} status={r.status} communitySlug={slug} />
                         </div>
                       )
                     })}

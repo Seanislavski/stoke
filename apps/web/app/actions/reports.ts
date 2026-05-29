@@ -46,6 +46,23 @@ export async function resolveReport(reportId: string, communitySlug?: string): P
   return {}
 }
 
+export async function reopenReport(reportId: string, communitySlug?: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('reports')
+    .update({ status: 'open', resolved_by: null, resolved_at: null })
+    .eq('id', reportId)
+
+  if (error) return { error: error.message }
+  if (communitySlug) revalidatePath(`/communities/${communitySlug}/settings`)
+  revalidatePath('/admin/moderation')
+  return {}
+}
+
 export async function dismissReport(reportId: string, communitySlug?: string): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

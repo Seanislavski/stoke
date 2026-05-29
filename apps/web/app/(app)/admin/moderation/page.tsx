@@ -56,10 +56,7 @@ export default async function AdminModerationPage() {
             <p className="text-xs text-stone-500 mt-0.5 italic">"{r.details}"</p>
           )}
         </div>
-        {r.status === 'open'
-          ? <ReportActions reportId={r.id} communitySlug={communitySlug} />
-          : <span className="text-xs text-stone-400 shrink-0 capitalize">{r.status}</span>
-        }
+        <ReportActions reportId={r.id} status={r.status} communitySlug={communitySlug} />
       </div>
     )
   }
