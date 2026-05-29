@@ -56,8 +56,21 @@ export async function revokeInvite(inviteId: string, slug: string) {
 
   const admin = createAdminClient()
   const { data: invite } = await admin.from('invites').select('community_id, token').eq('id', inviteId).single()
+  if (!invite) return
+
+  // reuse requireModOrThrow logic inline — verify caller is mod/owner/platform staff
+  const [{ data: community }, { data: membership }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id').eq('id', invite.community_id).single(),
+    admin.from('community_members').select('role, status').eq('community_id', invite.community_id).eq('user_id', user.id).maybeSingle(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
+  const isOwner = community?.owner_id === user.id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '') && membership?.status === 'active'
+  const isPlatformStaff = !!platformRole
+  if (!isOwner && !isMod && !isPlatformStaff) throw new Error('Forbidden')
+
   await admin.from('invites').delete().eq('id', inviteId)
-  if (invite) logAction({ actorId: user.id, communityId: invite.community_id, action: 'invite.revoked', targetId: invite.token, targetType: 'invite' })
+  logAction({ actorId: user.id, communityId: invite.community_id, action: 'invite.revoked', targetId: invite.token, targetType: 'invite' })
   revalidatePath(`/communities/${slug}/settings`)
 }
 
