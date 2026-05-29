@@ -39,19 +39,27 @@ export default async function CommunityPage({
   if (!community) notFound()
 
   const isOwner = user?.id === community.owner_id
+  const admin = createAdminClient()
 
-  const { data: myMembership } = await supabase
-    .from('community_members')
-    .select('role, status')
-    .eq('community_id', community.id)
-    .eq('user_id', user!.id)
-    .maybeSingle()
+  const [{ data: myMembership }, { data: platformRole }] = await Promise.all([
+    supabase
+      .from('community_members')
+      .select('role, status')
+      .eq('community_id', community.id)
+      .eq('user_id', user!.id)
+      .maybeSingle(),
+    admin
+      .from('platform_roles')
+      .select('role')
+      .eq('user_id', user!.id)
+      .in('role', ['owner', 'platform_moderator'])
+      .maybeSingle(),
+  ])
 
   const isMember = myMembership?.status === 'active'
-  const isMod = ['organizer', 'moderator'].includes(myMembership?.role ?? '')
-  const canSee = isMember || isOwner
-
-  const admin = createAdminClient()
+  const isPlatformStaff = !!platformRole
+  const isMod = isPlatformStaff || isOwner || ['organizer', 'moderator'].includes(myMembership?.role ?? '')
+  const canSee = isMember || isMod
 
   // Always fetch: members (for count + list), pending/banned counts for gear
   const [
@@ -66,13 +74,13 @@ export default async function CommunityPage({
           .eq('status', 'active')
           .order('role')
       : Promise.resolve({ data: null }),
-    (isMod || isOwner)
+    isMod
       ? admin.from('community_members')
           .select('*', { count: 'exact', head: true })
           .eq('community_id', community.id)
           .eq('status', 'pending')
       : Promise.resolve({ count: 0 }),
-    (isMod || isOwner)
+    isMod
       ? admin.from('community_members')
           .select('*', { count: 'exact', head: true })
           .eq('community_id', community.id)
@@ -90,7 +98,7 @@ export default async function CommunityPage({
           .order('published_at', { ascending: false })
           .then(r => r.data)
       : Promise.resolve(null),
-    (tab === 'bulletin' && (isMod || isOwner))
+    (tab === 'bulletin' && isMod)
       ? admin.from('bulletin_posts')
           .select('id, title, content, created_at, profiles(username, display_name)')
           .eq('community_id', community.id)
@@ -119,7 +127,7 @@ export default async function CommunityPage({
           .order('published_at', { ascending: false })
           .then(r => r.data)
       : Promise.resolve(null),
-    (tab === 'resources' && (isMod || isOwner))
+    (tab === 'resources' && isMod)
       ? admin.from('resources')
           .select('id, title, description, url, resource_type, created_at, profiles(username, display_name)')
           .eq('community_id', community.id)
@@ -206,7 +214,7 @@ export default async function CommunityPage({
               memberStatus={myMembership?.status ?? null}
               isOwner={isOwner}
             />
-            {(isMod || isOwner) && (
+            {isMod && (
               <CommunityGear
                 slug={slug}
                 pendingCount={pendingCount ?? 0}
@@ -217,7 +225,7 @@ export default async function CommunityPage({
       </div>
 
       {/* Gate: non-members */}
-      {!isMember && !isOwner && (
+      {!canSee && (
         <div className="bg-stone-100 rounded-xl p-6 text-center text-stone-500 text-sm">
           Join this community to see the bulletin board, events, channels, and members.
         </div>
@@ -268,7 +276,7 @@ export default async function CommunityPage({
           {/* Bulletin tab */}
           {tab === 'bulletin' && (
             <div className="space-y-4">
-              {(isMod || isOwner) && pendingPosts && pendingPosts.length > 0 && (
+              {isMod && pendingPosts && pendingPosts.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
                     Awaiting review ({pendingPosts.length})
@@ -313,7 +321,7 @@ export default async function CommunityPage({
                             </span>
                             {date && <><span>·</span><span>{date}</span></>}
                           </div>
-                          {(isMod || isOwner) && (
+                          {isMod && (
                             <DeleteItemButton
                               action={deletePost.bind(null, post.id, community.id, slug)}
                               confirm="Delete this post?"
@@ -332,7 +340,7 @@ export default async function CommunityPage({
                 </div>
               )}
 
-              <SubmitPostForm communityId={community.id} slug={community.slug} isMod={isMod || isOwner} />
+              <SubmitPostForm communityId={community.id} slug={community.slug} isMod={isMod} />
             </div>
           )}
 
@@ -340,12 +348,12 @@ export default async function CommunityPage({
           {tab === 'events' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                {(isMod || isOwner) && <CreateEventButton communityId={community.id} />}
+                {isMod && <CreateEventButton communityId={community.id} />}
               </div>
 
               {!events?.length ? (
                 <div className="bg-white border border-stone-200 rounded-xl p-6 text-center text-stone-400 text-sm">
-                  No events yet.{(isMod || isOwner) ? ' Create the first one!' : ''}
+                  No events yet.{isMod ? ' Create the first one!' : ''}
                 </div>
               ) : (
                 <>
@@ -359,7 +367,7 @@ export default async function CommunityPage({
                           communityId={community.id}
                           myRsvp={myRsvpMap[event.id] ?? null}
                           counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
-                          canDelete={event.created_by === user!.id || isMod || isOwner}
+                          canDelete={event.created_by === user!.id || isMod}
                         />
                       ))}
                     </div>
@@ -379,7 +387,7 @@ export default async function CommunityPage({
                             communityId={community.id}
                             myRsvp={myRsvpMap[event.id] ?? null}
                             counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
-                            canDelete={event.created_by === user!.id || isMod || isOwner}
+                            canDelete={event.created_by === user!.id || isMod}
                             past
                           />
                         ))}
@@ -394,7 +402,7 @@ export default async function CommunityPage({
           {/* Resources tab */}
           {tab === 'resources' && (
             <div className="space-y-4">
-              {(isMod || isOwner) && pendingResources && pendingResources.length > 0 && (
+              {isMod && pendingResources && pendingResources.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
                     Awaiting review ({pendingResources.length})
@@ -455,7 +463,7 @@ export default async function CommunityPage({
                                 )}
                                 {date && <span>{date}</span>}
                               </div>
-                              {(isMod || isOwner) && (
+                              {isMod && (
                                 <DeleteItemButton
                                   action={deleteResource.bind(null, resource.id, community.id, slug)}
                                   confirm="Delete this resource?"
@@ -483,7 +491,7 @@ export default async function CommunityPage({
                 </div>
               )}
 
-              <SubmitResourceForm communityId={community.id} slug={community.slug} isMod={isMod || isOwner} />
+              <SubmitResourceForm communityId={community.id} slug={community.slug} isMod={isMod} />
             </div>
           )}
 
@@ -510,7 +518,7 @@ export default async function CommunityPage({
                 </div>
               ) : (
                 <div className="bg-white rounded-xl border border-stone-200 p-6 text-center text-stone-400 text-sm">
-                  No channels yet.{(isMod || isOwner) ? ' Create one in community settings.' : ''}
+                  No channels yet.{isMod ? ' Create one in community settings.' : ''}
                 </div>
               )}
             </div>
