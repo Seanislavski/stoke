@@ -75,10 +75,6 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      {/* Logo header */}
-      <div className="mb-8">
-        <StokeWordmark iconSize={40} />
-      </div>
 
       <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
 
