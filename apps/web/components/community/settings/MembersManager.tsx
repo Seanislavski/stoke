@@ -131,7 +131,7 @@ export default function MembersManager({
                     {profile.display_name ?? profile.username}
                   </Link>
                   {isProtected && (
-                    <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded shrink-0">platform</span>
+                    <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded shrink-0">admin</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
