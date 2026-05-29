@@ -59,14 +59,14 @@ export default async function ChannelPage({
     .from('messages')
     .select('id, content, created_at, edited_at, author_id, deleted_at, deleted_by, profiles!author_id(username, display_name, avatar_url)')
     .eq('channel_id', channelId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(50)
 
   if (!isMod) messagesQuery = messagesQuery.is('deleted_at', null)
 
   const { data: messages } = await messagesQuery
 
-  const normalizedMessages = (messages ?? []).map(m => ({
+  const normalizedMessages = (messages ?? []).reverse().map(m => ({
     ...m,
     profiles: Array.isArray(m.profiles) ? m.profiles[0] ?? null : m.profiles,
   }))
