@@ -55,14 +55,16 @@ export async function restoreMessage(
 
   const admin = createAdminClient()
 
-  const [{ data: membership }, { data: community }] = await Promise.all([
+  const [{ data: membership }, { data: community }, { data: platformRole }] = await Promise.all([
     admin.from('community_members').select('role, status').eq('community_id', communityId).eq('user_id', user.id).maybeSingle(),
     admin.from('communities').select('owner_id').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', user.id).maybeSingle(),
   ])
 
   const isOwner = community?.owner_id === user.id
+  const isPlatformStaff = ['owner', 'platform_moderator'].includes(platformRole?.role ?? '')
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '') && membership?.status === 'active'
-  if (!isMod && !isOwner) return { error: 'Not authorized' }
+  if (!isMod && !isOwner && !isPlatformStaff) return { error: 'Not authorized' }
 
   await admin.from('messages').update({ deleted_at: null, deleted_by: null }).eq('id', messageId)
 

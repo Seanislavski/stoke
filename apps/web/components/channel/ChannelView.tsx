@@ -202,7 +202,11 @@ export default function ChannelView({
 
   async function handleRestoreMessage(messageId: string) {
     setMessages(ms => ms.map(m => m.id === messageId ? { ...m, deleted_at: null, deleted_by: null } : m))
-    await restoreMessage(messageId, channelId, communityId)
+    const result = await restoreMessage(messageId, channelId, communityId)
+    if (result.error) {
+      // roll back optimistic update
+      setMessages(ms => ms.map(m => m.id === messageId ? { ...m, deleted_at: new Date().toISOString(), deleted_by: currentUserId } : m))
+    }
   }
 
   // Mention picker: filter cached profiles by query
