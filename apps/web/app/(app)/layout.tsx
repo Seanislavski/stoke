@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">
-      <AppNav profile={profile} platformRole={platformRoleRow?.role ?? null} />
+      <AppNav profile={profile} platformRole={platformRoleRow?.role ?? null} userId={user.id} />
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6">
         {children}
       </main>

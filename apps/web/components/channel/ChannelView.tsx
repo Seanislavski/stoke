@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { deleteMessage, restoreMessage } from '@/app/actions/messages'
+import { processMentions } from '@/app/actions/mentions'
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null }
 type Message = {
@@ -39,6 +40,7 @@ export default function ChannelView({
   initialMessages,
   initialProfiles,
   highlightMessageId,
+  mentionMessageId,
 }: {
   channelId: string
   channelName: string
@@ -49,27 +51,38 @@ export default function ChannelView({
   initialMessages: Message[]
   initialProfiles: Record<string, Profile>
   highlightMessageId?: string
+  mentionMessageId?: string
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [profiles, setProfiles] = useState<Record<string, Profile>>(initialProfiles)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
+  const [mentionedId, setMentionedId] = useState<string | null>(mentionMessageId ?? null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   // scroll to bottom on new messages
   useEffect(() => {
-    if (highlightedId) return
+    if (highlightedId || mentionedId) return
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // scroll to and pulse highlighted message from audit log link
+  // scroll to and pulse highlighted message from audit log link (blue)
   useEffect(() => {
     if (!highlightedId) return
     const el = document.getElementById(`msg-${highlightedId}`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     const timer = setTimeout(() => setHighlightedId(null), 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // scroll to and pulse mentioned message (purple)
+  useEffect(() => {
+    if (!mentionedId) return
+    const el = document.getElementById(`msg-${mentionedId}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timer = setTimeout(() => setMentionedId(null), 3000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -158,13 +171,17 @@ export default function ChannelView({
     }
     setMessages(ms => [...ms, optimistic])
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('messages')
       .insert({ channel_id: channelId, author_id: currentUserId, content })
+      .select('id')
+      .single()
 
     if (error) {
       setInput(content)
       setMessages(ms => ms.filter(m => m.id !== optimisticId))
+    } else if (inserted && /@\w+/.test(content)) {
+      processMentions(content, inserted.id, channelId, communityId)
     }
     setSending(false)
   }
@@ -252,8 +269,9 @@ export default function ChannelView({
                 ) : null
 
                 const isHighlighted = highlightedId === msg.id
+                const isMentioned = mentionedId === msg.id
                 return (
-                  <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-sm px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-50 outline outline-1 outline-blue-200 animate-pulse' : ''}`}>
+                  <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-sm px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-50 outline outline-1 outline-blue-200 animate-pulse' : ''} ${isMentioned ? 'bg-purple-50 outline outline-1 outline-purple-200 animate-pulse' : ''}`}>
                     {sameAuthor ? (
                       trashButton
                         ? <div className="w-8 flex-shrink-0 flex items-center justify-center">{trashButton}</div>

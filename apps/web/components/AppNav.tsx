@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import StokeWordmark from '@/components/StokeWordmark'
+import NotificationsBell from '@/components/NotificationsBell'
 
 type Profile = {
   username: string | null
@@ -27,9 +28,11 @@ function GearIcon() {
 export default function AppNav({
   profile,
   platformRole = null,
+  userId,
 }: {
   profile: Profile | null
   platformRole?: PlatformRole
+  userId: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -66,7 +69,8 @@ export default function AppNav({
           </Link>
         </div>
 
-        <div ref={ref} className="relative">
+        <NotificationsBell userId={userId} />
+        <div ref={ref} className="relative ml-1">
           <button
             onClick={() => setOpen(v => !v)}
             className="flex items-center gap-2 text-stone-600 hover:text-stone-900 focus:outline-none"

@@ -8,10 +8,10 @@ export default async function ChannelPage({
   searchParams,
 }: {
   params: Promise<{ slug: string; channelId: string }>
-  searchParams: Promise<{ message?: string }>
+  searchParams: Promise<{ message?: string; mention?: string }>
 }) {
   const { slug, channelId } = await params
-  const { message: highlightMessageId } = await searchParams
+  const { message: highlightMessageId, mention: mentionMessageId } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -100,6 +100,7 @@ export default async function ChannelPage({
       initialMessages={normalizedMessages as Parameters<typeof ChannelView>[0]['initialMessages']}
       initialProfiles={profileCache}
       highlightMessageId={highlightMessageId}
+      mentionMessageId={mentionMessageId}
     />
   )
 }
