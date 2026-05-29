@@ -1,9 +1,4 @@
-'use client'
-
-import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-
-type CallerRole = 'owner' | 'organizer' | 'moderator'
 
 function GearIcon() {
   return (
@@ -16,91 +11,23 @@ function GearIcon() {
 
 export default function CommunityGear({
   slug,
-  callerRole,
-  joinMode,
   pendingCount,
-  bannedCount,
 }: {
   slug: string
-  callerRole: CallerRole
-  joinMode: string
   pendingCount: number
-  bannedCount: number
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  const canChangeRoles = ['owner', 'organizer'].includes(callerRole)
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 focus:outline-none"
-        title="Community settings"
-      >
-        <GearIcon />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-stone-200 shadow-lg py-1 z-20">
-          <div className="py-1">
-            <Link
-              href={`/communities/${slug}/settings`}
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-            >
-              Community settings
-            </Link>
-
-            {(joinMode !== 'open' || pendingCount > 0) && (
-              <Link
-                href={`/communities/${slug}/settings`}
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-              >
-                <span>Member requests</span>
-                {pendingCount > 0 && (
-                  <span className="bg-orange-500 text-white text-xs font-medium px-1.5 py-0.5 rounded-full">
-                    {pendingCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {bannedCount > 0 && (
-              <Link
-                href={`/communities/${slug}/settings`}
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-              >
-                <span>Banned members</span>
-                <span className="text-xs text-stone-400">{bannedCount}</span>
-              </Link>
-            )}
-
-            {canChangeRoles && (
-              <Link
-                href={`/communities/${slug}/settings`}
-                onClick={() => setOpen(false)}
-                className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-              >
-                Manage roles
-              </Link>
-            )}
-          </div>
-        </div>
+    <Link
+      href={`/communities/${slug}/settings`}
+      className="relative p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+      title="Community settings"
+    >
+      <GearIcon />
+      {pendingCount > 0 && (
+        <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-medium min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center leading-none">
+          {pendingCount}
+        </span>
       )}
-    </div>
+    </Link>
   )
 }

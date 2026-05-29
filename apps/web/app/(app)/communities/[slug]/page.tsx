@@ -207,10 +207,7 @@ export default async function CommunityPage({
             {(isMod || isOwner) && (
               <CommunityGear
                 slug={slug}
-                callerRole={isOwner ? 'owner' : myMembership?.role as 'organizer' | 'moderator'}
-                joinMode={community.join_mode}
                 pendingCount={pendingCount ?? 0}
-                bannedCount={bannedCount ?? 0}
               />
             )}
           </div>
