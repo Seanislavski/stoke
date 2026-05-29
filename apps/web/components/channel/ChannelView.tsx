@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { deleteMessage, restoreMessage } from '@/app/actions/messages'
 import { processMentions } from '@/app/actions/mentions'
+import RichContent from '@/components/RichContent'
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null }
 type Message = {
@@ -366,7 +367,7 @@ export default function ChannelView({
                           )}
                         </div>
                       ) : (
-                        <p className="text-sm text-stone-700 break-words whitespace-pre-wrap">{msg.content}</p>
+                        <RichContent content={msg.content} />
                       )}
                     </div>
                   </div>

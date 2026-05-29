@@ -11,6 +11,8 @@ import RsvpButton from '@/components/events/RsvpButton'
 import SubmitResourceForm from '@/components/resources/SubmitResourceForm'
 import ResourceModActions from '@/components/resources/ResourceModActions'
 import DeleteItemButton from '@/components/DeleteItemButton'
+import RichContent from '@/components/RichContent'
+import LinkPreview from '@/components/LinkPreview'
 import { deletePost } from '@/app/actions/bulletin'
 import { deleteEvent } from '@/app/actions/events'
 import { deleteResource } from '@/app/actions/resources'
@@ -283,7 +285,7 @@ export default async function CommunityPage({
                           ) : 'Unknown'}
                         </p>
                         <h3 className="font-medium text-stone-900 text-sm">{post.title}</h3>
-                        <p className="text-stone-600 text-sm mt-1 whitespace-pre-wrap">{post.content}</p>
+                        <RichContent content={post.content} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" />
                         <ModActions postId={post.id} communityId={community.id} slug={community.slug} />
                       </div>
                     )
@@ -319,7 +321,7 @@ export default async function CommunityPage({
                           )}
                         </div>
                         <h3 className="font-semibold text-stone-900">{post.title}</h3>
-                        <p className="text-stone-600 text-sm mt-1 whitespace-pre-wrap">{post.content}</p>
+                        <RichContent content={post.content} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" />
                       </div>
                     )
                   })}
@@ -417,8 +419,9 @@ export default async function CommunityPage({
                               className="text-xs text-orange-600 hover:underline truncate block mt-0.5">
                               {resource.url}
                             </a>
+                            <LinkPreview url={resource.url} />
                             {resource.description && (
-                              <p className="text-stone-600 text-sm mt-1">{resource.description}</p>
+                              <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
                             )}
                           </div>
                         </div>
@@ -464,8 +467,9 @@ export default async function CommunityPage({
                               className="text-sm text-orange-600 hover:underline break-all">
                               {resource.url}
                             </a>
+                            <LinkPreview url={resource.url} />
                             {resource.description && (
-                              <p className="text-stone-600 text-sm mt-1">{resource.description}</p>
+                              <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
                             )}
                           </div>
                         </div>
@@ -596,7 +600,7 @@ function EventCard({
           )}
 
           {event.description && (
-            <p className="text-sm text-stone-600 mt-2 whitespace-pre-wrap">{event.description}</p>
+            <RichContent content={event.description} className="text-sm text-stone-600 mt-2 whitespace-pre-wrap" />
           )}
 
           <div className="flex items-center gap-3 mt-3 text-xs text-stone-400">

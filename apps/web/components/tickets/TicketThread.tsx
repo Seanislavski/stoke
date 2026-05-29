@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { addReply } from '@/app/actions/tickets'
+import RichContent from '@/components/RichContent'
 
 type Profile = { username: string; display_name: string | null; avatar_url?: string | null }
 type Reply = {
@@ -127,7 +128,12 @@ export default function TicketThread({
               </div>
               <div className={`max-w-[80%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
                 <div className={`rounded-xl px-4 py-3 text-sm ${isOwn ? 'bg-orange-500 text-white' : 'bg-white border border-stone-200 text-stone-800'}`}>
-                  <p className="whitespace-pre-wrap">{reply.content}</p>
+                  <RichContent
+                    content={reply.content}
+                    className="whitespace-pre-wrap"
+                    linkClassName={isOwn ? 'text-white underline break-all' : 'text-orange-600 hover:underline break-all'}
+                    embeds={false}
+                  />
                 </div>
                 <p className="text-xs text-stone-400 mt-1 px-1">
                   {author?.display_name ?? author?.username} · {formatDate(reply.created_at)}
