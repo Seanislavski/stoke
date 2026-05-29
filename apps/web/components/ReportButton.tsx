@@ -83,7 +83,7 @@ export default function ReportButton({
                     <select
                       value={reason}
                       onChange={e => setReason(e.target.value)}
-                      className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      className="w-full text-sm text-stone-900 border border-stone-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
                     >
                       {REASONS.map(r => (
                         <option key={r.value} value={r.value}>{r.label}</option>
