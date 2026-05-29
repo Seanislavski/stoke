@@ -32,12 +32,12 @@ export async function processMentions(
 
   if ((recentCount ?? 0) >= MENTION_RATE_LIMIT) return
 
-  // Resolve unique @usernames to profile IDs
-  const unique = [...new Set(matches)]
+  // Resolve unique @usernames to profile IDs (case-insensitive)
+  const unique = [...new Set(matches.map(m => m.toLowerCase()))]
   const { data: mentioned } = await admin
     .from('profiles')
     .select('id, username')
-    .in('username', unique)
+    .or(unique.map(u => `username.ilike.${u}`).join(','))
 
   if (!mentioned?.length) return
 

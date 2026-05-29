@@ -59,6 +59,9 @@ export default function ChannelView({
   const [sending, setSending] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
   const [mentionedId, setMentionedId] = useState<string | null>(mentionMessageId ?? null)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -201,6 +204,62 @@ export default function ChannelView({
     await restoreMessage(messageId, channelId, communityId)
   }
 
+  // Mention picker: filter cached profiles by query
+  const mentionSuggestions = mentionQuery !== null
+    ? Object.values(profiles)
+        .filter(p => p.username !== (profiles[currentUserId]?.username))
+        .filter(p =>
+          p.username.toLowerCase().startsWith(mentionQuery.toLowerCase()) ||
+          (p.display_name?.toLowerCase().startsWith(mentionQuery.toLowerCase()))
+        )
+        .slice(0, 5)
+    : []
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value
+    setInput(val)
+    // detect @mention being typed
+    const cursor = e.target.selectionStart ?? val.length
+    const textBefore = val.slice(0, cursor)
+    const match = textBefore.match(/@(\w*)$/)
+    if (match) {
+      setMentionQuery(match[1])
+      setMentionIndex(0)
+    } else {
+      setMentionQuery(null)
+    }
+  }
+
+  function completeMention(username: string) {
+    const cursor = inputRef.current?.selectionStart ?? input.length
+    const textBefore = input.slice(0, cursor)
+    const textAfter = input.slice(cursor)
+    const replaced = textBefore.replace(/@(\w*)$/, `@${username} `)
+    setInput(replaced + textAfter)
+    setMentionQuery(null)
+    inputRef.current?.focus()
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (mentionQuery === null || mentionSuggestions.length === 0) return
+    if (e.key === 'Tab' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (e.key === 'Tab') {
+        completeMention(mentionSuggestions[mentionIndex]?.username ?? mentionSuggestions[0].username)
+      } else {
+        setMentionIndex(i => Math.min(i + 1, mentionSuggestions.length - 1))
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setMentionIndex(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter' && mentionSuggestions.length > 0) {
+      e.preventDefault()
+      completeMention(mentionSuggestions[mentionIndex]?.username ?? mentionSuggestions[0].username)
+    } else if (e.key === 'Escape') {
+      setMentionQuery(null)
+    }
+  }
+
   function formatTime(ts: string) {
     return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
@@ -319,12 +378,31 @@ export default function ChannelView({
         <div ref={bottomRef} />
       </div>
 
+      {/* Mention picker */}
+      {mentionSuggestions.length > 0 && (
+        <div className="mb-1 border border-stone-200 rounded-lg overflow-hidden bg-white shadow-sm">
+          {mentionSuggestions.map((p, i) => (
+            <button
+              key={p.username}
+              type="button"
+              onMouseDown={e => { e.preventDefault(); completeMention(p.username) }}
+              className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 ${i === mentionIndex ? 'bg-orange-50 text-orange-700' : 'text-stone-700 hover:bg-stone-50'}`}
+            >
+              <span className="font-medium">@{p.username}</span>
+              {p.display_name && <span className="text-stone-400 text-xs">{p.display_name}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-stone-200 flex-shrink-0">
         <input
+          ref={inputRef}
           type="text"
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={handleInputChange}
+          onKeyDown={handleInputKeyDown}
           placeholder={`Message #${channelName}`}
           maxLength={2000}
           className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
