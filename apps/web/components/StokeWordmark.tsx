@@ -28,9 +28,14 @@ function FlameIcon({ size = 40 }: { size?: number }) {
         <path d="M 350,260 C 350,295 450,295 450,260 C 450,210 415,180 415,150 C 415,190 385,200 350,260 Z" fill="url(#flameCore)" />
         {/* Bright inner core */}
         <path d="M 375,250 C 375,275 425,275 425,250 C 425,210 400,190 400,165 C 400,195 375,210 375,250 Z" fill="url(#flameTop)" />
-        {/* Spark droplets */}
-        <path d="M 396,140 C 396,145 404,145 404,140 C 404,130 400,125 400,120 C 400,125 396,130 396,140 Z" fill="#f1c40f" />
-        <path d="M 416,160 C 416,163 422,163 422,160 C 422,153 419,150 419,146 C 419,150 416,153 416,160 Z" fill="#f39c12" />
+        {/* Original spark droplets */}
+        <path id="spark-a" d="M 396,140 C 396,145 404,145 404,140 C 404,130 400,125 400,120 C 400,125 396,130 396,140 Z" fill="#f1c40f" />
+        <path id="spark-b" d="M 416,160 C 416,163 422,163 422,160 C 422,153 419,150 419,146 C 419,150 416,153 416,160 Z" fill="#f39c12" />
+        {/* Additional sparks — hidden, animated on hover */}
+        <circle id="spark-c" cx="383" cy="185" r="5" fill="#f1c40f" opacity="0" />
+        <circle id="spark-d" cx="417" cy="170" r="4" fill="#fcd34d" opacity="0" />
+        <circle id="spark-e" cx="393" cy="205" r="3.5" fill="#f59e0b" opacity="0" />
+        <circle id="spark-f" cx="409" cy="193" r="4.5" fill="#f1c40f" opacity="0" />
       </g>
     </svg>
   )
