@@ -53,8 +53,9 @@ a.bg-orange-500:hover {
   box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2), 0 4px 16px rgba(234, 88, 12, 0.25);
 }
 
-/* Logo flame — warm glow on hover */
-header a:hover svg {
+/* Logo flame + wordmark — warm glow on hover */
+header a:hover svg,
+header a:hover span {
   filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.45));
   transition: filter 200ms ease;
 }
