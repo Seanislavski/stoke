@@ -11,7 +11,7 @@ export default async function HomePage() {
 
   const { data: memberships } = await supabase
     .from('community_members')
-    .select('community_id, role, joined_at, communities(id, name, slug, description)')
+    .select('community_id, role, joined_at, communities(id, name, slug, description, image_url)')
     .eq('user_id', user!.id)
     .eq('status', 'active')
     .order('joined_at', { ascending: false })
@@ -99,14 +99,21 @@ export default async function HomePage() {
                     href={`/communities/${community.slug}`}
                     className="block bg-white rounded-xl border border-stone-200 p-4 hover:border-orange-300 hover:shadow-sm transition-all"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="font-medium text-stone-900">{community.name}</h2>
-                        {community.description && (
-                          <p className="text-sm text-stone-500 mt-0.5 line-clamp-1">{community.description}</p>
-                        )}
+                    <div className="flex items-center gap-3">
+                      {community.image_url ? (
+                        <img src={community.image_url} alt={community.name} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-stone-100" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-stone-100 shrink-0" />
+                      )}
+                      <div className="flex items-center justify-between gap-4 flex-1 min-w-0">
+                        <div className="min-w-0">
+                          <h2 className="font-medium text-stone-900">{community.name}</h2>
+                          {community.description && (
+                            <p className="text-sm text-stone-500 mt-0.5 line-clamp-1">{community.description}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-stone-400 capitalize shrink-0">{m.role}</span>
                       </div>
-                      <span className="text-xs text-stone-400 capitalize shrink-0">{m.role}</span>
                     </div>
                   </Link>
                 )
