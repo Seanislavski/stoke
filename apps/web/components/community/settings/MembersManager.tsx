@@ -154,7 +154,7 @@ export default function MembersManager({
                       <option value="organizer">Organizer</option>
                     </select>
                   ) : (
-                    <span className="text-xs text-stone-400 capitalize">{m.role}</span>
+                    <span className="text-xs text-stone-400 capitalize">{isProtected ? 'Platform Staff' : m.role}</span>
                   )}
 
                   {!isSelf && !isProtected && (
