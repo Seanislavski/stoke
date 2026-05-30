@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
+import HomeHero from '@/components/HomeHero'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -18,7 +19,12 @@ export default async function HomePage() {
   const hasCommunities = memberships && memberships.length > 0
 
   if (!hasCommunities) {
-    return <WelcomeScreen />
+    return (
+      <>
+        <HomeHero />
+        <WelcomeScreen />
+      </>
+    )
   }
 
   const communityIds = memberships.map(m => m.community_id)
@@ -75,6 +81,7 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
+      <HomeHero />
 
       <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
 
