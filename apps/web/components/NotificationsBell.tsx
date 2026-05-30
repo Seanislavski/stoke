@@ -106,7 +106,8 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className={`relative p-1 rounded-lg transition-colors ${unreadCount > 0 ? 'text-purple-500 hover:text-purple-700' : 'text-stone-400 hover:text-stone-700'}`}
+        className="relative p-1 rounded-lg transition-colors text-stone-500 hover:text-stone-700"
+        style={unreadCount > 0 ? { filter: 'drop-shadow(0 0 6px rgba(147, 51, 234, 0.55))' } : undefined}
         aria-label="Notifications"
       >
         <BellIcon hasUnread={unreadCount > 0} />
