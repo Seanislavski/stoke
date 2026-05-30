@@ -33,6 +33,7 @@ export default function TicketThread({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -108,6 +109,7 @@ export default function TicketThread({
       setReplies(rs => rs.filter(r => r.id !== optimisticId))
     }
     setSending(false)
+    inputRef.current?.focus()
   }
 
   function formatDate(ts: string) {
@@ -145,9 +147,11 @@ export default function TicketThread({
         <div ref={bottomRef} />
       </div>
 
+      {error && <p className="text-sm text-red-600 mb-2 px-1">{error}</p>}
       {!isClosed ? (
-        <form onSubmit={handleSend} className="flex gap-2">
+        <form onSubmit={handleSend} className="sticky bottom-0 -mx-4 px-4 pb-4 pt-3 bg-stone-50 flex gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -166,8 +170,6 @@ export default function TicketThread({
       ) : (
         <p className="text-sm text-stone-400 text-center">This ticket is closed.</p>
       )}
-
-      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
     </>
   )
 }
