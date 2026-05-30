@@ -37,18 +37,25 @@ export default async function SupportPage() {
     .eq('submitted_by', user!.id)
     .order('updated_at', { ascending: false })
 
-  // Communities where user is organizer/mod (for tagging tickets + community tickets view)
-  const { data: orgMemberships } = await admin
+  // All communities user is a member of (for ticket community dropdown)
+  const { data: allMemberships } = await admin
     .from('community_members')
     .select('community_id, role, communities(id, name, slug)')
     .eq('user_id', user!.id)
     .eq('status', 'active')
-    .in('role', ['organizer', 'moderator'])
 
-  const orgCommunities = (orgMemberships ?? []).map(m => {
+  const allCommunities = (allMemberships ?? []).map(m => {
     const c = Array.isArray(m.communities) ? m.communities[0] : m.communities
     return c ? { id: c.id, name: c.name } : null
   }).filter(Boolean) as { id: string; name: string }[]
+
+  // Organizer/mod communities only — for the community tickets section
+  const orgCommunities = (allMemberships ?? [])
+    .filter(m => ['organizer', 'moderator'].includes(m.role))
+    .map(m => {
+      const c = Array.isArray(m.communities) ? m.communities[0] : m.communities
+      return c ? { id: c.id, name: c.name } : null
+    }).filter(Boolean) as { id: string; name: string }[]
 
   const communityIds = orgCommunities.map(c => c.id)
 
@@ -70,7 +77,7 @@ export default async function SupportPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-stone-900">Support</h1>
       </div>
-      <NewTicketForm orgCommunities={orgCommunities} />
+      <NewTicketForm orgCommunities={allCommunities} />
 
       {/* My open tickets */}
       <section className="mb-8">
