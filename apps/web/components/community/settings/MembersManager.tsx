@@ -10,7 +10,6 @@ import {
   approveRequest,
   rejectRequest,
 } from '@/app/actions/community'
-import ReportButton from '@/components/ReportButton'
 
 type Member = {
   user_id: string
@@ -159,7 +158,6 @@ export default function MembersManager({
 
                   {!isSelf && !isProtected && (
                     <>
-                      <ReportButton reportedUserId={m.user_id} communityId={communityId} />
                       <button
                         disabled={!!busy}
                         onClick={() => act(`ban-${m.user_id}`, async () => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createTicket } from '@/app/actions/tickets'
 
 type Community = { id: string; name: string }
@@ -15,8 +15,13 @@ const CATEGORIES = [
 ]
 
 export default function NewTicketForm({ orgCommunities }: { orgCommunities: Community[] }) {
-  const [open, setOpen] = useState(false)
-  const [category, setCategory] = useState('account_issue')
+  const searchParams = useSearchParams()
+  const paramCategory = searchParams.get('category')
+  const paramSubject = searchParams.get('subject') ?? ''
+  const validCategory = CATEGORIES.find(c => c.value === paramCategory)?.value ?? 'account_issue'
+
+  const [open, setOpen] = useState(!!paramCategory)
+  const [category, setCategory] = useState(validCategory)
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -88,7 +93,8 @@ export default function NewTicketForm({ orgCommunities }: { orgCommunities: Comm
               name="title"
               required
               maxLength={120}
-              placeholder="Brief summary of the issue"
+              defaultValue={paramSubject}
+            placeholder="Brief summary of the issue"
               className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
           </div>

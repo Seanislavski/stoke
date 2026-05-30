@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import ReportButton from '@/components/ReportButton'
 
 export default async function ProfilePage({
   params,
@@ -72,7 +71,12 @@ export default async function ProfilePage({
               </Link>
             )}
             {!isOwn && user && (
-              <ReportButton reportedUserId={profile.id} />
+              <Link
+                href={`/support?category=report_user&subject=${encodeURIComponent(`Report @${profile.username}`)}`}
+                className="text-xs text-stone-400 hover:text-red-500 transition-colors"
+              >
+                Report
+              </Link>
             )}
           </div>
           <p className="text-sm text-stone-500">@{profile.username}</p>

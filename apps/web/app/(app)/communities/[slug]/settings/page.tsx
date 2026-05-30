@@ -9,7 +9,6 @@ import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
 import { ACTION_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
-import ReportActions from '@/components/admin/ReportActions'
 
 export default async function CommunitySettingsPage({
   params,
@@ -54,7 +53,7 @@ export default async function CommunitySettingsPage({
   const proto = headersList.get('x-forwarded-proto') ?? 'http'
   const baseUrl = `${proto}://${host}`
 
-  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }, { data: reports }] = await Promise.all([
+  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }] = await Promise.all([
     supabase.from('categories').select('id, name').order('name'),
     admin
       .from('community_members')
@@ -79,12 +78,6 @@ export default async function CommunitySettingsPage({
       .eq('community_id', community.id)
       .order('created_at', { ascending: false })
       .limit(100),
-    admin
-      .from('reports')
-      .select('id, created_at, reason, details, status, reporter:reporter_id(username, display_name), reported_user:reported_user_id(username, display_name)')
-      .eq('community_id', community.id)
-      .order('created_at', { ascending: false })
-      .limit(50),
   ])
 
   const normalizedMembers = (members ?? []).map(m => ({
@@ -159,55 +152,6 @@ export default async function CommunitySettingsPage({
           initialMembers={normalizedMembers as Parameters<typeof MembersManager>[0]['initialMembers']}
           platformStaffIds={[...platformStaffIds]}
         />
-      </section>
-
-      <hr className="border-stone-200" />
-
-      {/* Reports */}
-      <section>
-        <h2 className="text-base font-semibold text-stone-800 mb-1">Reports</h2>
-        <p className="text-sm text-stone-500 mb-4">Member reports submitted within this community.</p>
-        {!reports || reports.length === 0 ? (
-          <p className="text-sm text-stone-400">No reports.</p>
-        ) : (
-          <div className="space-y-4">
-            {(['open', 'resolved', 'dismissed'] as const).map(status => {
-              const group = reports.filter(r => r.status === status)
-              if (group.length === 0) return null
-              return (
-                <div key={status}>
-                  <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2 capitalize">{status}</h3>
-                  <div className="divide-y divide-stone-100 border border-stone-200 rounded-lg overflow-hidden">
-                    {group.map(r => {
-                      const reporter = Array.isArray(r.reporter) ? r.reporter[0] : r.reporter
-                      const reported = Array.isArray(r.reported_user) ? r.reported_user[0] : r.reported_user
-                      return (
-                        <div key={r.id} className="flex items-start gap-3 px-4 py-3 text-sm bg-white">
-                          <span className="text-stone-400 text-xs shrink-0 mt-0.5 w-28">
-                            <LocalDate ts={r.created_at} />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-stone-800">
-                              {reported?.display_name ?? reported?.username ?? 'Unknown'}
-                            </span>
-                            <span className="text-stone-500"> — {r.reason.replace(/_/g, ' ')}</span>
-                            {reporter && (
-                              <span className="text-stone-400 text-xs"> · reported by {reporter.display_name ?? reporter.username}</span>
-                            )}
-                            {r.details && (
-                              <p className="text-xs text-stone-500 mt-0.5 italic">"{r.details}"</p>
-                            )}
-                          </div>
-                          <ReportActions reportId={r.id} status={r.status} communitySlug={slug} />
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
       </section>
 
       <hr className="border-stone-200" />
