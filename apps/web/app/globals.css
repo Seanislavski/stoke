@@ -53,9 +53,32 @@ a.bg-orange-500:hover {
   box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2), 0 4px 16px rgba(234, 88, 12, 0.25);
 }
 
-/* Logo flame + wordmark — warm glow on hover */
-header a:hover svg,
+/* Logo wordmark text — static warm glow on hover */
 header a:hover span {
   filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.45));
   transition: filter 200ms ease;
+}
+
+/* Flame flicker — sway pivoting from base */
+@keyframes flameFlicker {
+  0%   { transform: skewX(0deg)    scaleY(1);    }
+  20%  { transform: skewX(-2deg)   scaleY(1.03); }
+  40%  { transform: skewX(1.5deg)  scaleY(0.98); }
+  60%  { transform: skewX(-1deg)   scaleY(1.02); }
+  80%  { transform: skewX(2deg)    scaleY(1.01); }
+  100% { transform: skewX(0deg)    scaleY(1);    }
+}
+
+/* Flame glow — breathes independently for organic feel */
+@keyframes flameGlow {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(234, 88, 12, 0.40)); }
+  40%      { filter: drop-shadow(0 0 10px rgba(234, 88, 12, 0.65)); }
+  70%      { filter: drop-shadow(0 0 4px rgba(234, 88, 12, 0.30)); }
+}
+
+/* Flame SVG — animate on hover, pivot from base */
+header a:hover svg {
+  animation: flameFlicker 1.8s ease-in-out infinite, flameGlow 1.3s ease-in-out infinite;
+  transform-origin: bottom center;
+  transform-box: fill-box;
 }
