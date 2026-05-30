@@ -40,9 +40,10 @@ export async function createTicket(formData: FormData) {
   if (!user) return { error: 'Not logged in' }
 
   const communityId = (formData.get('community_id') as string) || null
+  const category = formData.get('category') as string
 
-  // Validate community access if tagged
-  if (communityId) {
+  // Validate community access if tagged — skip mod check for report_user (any member can file)
+  if (communityId && category !== 'report_user') {
     const admin = createAdminClient()
     const { data: membership } = await admin
       .from('community_members')
@@ -59,7 +60,7 @@ export async function createTicket(formData: FormData) {
   const admin = createAdminClient()
   const { data: ticket, error } = await admin.from('tickets').insert({
     submitted_by: user.id,
-    category: formData.get('category') as string,
+    category,
     title: formData.get('title') as string,
     community_id: communityId,
   }).select('id').single()
