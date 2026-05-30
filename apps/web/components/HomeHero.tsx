@@ -13,6 +13,9 @@ export default function HomeHero() {
       if (window.scrollY > window.innerHeight * 0.55) {
         document.body.classList.remove('hero-mode')
         setScrolled(true)
+      } else {
+        document.body.classList.add('hero-mode')
+        setScrolled(false)
       }
     }
 
