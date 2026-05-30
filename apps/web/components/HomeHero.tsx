@@ -29,7 +29,9 @@ export default function HomeHero() {
         scrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      <StokeWordmark iconSize={80} />
+      <div className="hero-wordmark cursor-default">
+        <StokeWordmark iconSize={80} />
+      </div>
       <div className="mt-10 text-stone-300">
         <svg
           xmlns="http://www.w3.org/2000/svg"
