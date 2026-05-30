@@ -131,12 +131,10 @@ export default async function CommunitiesPage({ searchParams }: { searchParams: 
                 className="block bg-white rounded-xl border border-stone-200 p-5 hover:border-orange-300 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start gap-3 mb-2">
-                  {community.image_url ? (
+                  {community.image_url && (
                     <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-stone-100">
                       <Image src={community.image_url} alt={community.name} width={40} height={40} className="w-full h-full object-cover" />
                     </div>
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-stone-100 shrink-0" />
                   )}
                   <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
                   <h2 className="font-semibold text-stone-900 leading-snug">{community.name}</h2>

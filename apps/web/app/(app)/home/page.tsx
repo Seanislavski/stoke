@@ -100,10 +100,8 @@ export default async function HomePage() {
                     className="block bg-white rounded-xl border border-stone-200 p-4 hover:border-orange-300 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      {community.image_url ? (
+                      {community.image_url && (
                         <img src={community.image_url} alt={community.name} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-stone-100" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-stone-100 shrink-0" />
                       )}
                       <div className="flex items-center justify-between gap-4 flex-1 min-w-0">
                         <div className="min-w-0">
