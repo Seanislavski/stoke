@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type SearchParams = Promise<{ q?: string; category?: string }>
 
@@ -18,7 +19,7 @@ export default async function CommunitiesPage({ searchParams }: { searchParams: 
   // fetch listed communities
   let query = supabase
     .from('communities')
-    .select('id, name, slug, description, join_mode, category_id')
+    .select('id, name, slug, description, join_mode, category_id, image_url')
     .eq('is_listed', true)
     .order('created_at', { ascending: false })
 
@@ -129,7 +130,15 @@ export default async function CommunitiesPage({ searchParams }: { searchParams: 
                 href={`/communities/${community.slug}`}
                 className="block bg-white rounded-xl border border-stone-200 p-5 hover:border-orange-300 hover:shadow-sm transition-all"
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-start gap-3 mb-2">
+                  {community.image_url ? (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-stone-100">
+                      <Image src={community.image_url} alt={community.name} width={40} height={40} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-stone-100 shrink-0" />
+                  )}
+                  <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
                   <h2 className="font-semibold text-stone-900 leading-snug">{community.name}</h2>
                   {status === 'active' && (
                     <span className="shrink-0 text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">
@@ -141,6 +150,7 @@ export default async function CommunitiesPage({ searchParams }: { searchParams: 
                       Pending
                     </span>
                   )}
+                  </div>
                 </div>
                 {community.description && (
                   <p className="text-sm text-stone-500 line-clamp-2 mb-3">{community.description}</p>

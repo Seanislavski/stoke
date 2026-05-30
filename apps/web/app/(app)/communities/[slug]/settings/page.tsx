@@ -23,7 +23,7 @@ export default async function CommunitySettingsPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, join_mode, is_listed, category_id, owner_id')
+    .select('id, name, slug, description, join_mode, is_listed, category_id, owner_id, image_url')
     .eq('slug', slug)
     .single()
 

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import JoinButton from '@/components/community/JoinButton'
 import CommunityGear from '@/components/community/CommunityGear'
 import SubmitPostForm from '@/components/bulletin/SubmitPostForm'
@@ -32,7 +33,7 @@ export default async function CommunityPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, join_mode, is_listed, owner_id, category_id')
+    .select('id, name, slug, description, join_mode, is_listed, owner_id, category_id, image_url')
     .eq('slug', slug)
     .single()
 
@@ -189,7 +190,13 @@ export default async function CommunityPage({
       {/* Header */}
       <div className="relative bg-white rounded-xl border border-stone-200 p-6">
         <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+          <div className="flex items-start gap-4 min-w-0">
+            {community.image_url && (
+              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-100">
+                <Image src={community.image_url} alt={community.name} width={64} height={64} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="min-w-0">
             <h1 className="text-2xl font-semibold text-stone-900">{community.name}</h1>
             {community.description && (
               <p className="mt-2 text-stone-500">{community.description}</p>
@@ -204,6 +211,7 @@ export default async function CommunityPage({
                   <span>{members.length} {members.length === 1 ? 'member' : 'members'}</span>
                 </>
               )}
+            </div>
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2">
