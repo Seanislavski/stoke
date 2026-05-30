@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { updateCommunityInfo } from '@/app/actions/community'
+import CommunityImageCropModal from './CommunityImageCropModal'
 
 type Category = { id: string; name: string }
 type Community = {
@@ -24,27 +25,34 @@ export default function CommunityInfoForm({
   community: Community
   categories: Category[]
 }) {
-  const [imageUrl, setImageUrl] = useState(community.image_url)
+  const [imageUrl, setImageUrl]   = useState(community.image_url)
+  const [cropFile, setCropFile]   = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const [saving, setSaving]       = useState(false)
+  const [message, setMessage]     = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setCropFile(file)
+    e.target.value = ''
+  }
+
+  async function handleCropSave(blob: Blob) {
     setUploading(true)
     setMessage('')
     const supabase = createClient()
     const path = `community-${community.id}`
     const { error } = await supabase.storage
       .from('avatars')
-      .upload(path, file, { upsert: true, contentType: file.type })
-    if (error) { setMessage('Upload failed: ' + error.message); setUploading(false); return }
+      .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+    if (error) { setMessage('Upload failed: ' + error.message); setUploading(false); setCropFile(null); return }
     const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${path}?t=${Date.now()}`
     await supabase.from('communities').update({ image_url: url }).eq('id', community.id)
     setImageUrl(url)
     setUploading(false)
+    setCropFile(null)
     setMessage('Image updated.')
   }
 
@@ -57,6 +65,14 @@ export default function CommunityInfoForm({
   }
 
   return (
+    <>
+    {cropFile && (
+      <CommunityImageCropModal
+        file={cropFile}
+        onSave={handleCropSave}
+        onCancel={() => setCropFile(null)}
+      />
+    )}
     <form action={handleSubmit} className="space-y-5 max-w-lg">
 
       {/* Community image */}
@@ -174,5 +190,6 @@ export default function CommunityInfoForm({
         {saving ? 'Saving…' : 'Save changes'}
       </button>
     </form>
+    </>
   )
 }
