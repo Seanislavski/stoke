@@ -24,3 +24,37 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ─── UX Polish ─── */
+
+/* Tactile press on all buttons and links */
+button:active,
+a:active {
+  transform: scale(0.98);
+}
+
+/* Nav stays anchored — no press bounce */
+header button:active,
+header a:active {
+  transform: none;
+}
+
+/* Primary orange buttons — smooth transition covering glow + press + bg */
+button.bg-orange-500,
+a.bg-orange-500 {
+  transition-property: background-color, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Ember glow on hover */
+button.bg-orange-500:hover:not(:disabled),
+a.bg-orange-500:hover {
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2), 0 4px 16px rgba(234, 88, 12, 0.25);
+}
+
+/* Logo flame — warm glow on hover */
+header a:hover svg {
+  filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.45));
+  transition: filter 200ms ease;
+}
