@@ -103,11 +103,11 @@ export default function AppNav({
               {/* Common */}
               <div className="py-1">
                 <Link
-                  href="/settings/profile"
+                  href="/communities/mine"
                   onClick={() => setOpen(false)}
                   className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
                 >
-                  Edit profile
+                  My communities
                 </Link>
                 <Link
                   href="/support"
