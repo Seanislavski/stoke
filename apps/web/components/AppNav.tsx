@@ -87,14 +87,18 @@ export default function AppNav({
           {open && (
             <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-stone-200 shadow-lg py-1 z-20">
               {/* Identity */}
-              <div className="px-4 py-2 border-b border-stone-100">
+              <Link
+                href="/settings/profile"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 border-b border-stone-100 hover:bg-stone-50"
+              >
                 <p className="text-sm font-medium text-stone-900 truncate">
                   {profile?.display_name ?? profile?.username}
                 </p>
                 {profile?.username && (
                   <p className="text-xs text-stone-400 truncate">@{profile.username}</p>
                 )}
-              </div>
+              </Link>
 
               {/* Common */}
               <div className="py-1">
