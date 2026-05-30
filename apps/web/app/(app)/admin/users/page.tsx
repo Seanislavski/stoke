@@ -50,7 +50,7 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={q}
             placeholder="Search by username or display name..."
-            className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+            className="flex-1 px-3 py-2 text-sm text-stone-900 placeholder-stone-400 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
           />
           <button
             type="submit"
