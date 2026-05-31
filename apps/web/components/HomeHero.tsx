@@ -40,6 +40,7 @@ export default function HomeHero() {
     const t = setTimeout(() => {
       suppressRef.current = true
       setCollapsed(true)
+      window.scrollTo({ top: 0, behavior: 'instant' })
       setTimeout(() => { suppressRef.current = false }, 300)
     }, 500)
     return () => clearTimeout(t)
