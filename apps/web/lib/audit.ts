@@ -38,6 +38,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'resource.approved': 'Approved resource',
   'resource.rejected': 'Rejected resource',
   'resource.deleted': 'Deleted resource',
+  'event.created': 'Created event',
   'event.deleted': 'Deleted event',
   'invite.created': 'Created invite link',
   'invite.revoked': 'Revoked invite link',

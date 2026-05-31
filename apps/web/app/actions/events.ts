@@ -39,7 +39,7 @@ export async function createEvent(communityId: string, formData: FormData) {
   const photosRaw = formData.get('photos') as string | null
   const photos: string[] = photosRaw ? JSON.parse(photosRaw) : []
 
-  await admin.from('events').insert({
+  const { data: inserted } = await admin.from('events').insert({
     community_id: communityId,
     created_by: user.id,
     title: formData.get('title') as string,
@@ -50,7 +50,11 @@ export async function createEvent(communityId: string, formData: FormData) {
     location_online: (formData.get('location_online') as string) || null,
     location_address: (formData.get('location_address') as string) || null,
     photos,
-  })
+  }).select('id').single()
+
+  if (inserted) {
+    logAction({ actorId: user.id, communityId, action: 'event.created', targetId: inserted.id, targetType: 'event' })
+  }
 
   revalidatePath(`/communities/${communityRow?.slug}`)
 }
