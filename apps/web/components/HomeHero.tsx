@@ -5,6 +5,7 @@ import StokeWordmark from '@/components/StokeWordmark'
 
 export default function HomeHero() {
   const [scrolled, setScrolled] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     document.body.classList.add('hero-mode')
@@ -16,6 +17,7 @@ export default function HomeHero() {
       } else {
         document.body.classList.add('hero-mode')
         setScrolled(false)
+        setCollapsed(false)
       }
     }
 
@@ -26,10 +28,18 @@ export default function HomeHero() {
     }
   }, [])
 
+  // Collapse layout space only after the opacity fade completes
+  useEffect(() => {
+    if (!scrolled) return
+    const t = setTimeout(() => setCollapsed(true), 500)
+    return () => clearTimeout(t)
+  }, [scrolled])
+
+  if (collapsed) return null
+
   return (
     <div
-      style={{ height: scrolled ? 0 : 'calc(100svh - 3.5rem)' }}
-      className={`-mt-6 flex flex-col items-center justify-center overflow-hidden transition-all duration-500 ${
+      className={`-mt-6 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center transition-opacity duration-500 ${
         scrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
