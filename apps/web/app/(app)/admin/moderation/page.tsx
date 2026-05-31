@@ -14,8 +14,7 @@ export default async function AdminModerationPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-xl font-semibold text-stone-900 mb-1">Moderation</h1>
-        <p className="text-sm text-stone-500">Platform bans.</p>
+        <h1 className="text-xl font-semibold text-stone-900">Platform Bans</h1>
       </div>
 
       {/* Platform bans */}

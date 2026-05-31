@@ -14,7 +14,7 @@ export default function AdminNav({ role }: { role: string }) {
     ...(isOwner ? [{ href: '/admin', label: 'Overview', exact: true }] : []),
     ...(canModerate ? [{ href: '/admin/users', label: 'Users', exact: false }] : []),
     ...(canManageCommunities ? [{ href: '/admin/communities', label: 'Communities', exact: false }] : []),
-    ...(canModerate ? [{ href: '/admin/moderation', label: 'Moderation', exact: false }] : []),
+    ...(canModerate ? [{ href: '/admin/moderation', label: 'Platform Bans', exact: false }] : []),
     ...(canSupport ? [{ href: '/admin/support', label: 'Support', exact: false }] : []),
     ...(canModerate ? [{ href: '/admin/audit-log', label: 'Audit Log', exact: false }] : []),
   ]
