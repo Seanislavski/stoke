@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { deleteMessage, restoreMessage } from '@/app/actions/messages'
 import { processMentions } from '@/app/actions/mentions'
 import RichContent from '@/components/RichContent'
+import ImageLightbox from '@/components/ImageLightbox'
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null }
 type Message = {
@@ -61,6 +62,7 @@ export default function ChannelView({
   const [sending, setSending] = useState(false)
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
   const [mentionedId, setMentionedId] = useState<string | null>(mentionMessageId ?? null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
@@ -309,6 +311,8 @@ export default function ChannelView({
   }
 
   return (
+    <>
+    {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     <div className="flex flex-col" style={{ height: 'calc(100vh - 3.5rem - 3rem)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 pb-3 border-b border-stone-200 flex-shrink-0">
@@ -411,13 +415,13 @@ export default function ChannelView({
                         <>
                           {msg.content && <RichContent content={msg.content} />}
                           {msg.image_url && (
-                            <a href={msg.image_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-1">
+                            <button type="button" onClick={() => setLightboxSrc(msg.image_url!)} className="inline-block mt-1">
                               <img
                                 src={msg.image_url}
                                 alt="attachment"
                                 className="rounded-lg border border-stone-200 max-h-72 max-w-xs object-contain photo-pop"
                               />
-                            </a>
+                            </button>
                           )}
                         </>
                       )}
@@ -510,5 +514,6 @@ export default function ChannelView({
         </button>
       </form>
     </div>
+    </>
   )
 }
