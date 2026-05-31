@@ -36,7 +36,7 @@ export async function submitResource(communityId: string, slug: string, formData
   if (!isActiveMember && !isOwner) return { error: 'Must be an active member to submit resources' }
 
   const autoPublish = isMod || isOwner
-  const { error } = await admin.from('resources').insert({
+  const { data: inserted, error } = await admin.from('resources').insert({
     community_id: communityId,
     submitted_by: user.id,
     title: formData.get('title') as string,
@@ -45,9 +45,10 @@ export async function submitResource(communityId: string, slug: string, formData
     resource_type: formData.get('resource_type') as string,
     status: autoPublish ? 'published' : 'pending',
     published_at: autoPublish ? new Date().toISOString() : null,
-  })
+  }).select('id').single()
 
   if (error) return { error: error.message }
+  logAction({ actorId: user.id, communityId, action: autoPublish ? 'resource.created' : 'resource.submitted', targetId: inserted.id, targetType: 'resource' })
   revalidatePath(`/communities/${slug}`)
   return { status: autoPublish ? 'published' : 'pending' }
 }

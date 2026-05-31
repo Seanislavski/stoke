@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, joinRequestHtml } from '@/lib/email'
+import { logAction } from '@/lib/audit'
 
 export async function joinCommunity(communityId: string, joinMode: string, slug: string) {
   const supabase = await createClient()
@@ -18,7 +19,8 @@ export async function joinCommunity(communityId: string, joinMode: string, slug:
 
   if (error) return { error: 'Could not join community.' }
 
-  // Notify organizers/mods when a join request is submitted
+  logAction({ actorId: user.id, communityId, action: status === 'active' ? 'member.joined' : 'member.requested', targetUserId: user.id })
+
   if (status === 'pending') {
     void notifyModsOfJoinRequest(communityId, slug, user.id)
   }

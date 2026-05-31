@@ -36,12 +36,15 @@ export async function submitPost(communityId: string, slug: string, formData: Fo
   const published_at = isMod ? new Date().toISOString() : null
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from('bulletin_posts')
     .insert({ community_id: communityId, author_id: user.id, title, content, photos, status, published_at })
+    .select('id')
+    .single()
 
   if (error) return { error: 'Could not submit post.' }
 
+  logAction({ actorId: user.id, communityId, action: isMod ? 'post.created' : 'post.submitted', targetId: inserted.id, targetType: 'post' })
   revalidatePath(`/communities/${slug}`)
   return { ok: true, status }
 }
