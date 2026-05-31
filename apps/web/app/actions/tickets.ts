@@ -42,19 +42,16 @@ export async function createTicket(formData: FormData) {
   const communityId = (formData.get('community_id') as string) || null
   const category = formData.get('category') as string
 
-  // Validate community access if tagged — skip mod check for report_user (any member can file)
-  if (communityId && category !== 'report_user') {
+  // Validate the user is a member of the tagged community (any membership level is fine)
+  if (communityId) {
     const admin = createAdminClient()
     const { data: membership } = await admin
       .from('community_members')
-      .select('role, status')
+      .select('status')
       .eq('community_id', communityId)
       .eq('user_id', user.id)
       .maybeSingle()
-    const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
-    const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '') && membership?.status === 'active'
-    const isOwner = community?.owner_id === user.id
-    if (!isMod && !isOwner) return { error: 'You are not a moderator of that community' }
+    if (membership?.status !== 'active') return { error: 'You are not a member of that community' }
   }
 
   const admin = createAdminClient()
