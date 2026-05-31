@@ -47,4 +47,8 @@ export const ACTION_LABELS: Record<string, string> = {
   'platform.user.unbanned': 'Platform unbanned user',
   'platform.role.assigned': 'Assigned platform role',
   'platform.role.removed': 'Removed platform role',
+  'ticket_category.created': 'Created ticket category',
+  'ticket_category.deleted': 'Deleted ticket category',
+  'ticket_category.enabled': 'Enabled ticket category',
+  'ticket_category.disabled': 'Disabled ticket category',
 }

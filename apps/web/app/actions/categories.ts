@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { logAction } from '@/lib/audit'
 
 async function requirePlatformStaff() {
   const supabase = await createClient()
@@ -10,10 +11,11 @@ async function requirePlatformStaff() {
   if (!user) throw new Error('Unauthorized')
   const { data } = await supabase.from('platform_roles').select('role').eq('user_id', user.id).maybeSingle()
   if (!data) throw new Error('Forbidden')
+  return user
 }
 
 export async function addTicketCategory(formData: FormData): Promise<{ error?: string }> {
-  await requirePlatformStaff()
+  const actor = await requirePlatformStaff()
 
   const label = (formData.get('label') as string ?? '').trim()
   if (!label) return { error: 'Label is required' }
@@ -35,25 +37,35 @@ export async function addTicketCategory(formData: FormData): Promise<{ error?: s
     return { error: error.message }
   }
 
+  void logAction({ actorId: actor.id, action: 'ticket_category.created', targetId: key, targetType: 'ticket_category', metadata: { label } })
+
   revalidatePath('/admin/support')
   revalidatePath('/support')
   return {}
 }
 
 export async function deleteTicketCategory(key: string): Promise<{ error?: string }> {
-  await requirePlatformStaff()
+  const actor = await requirePlatformStaff()
   const admin = createAdminClient()
+  const { data: cat } = await admin.from('ticket_categories').select('label').eq('key', key).single()
   const { error } = await admin.from('ticket_categories').delete().eq('key', key)
   if (error) return { error: error.message }
+
+  void logAction({ actorId: actor.id, action: 'ticket_category.deleted', targetId: key, targetType: 'ticket_category', metadata: { label: cat?.label } })
+
   revalidatePath('/admin/support')
   revalidatePath('/support')
   return {}
 }
 
 export async function toggleTicketCategory(key: string, isActive: boolean): Promise<void> {
-  await requirePlatformStaff()
+  const actor = await requirePlatformStaff()
   const admin = createAdminClient()
+  const { data: cat } = await admin.from('ticket_categories').select('label').eq('key', key).single()
   await admin.from('ticket_categories').update({ is_active: isActive }).eq('key', key)
+
+  void logAction({ actorId: actor.id, action: isActive ? 'ticket_category.enabled' : 'ticket_category.disabled', targetId: key, targetType: 'ticket_category', metadata: { label: cat?.label } })
+
   revalidatePath('/admin/support')
   revalidatePath('/support')
 }
