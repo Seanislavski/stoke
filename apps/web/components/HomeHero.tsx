@@ -25,7 +25,7 @@ export default function HomeHero() {
         scrolledRef.current = true
         document.body.classList.remove('hero-mode')
         setScrolled(true)
-      } else {
+      } else if (window.scrollY < 10) {
         if (!scrolledRef.current) return
         restore()
       }
