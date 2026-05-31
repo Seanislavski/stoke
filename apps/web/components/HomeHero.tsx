@@ -3,24 +3,21 @@
 import { useEffect, useRef } from 'react'
 import StokeWordmark from '@/components/StokeWordmark'
 
+const HEADER_H = 56   // matches 3.5rem at 16px base
+const FADE_PX  = 250  // px of scroll to complete the fade
+
 export default function HomeHero() {
-  const wrapperRef = useRef<HTMLDivElement>(null)
-  const innerRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.body.classList.add('hero-mode')
 
     function update() {
-      const wrapper = wrapperRef.current
-      const inner = innerRef.current
-      if (!wrapper || !inner) return
-
-      const heroHeight = window.innerHeight - 56 // header ~3.5rem
-      const progress = Math.min(1, window.scrollY / (window.innerHeight * 0.5))
-
-      wrapper.style.height = `${heroHeight * (1 - progress)}px`
-      inner.style.opacity = `${1 - progress}`
-      document.body.classList.toggle('hero-mode', progress < 1)
+      if (!heroRef.current) return
+      const progress = Math.min(1, Math.max(0, (window.scrollY - HEADER_H) / FADE_PX))
+      heroRef.current.style.opacity        = `${1 - progress}`
+      heroRef.current.style.pointerEvents  = progress > 0.9 ? 'none' : ''
+      document.body.classList.toggle('hero-mode', progress < 0.95)
     }
 
     update()
@@ -34,9 +31,15 @@ export default function HomeHero() {
   }, [])
 
   return (
-    <div ref={wrapperRef} className="-mt-6 overflow-hidden" style={{ height: 'calc(100svh - 3.5rem)' }}>
-      <div ref={innerRef} className="h-full flex flex-col items-center justify-center pointer-events-none">
-        <div className="hero-wordmark cursor-default pointer-events-auto">
+    // Spacer: keeps page height stable and provides scroll room for the fade
+    <div className="-mt-6" style={{ height: `calc(100svh - 3.5rem + ${FADE_PX}px)` }}>
+      {/* Hero sticks at top and fades as the spacer scrolls behind it */}
+      <div
+        ref={heroRef}
+        className="sticky top-0 flex flex-col items-center justify-center"
+        style={{ height: 'calc(100svh - 3.5rem)' }}
+      >
+        <div className="hero-wordmark cursor-default">
           <StokeWordmark iconSize={80} />
         </div>
         <div className="mt-10 text-stone-300">
