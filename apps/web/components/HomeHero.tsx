@@ -25,34 +25,12 @@ export default function HomeHero() {
         scrolledRef.current = true
         document.body.classList.remove('hero-mode')
         setScrolled(true)
-      } else if (window.scrollY < 10) {
-        if (!scrolledRef.current) return
-        restore()
       }
     }
 
-    // Wheel event catches "scrolling up at the very top" — scroll events don't fire there
-    function handleWheel(e: WheelEvent) {
-      if (!scrolledRef.current) return
-      if (e.deltaY >= 0) return
-      if (window.scrollY > 50) return
-      restore()
-    }
-
-    function restore() {
-      scrolledRef.current = false
-      suppressRef.current = true
-      setTimeout(() => { suppressRef.current = false }, 300)
-      document.body.classList.add('hero-mode')
-      setScrolled(false)
-      setCollapsed(false)
-    }
-
     window.addEventListener('scroll', handleScroll, { passive: true })
-    window.addEventListener('wheel', handleWheel, { passive: true })
     return () => {
       window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('wheel', handleWheel)
     }
   }, [])
 
