@@ -7,32 +7,56 @@ export default function HomeHero() {
   const [scrolled, setScrolled] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const suppressRef = useRef(false)
+  const scrolledRef = useRef(false)
 
+  // hero-mode on mount only — scroll handler manages add/remove from here on
   useEffect(() => {
     document.body.classList.add('hero-mode')
+    return () => document.body.classList.remove('hero-mode')
+  }, [])
 
+  // Scroll listener — empty deps, uses refs to avoid stale closures
+  useEffect(() => {
     function handleScroll() {
       if (suppressRef.current) return
-      if (window.scrollY > window.innerHeight * 0.55) {
-        if (scrolled) return
+      const threshold = window.innerHeight * 0.55
+      if (window.scrollY > threshold) {
+        if (scrolledRef.current) return
+        scrolledRef.current = true
         document.body.classList.remove('hero-mode')
         setScrolled(true)
       } else {
-        if (!scrolled) return
-        // Scrolling back up — suppress before layout change to avoid feedback loop
-        suppressRef.current = true
-        setTimeout(() => { suppressRef.current = false }, 300)
-        document.body.classList.add('hero-mode')
-        setScrolled(false)
-        setCollapsed(false)
+        if (!scrolledRef.current) return
+        restore()
       }
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [scrolled])
+    // Wheel event catches "scrolling up at the very top" — scroll events don't fire there
+    function handleWheel(e: WheelEvent) {
+      if (!scrolledRef.current) return
+      if (e.deltaY >= 0) return
+      if (window.scrollY > 50) return
+      restore()
+    }
 
-  // After opacity fade completes, collapse layout — suppress scroll events first
+    function restore() {
+      scrolledRef.current = false
+      suppressRef.current = true
+      setTimeout(() => { suppressRef.current = false }, 300)
+      document.body.classList.add('hero-mode')
+      setScrolled(false)
+      setCollapsed(false)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('wheel', handleWheel, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
+
+  // After opacity fade, collapse layout space
   useEffect(() => {
     if (!scrolled) return
     const t = setTimeout(() => {
@@ -43,11 +67,8 @@ export default function HomeHero() {
     return () => clearTimeout(t)
   }, [scrolled])
 
-  useEffect(() => {
-    return () => document.body.classList.remove('hero-mode')
-  }, [])
-
-  if (collapsed) return null
+  // Return empty div (not null) so component stays mounted and listeners stay active
+  if (collapsed) return <div />
 
   return (
     <div
