@@ -132,7 +132,7 @@ export default async function CommunitiesPage({ searchParams }: { searchParams: 
               >
                 <div className="flex items-start gap-3 mb-2">
                   {community.image_url && (
-                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-stone-100">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-stone-100 photo-pop">
                       <Image src={community.image_url} alt={community.name} width={40} height={40} className="w-full h-full object-cover" />
                     </div>
                   )}

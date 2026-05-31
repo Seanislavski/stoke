@@ -12,6 +12,7 @@ type Profile = { username: string; display_name: string | null; avatar_url: stri
 type Message = {
   id: string
   content: string
+  image_url: string | null
   created_at: string
   edited_at: string | null
   author_id: string
@@ -23,7 +24,7 @@ type Message = {
 function Avatar({ profile }: { profile: Profile | null }) {
   const initials = ((profile?.display_name ?? profile?.username) || '?')[0].toUpperCase()
   return (
-    <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-semibold text-stone-500">
+    <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-semibold text-stone-500 photo-pop">
       {profile?.avatar_url
         ? <Image src={profile.avatar_url} alt="" width={32} height={32} className="w-full h-full object-cover" />
         : initials}
@@ -58,11 +59,14 @@ export default function ChannelView({
   const [profiles, setProfiles] = useState<Record<string, Profile>>(initialProfiles)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
   const [mentionedId, setMentionedId] = useState<string | null>(mentionMessageId ?? null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -98,7 +102,7 @@ export default function ChannelView({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const row = payload.new as { id: string; content: string; created_at: string; edited_at: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
+          const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
 
           // fetch author profile if not cached
           let profile = profiles[row.author_id] ?? null
@@ -153,19 +157,37 @@ export default function ChannelView({
     return () => { supabase.removeChannel(channel) }
   }, [channelId])
 
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingImage(true)
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const path = `channel-images/${channelId}/${Date.now()}.${ext}`
+    const { data, error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    if (!error && data) {
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(data.path)
+      setPendingImageUrl(publicUrl)
+    }
+    setUploadingImage(false)
+    e.target.value = ''
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     const content = input.trim()
-    if (!content || sending) return
+    if ((!content && !pendingImageUrl) || sending) return
 
     setSending(true)
     setInput('')
+    const imageUrl = pendingImageUrl
+    setPendingImageUrl(null)
 
     // optimistic update — show message immediately
     const optimisticId = `optimistic-${Date.now()}`
     const optimistic: Message = {
       id: optimisticId,
       content,
+      image_url: imageUrl,
       created_at: new Date().toISOString(),
       edited_at: null,
       author_id: currentUserId,
@@ -177,12 +199,13 @@ export default function ChannelView({
 
     const { data: inserted, error } = await supabase
       .from('messages')
-      .insert({ channel_id: channelId, author_id: currentUserId, content })
+      .insert({ channel_id: channelId, author_id: currentUserId, content, image_url: imageUrl })
       .select('id')
       .single()
 
     if (error) {
       setInput(content)
+      setPendingImageUrl(imageUrl)
       setMessages(ms => ms.filter(m => m.id !== optimisticId))
     } else if (inserted && /@\w+/.test(content)) {
       processMentions(content, inserted.id, channelId, communityId)
@@ -385,7 +408,18 @@ export default function ChannelView({
                           )}
                         </div>
                       ) : (
-                        <RichContent content={msg.content} />
+                        <>
+                          {msg.content && <RichContent content={msg.content} />}
+                          {msg.image_url && (
+                            <a href={msg.image_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-1">
+                              <img
+                                src={msg.image_url}
+                                alt="attachment"
+                                className="rounded-lg border border-stone-200 max-h-72 max-w-xs object-contain photo-pop"
+                              />
+                            </a>
+                          )}
+                        </>
                       )}
                     </div>
                     {mobileTrashButton}
@@ -415,8 +449,48 @@ export default function ChannelView({
         </div>
       )}
 
+      {/* Image preview */}
+      {pendingImageUrl && (
+        <div className="pt-2 flex-shrink-0">
+          <div className="relative inline-block">
+            <img src={pendingImageUrl} alt="preview" className="h-16 w-auto rounded-lg border border-stone-200 object-cover" />
+            <button
+              type="button"
+              onClick={() => setPendingImageUrl(null)}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-stone-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-500 transition-colors leading-none"
+            >×</button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-stone-200 flex-shrink-0">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingImage}
+          title="Attach image"
+          className="p-2 text-stone-400 hover:text-orange-500 disabled:opacity-50 transition-colors flex-shrink-0"
+        >
+          {uploadingImage ? (
+            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          )}
+        </button>
         <input
           ref={inputRef}
           type="text"
@@ -429,7 +503,7 @@ export default function ChannelView({
         />
         <button
           type="submit"
-          disabled={!input.trim() || sending}
+          disabled={(!input.trim() && !pendingImageUrl) || sending}
           className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           Send

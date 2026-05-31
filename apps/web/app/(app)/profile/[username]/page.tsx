@@ -41,7 +41,7 @@ export default async function ProfilePage({
     <div className="max-w-2xl">
       {/* Header */}
       <div className="flex items-start gap-5 mb-6">
-        <div className="w-20 h-20 rounded-full bg-stone-200 overflow-hidden flex-shrink-0">
+        <div className="w-20 h-20 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 photo-pop">
           {profile.avatar_url ? (
             <Image
               src={profile.avatar_url}

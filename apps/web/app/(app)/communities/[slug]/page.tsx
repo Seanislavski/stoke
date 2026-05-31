@@ -192,7 +192,7 @@ export default async function CommunityPage({
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
             {community.image_url && (
-              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-100">
+              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-100 photo-pop">
                 <Image src={community.image_url} alt={community.name} width={64} height={64} className="w-full h-full object-cover" />
               </div>
             )}
