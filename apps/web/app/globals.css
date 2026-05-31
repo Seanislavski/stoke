@@ -25,6 +25,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Ensure input text is always readable — prevents light-text-on-light-bg */
+input,
+textarea,
+select {
+  color: #1c1917; /* stone-900 */
+}
+
 /* ─── Hero scroll transition ─── */
 
 header {

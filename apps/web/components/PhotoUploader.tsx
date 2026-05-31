@@ -109,7 +109,7 @@ export default function PhotoUploader({
             onChange={e => setUrlInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUrl() } }}
             placeholder="https://..."
-            className="flex-1 px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+            className="flex-1 px-2.5 py-1.5 text-xs text-stone-900 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
           />
           <button
             type="button"
