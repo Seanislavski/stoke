@@ -14,10 +14,6 @@ export default function HomeHero() {
       if (window.scrollY > window.innerHeight * 0.55) {
         document.body.classList.remove('hero-mode')
         setScrolled(true)
-      } else {
-        document.body.classList.add('hero-mode')
-        setScrolled(false)
-        setCollapsed(false)
       }
     }
 
@@ -28,7 +24,7 @@ export default function HomeHero() {
     }
   }, [])
 
-  // Collapse layout space only after the opacity fade completes
+  // Collapse layout space only after the opacity fade completes — one way, never restores
   useEffect(() => {
     if (!scrolled) return
     const t = setTimeout(() => setCollapsed(true), 500)
