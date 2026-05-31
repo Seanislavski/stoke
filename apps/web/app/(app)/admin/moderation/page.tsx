@@ -19,9 +19,6 @@ export default async function AdminModerationPage() {
 
       {/* Platform bans */}
       <section>
-        <h2 className="text-base font-semibold text-stone-800 mb-3">
-          Platform bans {bannedUsers?.length ? `(${bannedUsers.length})` : ''}
-        </h2>
         {!bannedUsers?.length ? (
           <div className="bg-white rounded-xl border border-stone-200 px-4 py-8 text-center text-sm text-stone-400">
             No platform bans
