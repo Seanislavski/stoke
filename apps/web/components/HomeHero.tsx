@@ -1,35 +1,51 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import StokeWordmark from '@/components/StokeWordmark'
 
 export default function HomeHero() {
   const [scrolled, setScrolled] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const suppressRef = useRef(false)
 
   useEffect(() => {
     document.body.classList.add('hero-mode')
 
     function handleScroll() {
+      if (suppressRef.current) return
       if (window.scrollY > window.innerHeight * 0.55) {
+        if (scrolled) return
         document.body.classList.remove('hero-mode')
         setScrolled(true)
+      } else {
+        if (!scrolled) return
+        // Scrolling back up — suppress before layout change to avoid feedback loop
+        suppressRef.current = true
+        setTimeout(() => { suppressRef.current = false }, 300)
+        document.body.classList.add('hero-mode')
+        setScrolled(false)
+        setCollapsed(false)
       }
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      document.body.classList.remove('hero-mode')
-    }
-  }, [])
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [scrolled])
 
-  // Collapse layout space only after the opacity fade completes — one way, never restores
+  // After opacity fade completes, collapse layout — suppress scroll events first
   useEffect(() => {
     if (!scrolled) return
-    const t = setTimeout(() => setCollapsed(true), 500)
+    const t = setTimeout(() => {
+      suppressRef.current = true
+      setCollapsed(true)
+      setTimeout(() => { suppressRef.current = false }, 300)
+    }, 500)
     return () => clearTimeout(t)
   }, [scrolled])
+
+  useEffect(() => {
+    return () => document.body.classList.remove('hero-mode')
+  }, [])
 
   if (collapsed) return null
 
