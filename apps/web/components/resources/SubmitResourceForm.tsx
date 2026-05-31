@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { submitResource } from '@/app/actions/resources'
+import PhotoUploader from '@/components/PhotoUploader'
 
 type Props = { communityId: string; slug: string; isMod: boolean }
 
@@ -9,24 +10,33 @@ export default function SubmitResourceForm({ communityId, slug, isMod }: Props) 
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [resourceType, setResourceType] = useState('other')
+  const [photoUrl, setPhotoUrl] = useState('')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (resourceType === 'photo' && !photoUrl) {
+      setFeedback('Please upload or paste a photo URL.')
+      return
+    }
     setLoading(true)
     setFeedback('')
     const formData = new FormData(e.currentTarget)
+    if (resourceType === 'photo') formData.set('url', photoUrl)
     const result = await submitResource(communityId, slug, formData)
     setLoading(false)
     if (result.error) {
       setFeedback(result.error)
     } else {
       setOpen(false)
+      setResourceType('other')
+      setPhotoUrl('')
       setFeedback(result.status === 'published' ? 'Resource added.' : 'Resource submitted for review.')
       ;(e.target as HTMLFormElement).reset()
     }
   }
 
-  const TYPES = ['article', 'video', 'tool', 'book', 'other']
+  const TYPES = ['article', 'video', 'tool', 'book', 'photo', 'other']
 
   return (
     <div>
@@ -50,13 +60,32 @@ export default function SubmitResourceForm({ communityId, slug, isMod }: Props) 
             placeholder="Title"
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
           />
-          <input
-            name="url"
-            type="url"
-            required
-            placeholder="https://..."
-            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-          />
+          <select
+            name="resource_type"
+            value={resourceType}
+            onChange={e => setResourceType(e.target.value)}
+            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
+          >
+            {TYPES.map(t => (
+              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+            ))}
+          </select>
+          {resourceType === 'photo' ? (
+            <PhotoUploader
+              photos={photoUrl ? [photoUrl] : []}
+              onChange={urls => setPhotoUrl(urls[0] ?? '')}
+              pathPrefix={`community-photos/resources-${communityId}`}
+              multiple={false}
+            />
+          ) : (
+            <input
+              name="url"
+              type="url"
+              required
+              placeholder="https://..."
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+            />
+          )}
           <textarea
             name="description"
             rows={3}
@@ -64,15 +93,6 @@ export default function SubmitResourceForm({ communityId, slug, isMod }: Props) 
             placeholder="Why is this useful? (optional)"
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
           />
-          <select
-            name="resource_type"
-            defaultValue="other"
-            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
-          >
-            {TYPES.map(t => (
-              <option key={t} value={t} className="capitalize">{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-            ))}
-          </select>
           {feedback && <p className="text-sm text-red-600">{feedback}</p>}
           <div className="flex gap-2">
             <button
@@ -84,7 +104,7 @@ export default function SubmitResourceForm({ communityId, slug, isMod }: Props) 
             </button>
             <button
               type="button"
-              onClick={() => { setOpen(false); setFeedback('') }}
+              onClick={() => { setOpen(false); setFeedback(''); setResourceType('other'); setPhotoUrl('') }}
               className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700"
             >
               Cancel

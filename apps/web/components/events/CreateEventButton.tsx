@@ -3,10 +3,12 @@
 import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createEvent } from '@/app/actions/events'
+import PhotoUploader from '@/components/PhotoUploader'
 
 export default function CreateEventButton({ communityId }: { communityId: string }) {
   const [open, setOpen] = useState(false)
   const [locationType, setLocationType] = useState<'online' | 'in_person' | 'hybrid'>('online')
+  const [photos, setPhotos] = useState<string[]>([])
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -20,9 +22,11 @@ export default function CreateEventButton({ communityId }: { communityId: string
       alert('End time must be after start time.')
       return
     }
+    formData.set('photos', JSON.stringify(photos))
     startTransition(async () => {
       await createEvent(communityId, formData)
       setOpen(false)
+      setPhotos([])
       formRef.current?.reset()
       setLocationType('online')
       router.refresh()
@@ -129,10 +133,19 @@ export default function CreateEventButton({ communityId }: { communityId: string
                 </div>
               )}
 
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">Photos</label>
+                <PhotoUploader
+                  photos={photos}
+                  onChange={setPhotos}
+                  pathPrefix={`community-photos/events-${communityId}`}
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => { setOpen(false); setPhotos([]) }}
                   className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 rounded-lg border border-stone-200"
                 >
                   Cancel

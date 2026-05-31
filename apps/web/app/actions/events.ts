@@ -36,6 +36,8 @@ export async function createEvent(communityId: string, formData: FormData) {
 
   const startsAt = formData.get('starts_at') as string
   const endsAt = formData.get('ends_at') as string
+  const photosRaw = formData.get('photos') as string | null
+  const photos: string[] = photosRaw ? JSON.parse(photosRaw) : []
 
   await admin.from('events').insert({
     community_id: communityId,
@@ -47,6 +49,7 @@ export async function createEvent(communityId: string, formData: FormData) {
     location_type: formData.get('location_type') as string,
     location_online: (formData.get('location_online') as string) || null,
     location_address: (formData.get('location_address') as string) || null,
+    photos,
   })
 
   revalidatePath(`/communities/${communityRow?.slug}`)

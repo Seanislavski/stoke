@@ -25,8 +25,11 @@ export async function submitPost(communityId: string, slug: string, formData: Fo
   if (!user || membership?.status !== 'active') return { error: 'Not a member of this community.' }
 
   const title = (formData.get('title') as string).trim()
-  const content = (formData.get('content') as string).trim()
-  if (!title || !content) return { error: 'Title and content are required.' }
+  const content = (formData.get('content') as string ?? '').trim()
+  const photosRaw = formData.get('photos') as string | null
+  const photos: string[] = photosRaw ? JSON.parse(photosRaw) : []
+  if (!title) return { error: 'Title is required.' }
+  if (!content && !photos.length) return { error: 'Add some content or at least one photo.' }
 
   const isMod = membership.role === 'organizer' || membership.role === 'moderator'
   const status = isMod ? 'published' : 'pending'
@@ -35,7 +38,7 @@ export async function submitPost(communityId: string, slug: string, formData: Fo
   const supabase = await createClient()
   const { error } = await supabase
     .from('bulletin_posts')
-    .insert({ community_id: communityId, author_id: user.id, title, content, status, published_at })
+    .insert({ community_id: communityId, author_id: user.id, title, content, photos, status, published_at })
 
   if (error) return { error: 'Could not submit post.' }
 

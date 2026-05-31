@@ -14,6 +14,7 @@ import ResourceModActions from '@/components/resources/ResourceModActions'
 import DeleteItemButton from '@/components/DeleteItemButton'
 import RichContent from '@/components/RichContent'
 import LinkPreview from '@/components/LinkPreview'
+import PhotoGallery from '@/components/PhotoGallery'
 import { deletePost } from '@/app/actions/bulletin'
 import { deleteEvent } from '@/app/actions/events'
 import { deleteResource } from '@/app/actions/resources'
@@ -93,7 +94,7 @@ export default async function CommunityPage({
   const [publishedPosts, pendingPosts] = await Promise.all([
     (tab === 'bulletin' && canSee)
       ? admin.from('bulletin_posts')
-          .select('id, title, content, published_at, profiles(username, display_name)')
+          .select('id, title, content, photos, published_at, profiles(username, display_name)')
           .eq('community_id', community.id)
           .eq('status', 'published')
           .order('published_at', { ascending: false })
@@ -101,7 +102,7 @@ export default async function CommunityPage({
       : Promise.resolve(null),
     (tab === 'bulletin' && isMod)
       ? admin.from('bulletin_posts')
-          .select('id, title, content, created_at, profiles(username, display_name)')
+          .select('id, title, content, photos, created_at, profiles(username, display_name)')
           .eq('community_id', community.id)
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
@@ -146,7 +147,7 @@ export default async function CommunityPage({
   if (tab === 'events' && canSee) {
     const { data: eventsData } = await admin
       .from('events')
-      .select('id, title, description, starts_at, ends_at, location_type, location_online, location_address, created_by')
+      .select('id, title, description, starts_at, ends_at, location_type, location_online, location_address, created_by, photos')
       .eq('community_id', community.id)
       .order('starts_at', { ascending: true })
 
@@ -301,7 +302,8 @@ export default async function CommunityPage({
                           ) : 'Unknown'}
                         </p>
                         <h3 className="font-medium text-stone-900 text-sm">{post.title}</h3>
-                        <RichContent content={post.content} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" />
+                        {post.content && <RichContent content={post.content} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" />}
+                        <PhotoGallery photos={post.photos ?? []} />
                         <ModActions postId={post.id} communityId={community.id} slug={community.slug} />
                       </div>
                     )
@@ -337,7 +339,8 @@ export default async function CommunityPage({
                           )}
                         </div>
                         <h3 className="font-semibold text-stone-900">{post.title}</h3>
-                        <RichContent content={post.content} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" />
+                        {post.content && <RichContent content={post.content} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" />}
+                        <PhotoGallery photos={post.photos ?? []} />
                       </div>
                     )
                   })}
@@ -431,11 +434,17 @@ export default async function CommunityPage({
                               <span className="capitalize">{resource.resource_type}</span>
                             </p>
                             <h3 className="font-medium text-stone-900 text-sm">{resource.title}</h3>
-                            <a href={resource.url} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-orange-600 hover:underline truncate block mt-0.5">
-                              {resource.url}
-                            </a>
-                            <LinkPreview url={resource.url} />
+                            {resource.resource_type === 'photo' ? (
+                              <img src={resource.url} alt="" className="mt-1 max-h-32 rounded-lg border border-stone-200 object-contain" />
+                            ) : (
+                              <>
+                                <a href={resource.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs text-orange-600 hover:underline truncate block mt-0.5">
+                                  {resource.url}
+                                </a>
+                                <LinkPreview url={resource.url} />
+                              </>
+                            )}
                             {resource.description && (
                               <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
                             )}
@@ -448,56 +457,85 @@ export default async function CommunityPage({
                 </div>
               )}
 
-              {publishedResources && publishedResources.length > 0 ? (
-                <div className="space-y-3">
-                  {publishedResources.map(resource => {
-                    const author = Array.isArray(resource.profiles) ? resource.profiles[0] : resource.profiles
-                    const date = resource.published_at
-                      ? new Date(resource.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : ''
-                    return (
-                      <div key={resource.id} className="bg-white border border-stone-200 rounded-xl p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-stone-400 mb-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="capitalize bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">
-                                  {resource.resource_type}
-                                </span>
-                                {author?.username && (
-                                  <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
-                                    {author.display_name ?? author.username}
-                                  </Link>
-                                )}
-                                {date && <span>{date}</span>}
-                              </div>
-                              {isMod && (
+              {(() => {
+                const photoResources = publishedResources?.filter(r => r.resource_type === 'photo') ?? []
+                const otherResources = publishedResources?.filter(r => r.resource_type !== 'photo') ?? []
+
+                return (
+                  <>
+                    {photoResources.length > 0 && (
+                      <div className="bg-white border border-stone-200 rounded-xl p-4">
+                        <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">Photo Gallery</p>
+                        <PhotoGallery photos={photoResources.map(r => r.url)} />
+                        {isMod && (
+                          <div className="mt-3 space-y-1">
+                            {photoResources.map(r => (
+                              <div key={r.id} className="flex items-center justify-between text-xs text-stone-400">
+                                <span className="truncate">{r.title}</span>
                                 <DeleteItemButton
-                                  action={deleteResource.bind(null, resource.id, community.id, slug)}
-                                  confirm="Delete this resource?"
+                                  action={deleteResource.bind(null, r.id, community.id, slug)}
+                                  confirm="Delete this photo?"
                                 />
-                              )}
-                            </div>
-                            <h3 className="font-semibold text-stone-900">{resource.title}</h3>
-                            <a href={resource.url} target="_blank" rel="noopener noreferrer"
-                              className="text-sm text-orange-600 hover:underline break-all">
-                              {resource.url}
-                            </a>
-                            <LinkPreview url={resource.url} />
-                            {resource.description && (
-                              <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
-                            )}
+                              </div>
+                            ))}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="bg-white border border-stone-200 rounded-xl p-6 text-center text-stone-400 text-sm">
-                  No resources yet.
-                </div>
-              )}
+                    )}
+
+                    {otherResources.length > 0 ? (
+                      <div className="space-y-3">
+                        {otherResources.map(resource => {
+                          const author = Array.isArray(resource.profiles) ? resource.profiles[0] : resource.profiles
+                          const date = resource.published_at
+                            ? new Date(resource.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : ''
+                          return (
+                            <div key={resource.id} className="bg-white border border-stone-200 rounded-xl p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-stone-400 mb-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="capitalize bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">
+                                        {resource.resource_type}
+                                      </span>
+                                      {author?.username && (
+                                        <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                                          {author.display_name ?? author.username}
+                                        </Link>
+                                      )}
+                                      {date && <span>{date}</span>}
+                                    </div>
+                                    {isMod && (
+                                      <DeleteItemButton
+                                        action={deleteResource.bind(null, resource.id, community.id, slug)}
+                                        confirm="Delete this resource?"
+                                      />
+                                    )}
+                                  </div>
+                                  <h3 className="font-semibold text-stone-900">{resource.title}</h3>
+                                  <a href={resource.url} target="_blank" rel="noopener noreferrer"
+                                    className="text-sm text-orange-600 hover:underline break-all">
+                                    {resource.url}
+                                  </a>
+                                  <LinkPreview url={resource.url} />
+                                  {resource.description && (
+                                    <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : photoResources.length === 0 ? (
+                      <div className="bg-white border border-stone-200 rounded-xl p-6 text-center text-stone-400 text-sm">
+                        No resources yet.
+                      </div>
+                    ) : null}
+                  </>
+                )
+              })()}
 
               <SubmitResourceForm communityId={community.id} slug={community.slug} isMod={isMod} />
             </div>
@@ -547,6 +585,7 @@ type Event = {
   location_online: string | null
   location_address: string | null
   created_by: string
+  photos: string[] | null
 }
 
 function EventCard({
@@ -618,6 +657,7 @@ function EventCard({
           {event.description && (
             <RichContent content={event.description} className="text-sm text-stone-600 mt-2 whitespace-pre-wrap" />
           )}
+          <PhotoGallery photos={event.photos ?? []} />
 
           <div className="flex items-center gap-3 mt-3 text-xs text-stone-400">
             {counts.yes > 0 && <span>{counts.yes} going</span>}
