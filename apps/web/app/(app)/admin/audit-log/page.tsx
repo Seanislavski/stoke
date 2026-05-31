@@ -59,6 +59,9 @@ export default async function AdminAuditLogPage() {
                     {(entry.action === 'platform.role.assigned' || entry.action === 'platform.role.removed') && typeof meta?.role === 'string' && (
                       <span className="text-stone-400"> · {meta.role}</span>
                     )}
+                    {entry.action.startsWith('ticket_category.') && typeof meta?.label === 'string' && (
+                      <span className="text-stone-400"> · {meta.label}</span>
+                    )}
                     {community && (
                       <span className="ml-2 text-xs text-stone-300">in {community.name}</span>
                     )}
