@@ -1,13 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
-
-const CATEGORY_LABELS: Record<string, string> = {
-  account_issue: 'Account Issue',
-  report_user: 'Report a User',
-  bug_report: 'Bug Report',
-  community_issue: 'Community Issue',
-  other: 'Other',
-}
+import { getTicketCategories, buildCategoryLabels } from '@/lib/ticket-categories'
+import CategoryManager from '@/components/tickets/CategoryManager'
 
 const STATUS_STYLES: Record<string, string> = {
   open: 'bg-blue-100 text-blue-700',
@@ -24,37 +18,36 @@ export default async function AdminSupportPage({
   const { status = 'active', category = '' } = await searchParams
   const admin = createAdminClient()
 
-  let query = admin
-    .from('tickets')
-    .select('id, category, title, status, community_id, submitted_by, created_at, updated_at, communities(name, slug), profiles(username, display_name)')
-    .order('updated_at', { ascending: false })
-    .limit(100)
+  const [categories, ticketsResult] = await Promise.all([
+    getTicketCategories(),
+    (async () => {
+      let query = admin
+        .from('tickets')
+        .select('id, category, title, status, community_id, submitted_by, created_at, updated_at, communities(name, slug), profiles(username, display_name)')
+        .order('updated_at', { ascending: false })
+        .limit(100)
 
-  if (status === 'active') {
-    query = query.in('status', ['open', 'in_progress'])
-  } else if (status === 'resolved') {
-    query = query.in('status', ['resolved', 'closed'])
-  }
+      if (status === 'active') {
+        query = query.in('status', ['open', 'in_progress'])
+      } else if (status === 'resolved') {
+        query = query.in('status', ['resolved', 'closed'])
+      }
 
-  if (category) {
-    query = query.eq('category', category)
-  }
+      if (category) {
+        query = query.eq('category', category)
+      }
 
-  const { data: tickets } = await query
+      return query
+    })(),
+  ])
+
+  const { data: tickets } = ticketsResult
+  const CATEGORY_LABELS = buildCategoryLabels(categories)
 
   const STATUSES = [
     { value: 'active', label: 'Active' },
     { value: 'resolved', label: 'Resolved/Closed' },
     { value: 'all', label: 'All' },
-  ]
-
-  const CATEGORIES = [
-    { value: '', label: 'All categories' },
-    { value: 'account_issue', label: 'Account Issue' },
-    { value: 'report_user', label: 'Report a User' },
-    { value: 'bug_report', label: 'Bug Report' },
-    { value: 'community_issue', label: 'Community Issue' },
-    { value: 'other', label: 'Other' },
   ]
 
   return (
@@ -84,8 +77,9 @@ export default async function AdminSupportPage({
             defaultValue={category}
             className="px-2 py-1 text-xs border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none"
           >
-            {CATEGORIES.map(c => (
-              <option key={c.value} value={c.value}>{c.label}</option>
+            <option value="">All categories</option>
+            {categories.map(c => (
+              <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
           <button type="submit" className="px-2 py-1 text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors">
@@ -131,6 +125,8 @@ export default async function AdminSupportPage({
           })}
         </div>
       )}
+
+      <CategoryManager categories={categories} />
     </div>
   )
 }

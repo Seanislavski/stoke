@@ -4,14 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import TicketThread from '@/components/tickets/TicketThread'
 import StatusSelect from '@/components/tickets/StatusSelect'
-
-const CATEGORY_LABELS: Record<string, string> = {
-  account_issue: 'Account Issue',
-  report_user: 'Report a User',
-  bug_report: 'Bug Report',
-  community_issue: 'Community Issue',
-  other: 'Other',
-}
+import { getTicketCategories, buildCategoryLabels } from '@/lib/ticket-categories'
 
 const STATUS_STYLES: Record<string, string> = {
   open: 'bg-blue-100 text-blue-700',
@@ -27,11 +20,15 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createAdminClient()
 
-  const { data: ticket } = await admin
-    .from('tickets')
-    .select('id, category, title, status, community_id, submitted_by, created_at, communities(name, slug), profiles(username, display_name)')
-    .eq('id', ticketId)
-    .single()
+  const [{ data: ticket }, categories] = await Promise.all([
+    admin
+      .from('tickets')
+      .select('id, category, title, status, community_id, submitted_by, created_at, communities(name, slug), profiles(username, display_name)')
+      .eq('id', ticketId)
+      .single(),
+    getTicketCategories(),
+  ])
+  const CATEGORY_LABELS = buildCategoryLabels(categories)
 
   if (!ticket) notFound()
 

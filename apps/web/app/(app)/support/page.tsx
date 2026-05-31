@@ -2,14 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import NewTicketForm from '@/components/tickets/NewTicketForm'
-
-const CATEGORY_LABELS: Record<string, string> = {
-  account_issue: 'Account Issue',
-  report_user: 'Report a User',
-  bug_report: 'Bug Report',
-  community_issue: 'Community Issue',
-  other: 'Other',
-}
+import { getTicketCategories, buildCategoryLabels } from '@/lib/ticket-categories'
 
 const STATUS_STYLES: Record<string, string> = {
   open: 'bg-blue-100 text-blue-700',
@@ -29,6 +22,10 @@ export default async function SupportPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createAdminClient()
+
+  const categories = await getTicketCategories()
+  const CATEGORY_LABELS = buildCategoryLabels(categories)
+  const activeCategories = categories.filter(c => c.is_active).map(c => ({ key: c.key, label: c.label }))
 
   // My tickets
   const { data: myTickets } = await admin
@@ -77,7 +74,7 @@ export default async function SupportPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-stone-900">Support</h1>
       </div>
-      <NewTicketForm orgCommunities={allCommunities} />
+      <NewTicketForm orgCommunities={allCommunities} categories={activeCategories} />
 
       {/* My open tickets */}
       <section className="mb-8">
@@ -90,7 +87,7 @@ export default async function SupportPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {openMine.map(t => <TicketRow key={t.id} ticket={t} />)}
+            {openMine.map(t => <TicketRow key={t.id} ticket={t} categoryLabels={CATEGORY_LABELS} />)}
           </div>
         )}
       </section>
@@ -102,7 +99,7 @@ export default async function SupportPage() {
             Community tickets ({communityTickets.length})
           </h2>
           <div className="space-y-2">
-            {communityTickets.map(t => <TicketRow key={t.id} ticket={t} showAuthor />)}
+            {communityTickets.map(t => <TicketRow key={t.id} ticket={t} showAuthor categoryLabels={CATEGORY_LABELS} />)}
           </div>
         </section>
       )}
@@ -114,7 +111,7 @@ export default async function SupportPage() {
             Closed tickets ({closedMine.length})
           </summary>
           <div className="space-y-2 mt-3">
-            {closedMine.map(t => <TicketRow key={t.id} ticket={t} />)}
+            {closedMine.map(t => <TicketRow key={t.id} ticket={t} categoryLabels={CATEGORY_LABELS} />)}
           </div>
         </details>
       )}
@@ -134,9 +131,10 @@ type TicketRowProps = {
     profiles?: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null
   }
   showAuthor?: boolean
+  categoryLabels: Record<string, string>
 }
 
-function TicketRow({ ticket, showAuthor }: TicketRowProps) {
+function TicketRow({ ticket, showAuthor, categoryLabels }: TicketRowProps) {
   const community = Array.isArray(ticket.communities) ? ticket.communities[0] : ticket.communities
   const author = Array.isArray(ticket.profiles) ? ticket.profiles[0] : ticket.profiles
   const date = new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -148,7 +146,7 @@ function TicketRow({ ticket, showAuthor }: TicketRowProps) {
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <span className="text-xs text-stone-400">{CATEGORY_LABELS[ticket.category] ?? ticket.category}</span>
+          <span className="text-xs text-stone-400">{categoryLabels[ticket.category] ?? ticket.category}</span>
           {community && (
             <span className="text-xs bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded">{community.name}</span>
           )}

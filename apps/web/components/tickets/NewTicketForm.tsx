@@ -5,20 +5,19 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createTicket } from '@/app/actions/tickets'
 
 type Community = { id: string; name: string }
+type Category = { key: string; label: string }
 
-const CATEGORIES = [
-  { value: 'account_issue', label: 'Account Issue' },
-  { value: 'report_user', label: 'Report a User' },
-  { value: 'bug_report', label: 'Bug Report' },
-  { value: 'community_issue', label: 'Community Issue' },
-  { value: 'other', label: 'Other' },
-]
-
-export default function NewTicketForm({ orgCommunities }: { orgCommunities: Community[] }) {
+export default function NewTicketForm({
+  orgCommunities,
+  categories,
+}: {
+  orgCommunities: Community[]
+  categories: Category[]
+}) {
   const searchParams = useSearchParams()
   const paramCategory = searchParams.get('category')
   const paramSubject = searchParams.get('subject') ?? ''
-  const validCategory = CATEGORIES.find(c => c.value === paramCategory)?.value ?? 'account_issue'
+  const validCategory = categories.find(c => c.key === paramCategory)?.key ?? categories[0]?.key ?? 'other'
 
   const [open, setOpen] = useState(!!paramCategory)
   const [category, setCategory] = useState(validCategory)
@@ -63,8 +62,8 @@ export default function NewTicketForm({ orgCommunities }: { orgCommunities: Comm
               onChange={e => setCategory(e.target.value)}
               className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
             >
-              {CATEGORIES.map(c => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+              {categories.map(c => (
+                <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
           </div>
