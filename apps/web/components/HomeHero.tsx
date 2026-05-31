@@ -28,7 +28,8 @@ export default function HomeHero() {
 
   return (
     <div
-      className={`-mt-6 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center transition-opacity duration-500 ${
+      style={{ height: scrolled ? 0 : 'calc(100svh - 3.5rem)' }}
+      className={`-mt-6 flex flex-col items-center justify-center overflow-hidden transition-all duration-500 ${
         scrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
