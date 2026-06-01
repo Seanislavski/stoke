@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import StokeWordmark from '@/components/StokeWordmark'
 
-const FADE_PX = 300
+const FADE_PX = 150
 
 export default function HomeHero() {
   const heroRef = useRef<HTMLDivElement>(null)
