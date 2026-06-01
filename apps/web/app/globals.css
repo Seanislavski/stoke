@@ -5,6 +5,10 @@
   --foreground: #171717;
 }
 
+html, body {
+  background-color: #fafaf9; /* stone-50 — prevents dark bar below page content */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
