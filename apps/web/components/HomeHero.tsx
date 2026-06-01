@@ -6,18 +6,27 @@ import StokeWordmark from '@/components/StokeWordmark'
 const FADE_PX = 150
 
 export default function HomeHero() {
-  const heroRef = useRef<HTMLDivElement>(null)
+  const heroRef  = useRef<HTMLDivElement>(null)
+  const spacerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.body.classList.add('hero-mode')
-    // Guarantee the page is tall enough to complete the fade
-    document.body.style.minHeight = `calc(100svh + ${FADE_PX}px)`
 
     function update() {
-      if (!heroRef.current) return
+      if (!heroRef.current || !spacerRef.current) return
       const progress = Math.min(1, window.scrollY / FADE_PX)
       heroRef.current.style.opacity = `${1 - progress}`
       document.body.classList.toggle('hero-mode', progress < 0.95)
+
+      // Once faded: collapse spacer + release extra body height
+      // While visible: spacer creates scroll room + minHeight guarantees scrollability
+      if (progress >= 1) {
+        spacerRef.current.style.height = '0'
+        document.body.style.minHeight = ''
+      } else {
+        spacerRef.current.style.height = `${FADE_PX}px`
+        document.body.style.minHeight = `calc(100svh + ${FADE_PX}px)`
+      }
     }
 
     update()
@@ -58,8 +67,8 @@ export default function HomeHero() {
           </svg>
         </div>
       </div>
-      {/* Spacer: scroll distance = fade distance, so content is at top when hero finishes fading */}
-      <div style={{ height: `${FADE_PX}px` }} />
+      {/* Spacer: collapses to 0 once hero fades, so no whitespace is left behind */}
+      <div ref={spacerRef} style={{ height: `${FADE_PX}px` }} />
     </>
   )
 }
