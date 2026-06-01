@@ -23,6 +23,7 @@ export default async function HomePage() {
       <>
         <HomeHero />
         <WelcomeScreen />
+        <footer className="h-32" />
       </>
     )
   }
@@ -212,6 +213,7 @@ export default async function HomePage() {
 
         </div>
       </div>
+      <footer className="h-32" />
     </div>
   )
 }
