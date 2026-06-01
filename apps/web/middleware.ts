@@ -29,8 +29,9 @@ export async function middleware(request: NextRequest) {
   const isBannedPage = pathname.startsWith('/banned')
   const isInvitePage = pathname.startsWith('/invite/')
   const isCronRoute = pathname.startsWith('/api/cron/')
+  const isLandingPage = pathname === '/'
 
-  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute) {
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isLandingPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
