@@ -6,37 +6,36 @@ import StokeWordmark from '@/components/StokeWordmark'
 const FADE_PX = 150
 
 export default function HomeHero() {
-  const heroRef  = useRef<HTMLDivElement>(null)
+  const heroRef   = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.body.classList.add('hero-mode')
 
+    // Size the spacer so the page is exactly tall enough to scroll FADE_PX —
+    // no body minHeight needed, no collapse, no jump.
+    function initSpacer() {
+      if (!spacerRef.current) return
+      spacerRef.current.style.height = '0'
+      const naturalHeight = document.body.scrollHeight
+      const needed = window.innerHeight + FADE_PX - naturalHeight
+      spacerRef.current.style.height = `${Math.max(FADE_PX, needed)}px`
+    }
+
     function update() {
-      if (!heroRef.current || !spacerRef.current) return
+      if (!heroRef.current) return
       const progress = Math.min(1, window.scrollY / FADE_PX)
       heroRef.current.style.opacity = `${1 - progress}`
       document.body.classList.toggle('hero-mode', progress < 0.95)
-
-      // Once faded: collapse spacer + release extra body height
-      // While visible: spacer creates scroll room + minHeight guarantees scrollability
-      if (progress >= 1) {
-        spacerRef.current.style.height = '0'
-        document.body.style.minHeight = ''
-      } else {
-        spacerRef.current.style.height = `${FADE_PX}px`
-        document.body.style.minHeight = `calc(100svh + ${FADE_PX}px)`
-      }
     }
 
+    initSpacer()
     update()
     window.addEventListener('scroll', update, { passive: true })
-    window.addEventListener('resize', update, { passive: true })
+    window.addEventListener('resize', () => { initSpacer(); update() }, { passive: true })
     return () => {
       window.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
       document.body.classList.remove('hero-mode')
-      document.body.style.minHeight = ''
     }
   }, [])
 
@@ -67,8 +66,8 @@ export default function HomeHero() {
           </svg>
         </div>
       </div>
-      {/* Spacer: collapses to 0 once hero fades, so no whitespace is left behind */}
-      <div ref={spacerRef} style={{ height: `${FADE_PX}px` }} />
+      {/* Spacer: sized at init to make the page exactly scrollable enough for the fade */}
+      <div ref={spacerRef} />
     </>
   )
 }
