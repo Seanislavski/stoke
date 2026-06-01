@@ -3,38 +3,32 @@
 import { useEffect, useRef } from 'react'
 import StokeWordmark from '@/components/StokeWordmark'
 
-const FADE_PX = 40
-
 export default function HomeHero() {
   const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.body.classList.add('hero-mode')
-    document.body.style.minHeight = `calc(100svh + ${FADE_PX}px)`
 
     function update() {
-      if (!heroRef.current) return
-      const progress = Math.min(1, window.scrollY / FADE_PX)
-      heroRef.current.style.opacity        = `${1 - progress}`
-      heroRef.current.style.pointerEvents  = progress > 0.5 ? 'none' : 'auto'
-      document.body.classList.toggle('hero-mode', progress < 0.95)
+      const hero = heroRef.current
+      if (!hero) return
+      const progress = Math.min(1, window.scrollY / hero.offsetHeight)
+      hero.style.opacity = `${1 - progress}`
+      document.body.classList.toggle('hero-mode', progress < 0.8)
     }
 
     update()
     window.addEventListener('scroll', update, { passive: true })
-    window.addEventListener('resize', update, { passive: true })
     return () => {
       window.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
       document.body.classList.remove('hero-mode')
-      document.body.style.minHeight = ''
     }
   }, [])
 
   return (
     <div
       ref={heroRef}
-      className="fixed inset-0 z-20 flex flex-col items-center justify-center bg-stone-50"
+      className="-mt-6 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center"
     >
       <div className="hero-wordmark cursor-default">
         <StokeWordmark iconSize={80} />
