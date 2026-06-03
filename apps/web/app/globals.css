@@ -41,6 +41,10 @@ select {
 header {
   transition: opacity 400ms ease;
 }
+body.hero-mode header {
+  opacity: 0;
+  pointer-events: none;
+}
 
 /* ─── UX Polish ─── */
 

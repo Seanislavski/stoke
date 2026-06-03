@@ -7,22 +7,28 @@ export default function HomeHero() {
   const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    document.body.classList.add('hero-mode')
+
     function update() {
       const hero = heroRef.current
-      if (!hero) return
+      if (!hero || hero.offsetHeight === 0) return
       const progress = Math.min(1, window.scrollY / hero.offsetHeight)
       hero.style.opacity = `${1 - progress}`
+      document.body.classList.toggle('hero-mode', progress < 0.9)
     }
 
     update()
     window.addEventListener('scroll', update, { passive: true })
-    return () => window.removeEventListener('scroll', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      document.body.classList.remove('hero-mode')
+    }
   }, [])
 
   return (
     <div
       ref={heroRef}
-      className="-mt-6 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center"
+      className="-mt-6 min-h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center"
     >
       <div className="hero-wordmark cursor-default">
         <StokeWordmark iconSize={80} />
