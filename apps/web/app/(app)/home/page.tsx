@@ -23,8 +23,9 @@ export default async function HomePage() {
       <>
         <script dangerouslySetInnerHTML={{ __html: "document.body.classList.add('hero-mode')" }} />
         <HomeHero />
-        <WelcomeScreen />
-        <footer className="min-h-screen" />
+        <div className="min-h-[calc(100vh-3.5rem)]">
+          <WelcomeScreen />
+        </div>
       </>
     )
   }
@@ -86,7 +87,7 @@ export default async function HomePage() {
       <script dangerouslySetInnerHTML={{ __html: "document.body.classList.add('hero-mode')" }} />
       <HomeHero />
 
-      <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
+      <div className="min-h-[calc(100vh-3.5rem)] lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
 
         {/* Left: communities list */}
         <div className="lg:col-span-2 space-y-6">
@@ -215,7 +216,6 @@ export default async function HomePage() {
 
         </div>
       </div>
-      <footer className="min-h-screen" />
     </div>
   )
 }
