@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No billing account found' }, { status: 404 })
   }
 
-  const origin = new URL(request.url).origin
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
   const session = await stripe.billingPortal.sessions.create({
     customer: sub.stripe_customer_id,
     return_url: `${origin}/settings/billing`,

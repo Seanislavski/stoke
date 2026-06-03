@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (sub?.stripe_subscription_id) {
     const portal = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id!,
-      return_url: `${new URL(request.url).origin}/settings/billing`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin}/settings/billing`,
     })
     return NextResponse.json({ url: portal.url })
   }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'user_id' })
   }
 
-  const origin = new URL(request.url).origin
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
