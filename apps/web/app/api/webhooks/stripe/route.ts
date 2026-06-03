@@ -27,9 +27,8 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     return
   }
 
-  const currentPeriodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000).toISOString()
-    : null
+  const periodEndTs = subscription.billing_schedules?.[0]?.bill_until?.computed_timestamp
+  const currentPeriodEnd = periodEndTs ? new Date(periodEndTs * 1000).toISOString() : null
 
   await admin.from('subscriptions').upsert({
     user_id: sub.user_id,
