@@ -12,16 +12,15 @@ export default function HomeHero() {
     function update() {
       const hero = heroRef.current
       if (!hero) return
-      const h = hero.offsetHeight || window.innerHeight
-      const progress = Math.min(1, window.scrollY / h)
+      const rect = hero.getBoundingClientRect()
+      const progress = Math.max(0, Math.min(1, 1 - rect.bottom / rect.height))
       hero.style.opacity = `${1 - progress}`
-      document.body.classList.toggle('hero-mode', progress < 0.9)
+      // Show nav once hero is 80% scrolled off screen
+      document.body.classList.toggle('hero-mode', rect.bottom > rect.height * 0.2)
     }
 
-    const raf = requestAnimationFrame(update)
     window.addEventListener('scroll', update, { passive: true })
     return () => {
-      cancelAnimationFrame(raf)
       window.removeEventListener('scroll', update)
       document.body.classList.remove('hero-mode')
     }
