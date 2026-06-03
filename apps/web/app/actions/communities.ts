@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { checkCommunityLimit } from '@/lib/billing'
 
 function slugify(name: string): string {
   return name
@@ -26,6 +27,12 @@ export async function createCommunity(formData: FormData) {
 
   if (!name || !joinMode || !categoryId) {
     return { error: 'Please fill in all required fields.' }
+  }
+
+  try {
+    await checkCommunityLimit(user.id)
+  } catch (e) {
+    return { error: (e as Error).message }
   }
 
   // generate a unique slug

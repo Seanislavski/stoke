@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, joinRequestHtml } from '@/lib/email'
 import { logAction } from '@/lib/audit'
+import { checkMemberLimit } from '@/lib/billing'
 
 export async function joinCommunity(communityId: string, joinMode: string, slug: string) {
   const supabase = await createClient()
@@ -12,6 +13,14 @@ export async function joinCommunity(communityId: string, joinMode: string, slug:
   if (!user) return { error: 'Not authenticated' }
 
   const status = joinMode === 'open' ? 'active' : 'pending'
+
+  if (status === 'active') {
+    try {
+      await checkMemberLimit(communityId)
+    } catch (e) {
+      return { error: (e as Error).message }
+    }
+  }
 
   const { error } = await supabase
     .from('community_members')

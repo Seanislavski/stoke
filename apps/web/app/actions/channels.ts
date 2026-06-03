@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { checkChannelLimit } from '@/lib/billing'
 
 export async function createChannel(communityId: string, slug: string, formData: FormData) {
   const supabase = await createClient()
@@ -12,6 +13,12 @@ export async function createChannel(communityId: string, slug: string, formData:
   const name = (formData.get('name') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
   if (!name) return { error: 'Name is required' }
+
+  try {
+    await checkChannelLimit(communityId)
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
 
   const { error } = await supabase
     .from('channels')

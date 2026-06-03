@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { sendEmail, joinApprovedHtml, joinRejectedHtml } from '@/lib/email'
+import { checkMemberLimit } from '@/lib/billing'
 
 type CallerRole = 'owner' | 'organizer' | 'moderator'
 
@@ -138,6 +139,12 @@ export async function unbanMember(communityId: string, slug: string, userId: str
 export async function approveRequest(communityId: string, slug: string, userId: string) {
   const caller = await getCallerRole(communityId)
   if (!caller) return { error: 'Not authorized' }
+
+  try {
+    await checkMemberLimit(communityId)
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
 
   const admin = createAdminClient()
   const [{ error }, { data: community }] = await Promise.all([

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
+import { checkMemberLimit } from '@/lib/billing'
 
 async function requireModOrThrow(communityId: string) {
   const supabase = await createClient()
@@ -106,6 +107,14 @@ export async function useInvite(token: string) {
 
   // Join directly if open, otherwise add to pending queue
   const newStatus = community.join_mode === 'open' ? 'active' : 'pending'
+
+  if (newStatus === 'active') {
+    try {
+      await checkMemberLimit(invite.community_id)
+    } catch (e) {
+      return { error: (e as Error).message }
+    }
+  }
 
   if (existing) {
     await admin.from('community_members').update({ status: newStatus }).eq('community_id', invite.community_id).eq('user_id', user.id)

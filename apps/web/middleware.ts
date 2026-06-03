@@ -29,9 +29,11 @@ export async function middleware(request: NextRequest) {
   const isBannedPage = pathname.startsWith('/banned')
   const isInvitePage = pathname.startsWith('/invite/')
   const isCronRoute = pathname.startsWith('/api/cron/')
+  const isStripeWebhook = pathname === '/api/webhooks/stripe'
   const isLandingPage = pathname === '/'
+  const isPricingPage = pathname === '/pricing'
 
-  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isLandingPage) {
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
