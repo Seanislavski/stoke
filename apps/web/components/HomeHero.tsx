@@ -11,15 +11,17 @@ export default function HomeHero() {
 
     function update() {
       const hero = heroRef.current
-      if (!hero || hero.offsetHeight === 0) return
-      const progress = Math.min(1, window.scrollY / hero.offsetHeight)
+      if (!hero) return
+      const h = hero.offsetHeight || window.innerHeight
+      const progress = Math.min(1, window.scrollY / h)
       hero.style.opacity = `${1 - progress}`
       document.body.classList.toggle('hero-mode', progress < 0.9)
     }
 
-    update()
+    const raf = requestAnimationFrame(update)
     window.addEventListener('scroll', update, { passive: true })
     return () => {
+      cancelAnimationFrame(raf)
       window.removeEventListener('scroll', update)
       document.body.classList.remove('hero-mode')
     }
