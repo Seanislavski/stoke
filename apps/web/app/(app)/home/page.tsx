@@ -24,7 +24,7 @@ export default async function HomePage() {
         <script dangerouslySetInnerHTML={{ __html: "document.body.classList.add('hero-mode')" }} />
         <HomeHero />
         <WelcomeScreen />
-        <footer className="h-32" />
+        <footer className="min-h-screen" />
       </>
     )
   }
@@ -215,7 +215,7 @@ export default async function HomePage() {
 
         </div>
       </div>
-      <footer className="h-32" />
+      <footer className="min-h-screen" />
     </div>
   )
 }
