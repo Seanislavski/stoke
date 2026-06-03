@@ -16,7 +16,7 @@ export default function HomeHero() {
       const progress = Math.max(0, Math.min(1, 1 - rect.bottom / rect.height))
       hero.style.opacity = `${1 - progress}`
       // Show nav once hero top has scrolled 40% of viewport height past the top
-      document.body.classList.toggle('hero-mode', rect.top > -(window.innerHeight * 0.4))
+      document.body.classList.toggle('hero-mode', rect.top > -(window.innerHeight * 0.15))
     }
 
     window.addEventListener('scroll', update, { passive: true })
