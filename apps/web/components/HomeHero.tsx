@@ -7,22 +7,16 @@ export default function HomeHero() {
   const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    document.body.classList.add('hero-mode')
-
     function update() {
       const hero = heroRef.current
       if (!hero) return
       const progress = Math.min(1, window.scrollY / hero.offsetHeight)
       hero.style.opacity = `${1 - progress}`
-      document.body.classList.toggle('hero-mode', progress < 0.8)
     }
 
     update()
     window.addEventListener('scroll', update, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', update)
-      document.body.classList.remove('hero-mode')
-    }
+    return () => window.removeEventListener('scroll', update)
   }, [])
 
   return (
