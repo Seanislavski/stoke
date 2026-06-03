@@ -15,12 +15,25 @@ export default function HomeHero() {
       const rect = hero.getBoundingClientRect()
       const progress = Math.max(0, Math.min(1, 1 - rect.bottom / rect.height))
       hero.style.opacity = `${1 - progress}`
-      // Show nav once hero top has scrolled 40% of viewport height past the top
       document.body.classList.toggle('hero-mode', rect.top > -(window.innerHeight * 0.15))
     }
 
+    function adjustSpacer() {
+      const hero = heroRef.current
+      const spacer = document.getElementById('hero-spacer')
+      if (!hero || !spacer) return
+      // Set spacer to exactly the extra height needed so the hero can scroll fully off,
+      // but no more — prevents empty whitespace at bottom of page.
+      spacer.style.height = '0px'
+      const needed = Math.max(0, hero.offsetHeight - (document.documentElement.scrollHeight - window.innerHeight))
+      spacer.style.height = needed + 'px'
+    }
+
+    requestAnimationFrame(adjustSpacer)
+    window.addEventListener('resize', adjustSpacer)
     window.addEventListener('scroll', update, { passive: true })
     return () => {
+      window.removeEventListener('resize', adjustSpacer)
       window.removeEventListener('scroll', update)
       document.body.classList.remove('hero-mode')
     }
