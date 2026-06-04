@@ -21,7 +21,6 @@ export default async function HomePage() {
   if (!hasCommunities) {
     return (
       <>
-        <script dangerouslySetInnerHTML={{ __html: "document.body.classList.add('hero-mode')" }} />
         <HomeHero />
         <WelcomeScreen />
         <div id="hero-spacer" />
@@ -83,7 +82,6 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <script dangerouslySetInnerHTML={{ __html: "document.body.classList.add('hero-mode')" }} />
       <HomeHero />
 
       <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">

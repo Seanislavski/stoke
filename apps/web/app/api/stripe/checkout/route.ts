@@ -53,13 +53,18 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${origin}/settings/billing?success=1`,
-    cancel_url: `${origin}/settings/billing`,
-  })
-
-  return NextResponse.json({ url: session.url })
+  try {
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${origin}/settings/billing?success=1`,
+      cancel_url: `${origin}/settings/billing`,
+    })
+    return NextResponse.json({ url: session.url })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[stripe checkout]', message)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
