@@ -18,6 +18,9 @@ export default async function LandingPage() {
             <StokeWordmark iconSize={28} />
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/pricing" className="text-sm text-stone-600 hover:text-stone-900 transition-colors font-medium">
+              Pricing
+            </Link>
             <Link href="/login" className="text-sm text-stone-600 hover:text-stone-900 transition-colors font-medium">
               Sign in
             </Link>

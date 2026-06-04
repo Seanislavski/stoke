@@ -9,7 +9,7 @@
 - **Web URL:** `https://web-production-3d840.up.railway.app`
 - **Server URL:** `https://server-production-99bf.up.railway.app`
 - **Supabase project:** `gzssbicdblkmllutegju` (Stoke Community, US East)
-- **Status:** Core features built and deployed — auth, profiles, communities, bulletin board, channels, settings, gear menus, platform roles, events, resources, tickets, invites, platform ban
+- **Status:** Core features built and deployed — auth, profiles, communities, bulletin board, channels, settings, gear menus, platform roles, events, resources, tickets, invites, platform ban, photo uploads/galleries, lightbox, audit log search
 
 ## What It Is
 A platform for building reciprocal communities — anyone can create and organize a community where members genuinely give and receive value from each other. Think LinkedIn meets Meetup, focused on mutual exchange. No time banking or point systems; the platform provides infrastructure, the community provides the exchange.
@@ -28,6 +28,14 @@ A platform for building reciprocal communities — anyone can create and organiz
 - Use `createAdminClient()` (service role) for any read that needs to cross RLS boundaries (member lists, pending posts, etc.)
 - `SUPABASE_SERVICE_ROLE_KEY` in `apps/web/.env.local` (no NEXT_PUBLIC_ prefix — server only)
 - `lib/supabase/admin.ts` → `createAdminClient()` for server components
+- PostgREST FK disambiguation: when a table has two FKs referencing the same target table, `table(col)` join becomes ambiguous and silently returns null — fix with `!column_name` hint e.g. `profiles!author_id(username, display_name, avatar_url)`
+- `audit_log` table FKs reference `profiles(id)` not `profiles(user_id)` — `id` is the PK
+- PostgREST case-insensitive text lookup: use `.or(values.map(v => \`col.ilike.\${v}\`).join(','))` — `.in()` is case-sensitive
+- Supabase FK joins return arrays at runtime even when TS infers object — type as `T[] | T | null` union to satisfy both
+- Always run `npx tsc --noEmit` from `apps/web` before pushing to catch TS errors locally
+- `startTransition` callbacks must return `void` — use `void` operator before async server action calls: `startTransition(() => void myAction())`
+- Always paste SQL migration contents directly in chat — never just reference the file path
+- `favicon.ico` in `app/` always overrides `icon.svg` — delete `favicon.ico` when adding SVG favicon
 
 ## Railway Patterns
 - Root directory in Railway dashboard must be `apps/web` (no leading slash — `/apps/web` is wrong)
@@ -110,12 +118,17 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 - Resources tab on community page; pending shown to mods only
 
 ## Support Tickets
-- `tickets` table: submitter_id, community_id (nullable), category (general/community), subject, status (open/in_progress/resolved/closed)
+- `tickets` table: submitter_id, community_id (nullable), category (text), subject, status (open/in_progress/resolved/closed)
 - `ticket_replies` table: ticket_id, author_id, body, is_staff_reply
+- `ticket_categories` table: key (text PK), label (text), position (int), is_active (bool) — dynamic categories managed by platform staff; seeded with account_issue, report_user, bug_report, community_issue, other
+- `tickets.category` is plain `text` (was postgres enum `ticket_category` — altered 05/30/2026); any string from ticket_categories is valid
+- Community tagging on tickets: any active member can tag a community (no mod restriction)
 - /support: my tickets + community tickets (if org/mod) + closed collapsed
 - /support/[ticketId]: chat-style thread (own msgs right/orange, others left); StatusSelect for staff only; closed tickets lock reply form
 - Access: submitter + platform staff (support/platform_mod/owner) + community org/mod if community ticket
-- /admin/support: all tickets with status+category filter (platform staff only)
+- /admin/support: all tickets with status+category filter + CategoryManager section at bottom (add/hide/delete categories)
+- `lib/ticket-categories.ts`: `getTicketCategories()` + `buildCategoryLabels()` helpers — use these instead of hardcoded CATEGORY_LABELS
+- Admin nav: "Platform Bans" (was "Moderation")
 
 ## Invite Links
 - `invites` table: token (32-char UUID-derived), community_id, created_by, max_uses (nullable), use_count, expires_at (nullable)
@@ -149,6 +162,77 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 
 ## Next.js Patterns
 - Server actions passed as props to client components MUST use `.bind(null, ...args)` — arrow functions `() => serverAction(args)` are plain closures, not serializable across the server→client boundary, and cause runtime crashes (Next.js error digest). Example: `deletePost.bind(null, post.id, communityId, slug)` not `() => deletePost(post.id, communityId, slug)`
+
+## Email Notifications
+- Email provider: **Resend** (`resend` npm package in `apps/web`)
+- Helper + templates: `apps/web/lib/email.ts` — `sendEmail(to, subject, html)` silently skips if no `RESEND_API_KEY`
+- From address: `Stoke Community <noreply@stoke.community>` (domain must be verified in Resend dashboard + DNS in Cloudflare)
+- Fire-and-forget pattern: `void (async () => { ... })()` — emails never block server action response
+- Triggers: join request → notify mods (`membership.ts`); approved/rejected → notify applicant (`community.ts`); ticket reply → notify other party (`tickets.ts`)
+- Env vars needed: `RESEND_API_KEY`, `SUPPORT_EMAIL` (inbox for user→staff ticket replies), `CRON_SECRET`
+- Event reminders: `apps/web/app/api/cron/event-reminders/route.ts` — Bearer token auth, 25–35min window, requires `reminder_sent_at timestamptz` column on `events` table
+- Cron job: cron-job.org (free), `*/10 * * * *`, hits `/api/cron/event-reminders` with `Authorization: Bearer <CRON_SECRET>`
+- `/api/cron/` routes must be excluded from middleware auth redirect — add `isCronRoute = pathname.startsWith('/api/cron/')` exception
+
+## Platform Staff in Community UI
+- `isPlatformStaff` = `['owner', 'platform_moderator'].includes(platformRole?.role ?? '')` — implicit mod authority in all communities
+- `community_manager` and `support` platform roles do NOT get isMod in communities
+- MembersManager: platform staff show "admin" orange badge; role label = "Platform Staff" only when their community role is `member`; if they hold a community role (organizer/moderator) that label takes precedence
+- Settings page access: platform staff need `platformRole` check alongside community role check or they get redirected
+
+## Link Embeds
+- `apps/web/lib/embeds.ts`: `isImageUrl`, `getYouTubeId`, `normalizeUrl`, `extractUrls` helpers
+- `apps/web/app/api/link-preview/route.ts`: server-side OG fetch (avoids CORS), 5s timeout, 50KB limit, 1hr cache
+- `apps/web/components/LinkPreview.tsx`: image → `<img>`; YouTube → `<iframe>`; other → OGCard
+- `apps/web/components/RichContent.tsx`: parses URLs (incl bare `www.`) → clickable links + LinkPreview embeds
+- Used in channel messages, bulletin, resources, events, tickets
+
+## Photos & Media
+- `components/ImageLightbox.tsx`: fixed overlay z-50, bg-black/80, click backdrop or ESC to close; click on img stops propagation
+- `components/PhotoGallery.tsx`: 0 photos→null, 1→inline img, 2+→grid-cols-2 sm:grid-cols-3; all open ImageLightbox; used on bulletin posts, events, resources gallery
+- `components/PhotoUploader.tsx`: uploads to `avatars` bucket at given pathPrefix; supports multiple=true/false; shows thumbnails with × remove; "or paste URL" toggle
+- `bulletin_posts.photos text[] DEFAULT '{}'` — array of photo URLs, shown as gallery below post content
+- `events.photos text[] DEFAULT '{}'` — same, shown below event description in EventCard
+- `resources.resource_type` includes 'photo' — photo resources show as "Photo Gallery" grid at top of Resources tab; other types list below
+- Storage policy needed: `CREATE POLICY ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id='avatars' AND name LIKE 'community-photos/%')`
+- Upload paths: `community-photos/bulletin-{communityId}/`, `community-photos/events-{communityId}/`, `community-photos/resources-{communityId}/`
+- Channel messages: `messages.image_url text` column; upload path `channel-images/{channelId}/{timestamp}.ext`; storage policy for `channel-images/%` already applied
+- `.photo-pop` CSS class in globals.css: `transform: scale(1.1); box-shadow; z-index:10` on hover — applied to all photo/avatar wrappers site-wide
+- Global input color fix in globals.css: `input, textarea, select { color: #1c1917 }` — prevents light-on-light text
+
+## Audit Log
+- `components/admin/AuditLogClient.tsx`: client component, instant text search across actor/action/community/target, 500 entry limit
+- Full ACTION_LABELS list includes: member.joined, member.requested, post.created, post.submitted, resource.created, resource.submitted, event.created, event.deleted, and all mod actions
+- Pattern: always `.select('id').single()` on insert, then `logAction({ actorId, communityId, action, targetId, targetType })`
+
+## HomeHero Scroll (home page)
+- `components/HomeHero.tsx`: hero shown on /home for logged-in users; in normal document flow (NOT fixed/sticky); fades as it scrolls off via `getBoundingClientRect`
+- `hero-mode` body class hides header (`opacity:0; pointer-events:none`) until user scrolls 15% of viewport past hero top
+- Threshold: `rect.top > -(window.innerHeight * 0.15)` — nav appears after ~135px scroll on typical screen
+- Opacity: `1 - rect.bottom / rect.height` (viewport-relative, not scroll-absolute — works regardless of page content length)
+- `globals.css` sets `html, body { background-color: #fafaf9 }` to prevent dark-mode black bar below content
+- **Scroll spacer**: `<div id="hero-spacer" />` at bottom of both home page paths; HomeHero.tsx sets its height to `max(0, heroHeight - (scrollHeight - viewportHeight))` — exactly the scroll room needed, no excess whitespace
+- **No dangerouslySetInnerHTML script** — React 19 / Next.js 16 no longer executes inline scripts in React components; HomeHero's `useEffect` adds `hero-mode` class on mount instead
+- Key lesson: `min-h-screen` or `min-h-[calc(100vh-3.5rem)]` on content div creates empty whitespace when content is shorter — use dynamic JS spacer instead
+- Key lesson: `scrollY / heroHeight` breaks when page isn't tall enough to scroll hero fully off screen — use `getBoundingClientRect().top` instead
+- Key lesson: NEVER use `hero.offsetHeight === 0` guard — if layout hasn't computed yet it exits early and hero-mode never gets toggled
+- Key lesson: `100svh` computes differently in Chrome vs Firefox — always use `100vh` for fullscreen hero elements
+- Key lesson: fixed overlay hero = inverted UX; in-flow hero = correct (hero scrolls up, content rises from below)
+
+## Stripe Billing
+- Plans: Free ($0, 1 community, 50 members, 3 channels), Starter ($19/mo), Pro ($49/mo unlimited)
+- `lib/billing.ts`: PLANS map + `checkCommunityLimit`, `checkMemberLimit`, `checkChannelLimit` helpers (called from server actions)
+- `lib/stripe.ts`: Stripe client with `apiVersion: '2026-05-27.dahlia'`
+- `app/api/stripe/checkout/route.ts`: creates checkout session or portal redirect; supports `starter` and `pro` plans
+- `app/api/stripe/portal/route.ts`: billing portal session
+- `app/api/webhooks/stripe/route.ts`: handles subscription events with idempotency via `stripe_webhook_events` table
+- `app/(app)/settings/billing/page.tsx` + `components/settings/BillingPanel.tsx`: billing UI
+- `app/pricing/page.tsx`: public pricing page
+- Stripe Dahlia API: period end is `subscription.billing_schedules[0].bill_until.computed_timestamp` (NOT `current_period_end` — removed in Dahlia)
+- Redirect URLs: use `NEXT_PUBLIC_APP_URL` env var — `new URL(request.url).origin` returns `0.0.0.0:8080` on Railway
+- Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID` (`price_1TdxO1LKsDKZpMglNvKLKgjq`), `STRIPE_PRO_PRICE_ID` (`price_1TdxPSLKsDKZpMgl3vprkfwD`), `NEXT_PUBLIC_APP_URL=https://stoke.community`
+- Webhook endpoint: `https://web-production-3d840.up.railway.app/api/webhooks/stripe`; events: `customer.subscription.created/updated/deleted`, `invoice.payment_failed`
+- Supabase tables: `subscriptions` (user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end, cancel_at_period_end), `stripe_webhook_events` (stripe_event_id)
 
 ## Git
 - No Co-Authored-By lines in commits
