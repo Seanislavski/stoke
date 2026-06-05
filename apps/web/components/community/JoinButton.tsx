@@ -59,8 +59,7 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      {error && <p className="text-xs text-red-600 max-w-xs text-right">{error}</p>}
+    <div className="relative">
       <button
         onClick={handleJoin}
         disabled={loading}
@@ -68,6 +67,11 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
       >
         {loading ? '…' : joinMode === 'request' ? 'Request to join' : 'Join'}
       </button>
+      {error && (
+        <p className="absolute top-full mt-1 right-0 text-xs text-red-600 bg-white border border-red-200 rounded px-2 py-1 w-56 text-right shadow-sm z-10">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
