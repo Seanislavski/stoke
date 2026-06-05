@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const PLANS = {
-  free:    { name: 'Free',    price: 0,  maxCommunities: 1,        maxMembers: 50,       maxChannels: 3        },
+  free:    { name: 'Free',    price: 0,  maxCommunities: 1,        maxMembers: 2,        maxChannels: 3        },
   starter: { name: 'Starter', price: 19, maxCommunities: 3,        maxMembers: 300,      maxChannels: 15       },
   pro:     { name: 'Pro',     price: 49, maxCommunities: Infinity, maxMembers: Infinity, maxChannels: Infinity },
 } as const
