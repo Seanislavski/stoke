@@ -122,7 +122,12 @@ export default function CreateCommunityForm({ categories }: { categories: Catego
       </div>
 
       {state?.error && (
-        <p className="text-sm text-red-600">{state.error}</p>
+        <p className="text-sm text-red-600">
+          {state.error}{' '}
+          {state.error.includes('Upgrade your plan') && (
+            <Link href="/settings/billing" className="underline font-medium">View billing →</Link>
+          )}
+        </p>
       )}
 
       <div className="flex gap-3 pt-2">

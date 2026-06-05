@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createChannel, deleteChannel } from '@/app/actions/channels'
 
 type Channel = { id: string; name: string; description: string | null }
@@ -50,7 +51,14 @@ export default function ChannelManager({
 
   return (
     <div className="space-y-4 max-w-lg">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {error}{' '}
+          {error.includes('Upgrade your plan') && (
+            <Link href="/settings/billing" className="underline font-medium">View billing →</Link>
+          )}
+        </p>
+      )}
 
       {channels.length > 0 && (
         <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
