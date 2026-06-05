@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { joinCommunity, leaveCommunity } from '@/app/actions/membership'
 
 type Props = {
@@ -15,6 +15,18 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
   const [loading, setLoading] = useState(false)
   const [localStatus, setLocalStatus] = useState(memberStatus)
   const [error, setError] = useState<string | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!error) return
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setError(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [error])
 
   if (isOwner) return (
     <span className="text-xs text-stone-400 font-medium uppercase tracking-wide">Organizer</span>
@@ -59,7 +71,7 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <button
         onClick={handleJoin}
         disabled={loading}
