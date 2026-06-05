@@ -14,6 +14,7 @@ type Props = {
 export default function JoinButton({ communityId, joinMode, slug, memberStatus, isOwner }: Props) {
   const [loading, setLoading] = useState(false)
   const [localStatus, setLocalStatus] = useState(memberStatus)
+  const [error, setError] = useState<string | null>(null)
 
   if (isOwner) return (
     <span className="text-xs text-stone-400 font-medium uppercase tracking-wide">Organizer</span>
@@ -23,8 +24,10 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
 
   async function handleJoin() {
     setLoading(true)
+    setError(null)
     const result = await joinCommunity(communityId, joinMode, slug)
-    if (!result.error) setLocalStatus(result.status ?? null)
+    if (result.error) setError(result.error)
+    else setLocalStatus(result.status ?? null)
     setLoading(false)
   }
 
@@ -56,12 +59,15 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
   }
 
   return (
-    <button
-      onClick={handleJoin}
-      disabled={loading}
-      className="px-4 py-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
-    >
-      {loading ? '…' : joinMode === 'request' ? 'Request to join' : 'Join'}
-    </button>
+    <div className="flex flex-col items-end gap-1">
+      {error && <p className="text-xs text-red-600 max-w-xs text-right">{error}</p>}
+      <button
+        onClick={handleJoin}
+        disabled={loading}
+        className="px-4 py-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+      >
+        {loading ? '…' : joinMode === 'request' ? 'Request to join' : 'Join'}
+      </button>
+    </div>
   )
 }
