@@ -55,7 +55,7 @@ export default function ChannelManager({
         <p className="text-sm text-red-600">
           {error}{' '}
           {error.includes('Upgrade your plan') && (
-            <Link href="/settings/billing" className="underline font-medium">View billing →</Link>
+            <Link href="/settings/billing" className="inline-block mt-2 px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-lg transition-colors">Upgrade plan</Link>
           )}
         </p>
       )}
