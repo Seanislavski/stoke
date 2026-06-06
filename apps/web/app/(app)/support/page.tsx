@@ -94,20 +94,26 @@ export default async function SupportPage() {
       </section>
 
       {/* Community tickets */}
-      {communityTickets && communityTickets.length > 0 && (
+      {orgCommunities.length > 0 && (
         <section className="mb-8">
           <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
             <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide">
-              Community tickets ({communityTickets.length})
+              Community tickets {communityTickets && communityTickets.length > 0 ? `(${communityTickets.length})` : ''}
             </h2>
             <DownloadReportButton
               communities={orgCommunities}
               defaultCommunityId={orgCommunities.length === 1 ? orgCommunities[0].id : undefined}
             />
           </div>
-          <div className="space-y-2">
-            {communityTickets.map(t => <TicketRow key={t.id} ticket={t} showAuthor categoryLabels={CATEGORY_LABELS} />)}
-          </div>
+          {communityTickets && communityTickets.length > 0 ? (
+            <div className="space-y-2">
+              {communityTickets.map(t => <TicketRow key={t.id} ticket={t} showAuthor categoryLabels={CATEGORY_LABELS} />)}
+            </div>
+          ) : (
+            <div className="bg-white border border-stone-200 rounded-xl p-5 text-center text-stone-400 text-sm">
+              No community tickets yet.
+            </div>
+          )}
         </section>
       )}
 

@@ -108,7 +108,7 @@ export async function deletePost(postId: string, communityId: string, slug: stri
 
   const admin = createAdminClient()
   const [{ data: post }, { data: community }, { data: membership }, { data: platformRole }] = await Promise.all([
-    admin.from('bulletin_posts').select('submitted_by').eq('id', postId).single(),
+    admin.from('bulletin_posts').select('author_id').eq('id', postId).single(),
     admin.from('communities').select('owner_id').eq('id', communityId).single(),
     admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', user.id).maybeSingle(),
     admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
@@ -116,7 +116,7 @@ export async function deletePost(postId: string, communityId: string, slug: stri
 
   if (!post) return { error: 'Post not found.' }
 
-  const isAuthor = post.submitted_by === user.id
+  const isAuthor = post.author_id === user.id
   const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
   const isOwner = community?.owner_id === user.id
   const isPlatformStaff = !!platformRole

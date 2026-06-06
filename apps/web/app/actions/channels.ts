@@ -5,10 +5,26 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { checkChannelLimit } from '@/lib/billing'
 
-export async function createChannel(communityId: string, slug: string, formData: FormData) {
+async function requireOrgOrMod(communityId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  if (!user) return { user: null, error: 'Not authenticated' as const }
+
+  const admin = createAdminClient()
+  const [{ data: membership }, { data: community }] = await Promise.all([
+    admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', user.id).eq('status', 'active').maybeSingle(),
+    admin.from('communities').select('owner_id').eq('id', communityId).single(),
+  ])
+
+  const isOwner = community?.owner_id === user.id
+  const isMod = ['organizer', 'moderator'].includes(membership?.role ?? '')
+  if (!isOwner && !isMod) return { user: null, error: 'Not authorized' as const }
+  return { user, error: null }
+}
+
+export async function createChannel(communityId: string, slug: string, formData: FormData) {
+  const { user, error: authError } = await requireOrgOrMod(communityId)
+  if (!user) return { error: authError }
 
   const name = (formData.get('name') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
@@ -20,6 +36,7 @@ export async function createChannel(communityId: string, slug: string, formData:
     return { error: (e as Error).message }
   }
 
+  const supabase = await createClient()
   const { error } = await supabase
     .from('channels')
     .insert({ community_id: communityId, name, description, created_by: user.id })
@@ -31,8 +48,14 @@ export async function createChannel(communityId: string, slug: string, formData:
 }
 
 export async function deleteChannel(channelId: string, slug: string) {
-  const supabase = await createClient()
-  const { error } = await supabase.from('channels').delete().eq('id', channelId)
+  const admin = createAdminClient()
+  const { data: channel } = await admin.from('channels').select('community_id').eq('id', channelId).single()
+  if (!channel) return { error: 'Channel not found' }
+
+  const { error: authError } = await requireOrgOrMod(channel.community_id)
+  if (authError) return { error: authError }
+
+  const { error } = await admin.from('channels').delete().eq('id', channelId)
   if (error) return { error: error.message }
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/settings`)
