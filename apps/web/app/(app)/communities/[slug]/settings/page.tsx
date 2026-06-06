@@ -9,6 +9,7 @@ import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
 import { ACTION_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
+import EmailBlastForm from '@/components/community/settings/EmailBlastForm'
 
 export default async function CommunitySettingsPage({
   params,
@@ -53,7 +54,7 @@ export default async function CommunitySettingsPage({
   const proto = headersList.get('x-forwarded-proto') ?? 'http'
   const baseUrl = `${proto}://${host}`
 
-  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }] = await Promise.all([
+  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }, { data: lastBlast }] = await Promise.all([
     supabase.from('categories').select('id, name').order('name'),
     admin
       .from('community_members')
@@ -78,6 +79,13 @@ export default async function CommunitySettingsPage({
       .eq('community_id', community.id)
       .order('created_at', { ascending: false })
       .limit(100),
+    admin
+      .from('email_blasts')
+      .select('created_at')
+      .eq('community_id', community.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const normalizedMembers = (members ?? []).map(m => ({
@@ -153,6 +161,20 @@ export default async function CommunitySettingsPage({
           platformStaffIds={[...platformStaffIds]}
         />
       </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Email blast — organizers only */}
+      {(callerRole === 'organizer' || callerRole === 'owner') && (
+        <section>
+          <h2 className="text-base font-semibold text-stone-800">Email members</h2>
+          <EmailBlastForm
+            communityId={community.id}
+            memberCount={normalizedMembers.filter(m => m.status === 'active').length}
+            lastBlastAt={lastBlast?.created_at ?? null}
+          />
+        </section>
+      )}
 
       <hr className="border-stone-200" />
 

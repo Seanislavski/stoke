@@ -69,6 +69,17 @@ export function ticketReplyHtml(ticketId: string, ticketTitle: string, replierNa
   `)
 }
 
+export function communityBlastHtml(subject: string, body: string, communityName: string, unsubscribeUrl: string) {
+  return wrap(`
+    <p style="margin:0 0 4px;color:#78716c;font-size:13px;">Message from <strong>${communityName}</strong></p>
+    <div style="margin:0 0 24px;white-space:pre-wrap;">${body.replace(/\n/g, '<br/>')}</div>
+    <p style="margin:24px 0 0;font-size:11px;color:#a8a29e;border-top:1px solid #f5f5f4;padding-top:12px;">
+      You're receiving this because you're a member of ${communityName} on Stoke Community.<br/>
+      <a href="${unsubscribeUrl}" style="color:#a8a29e;">Unsubscribe from emails from this community</a>
+    </p>
+  `)
+}
+
 export function eventReminderHtml(eventTitle: string, communityName: string, communitySlug: string, startsAt: string) {
   const time = new Date(startsAt).toLocaleString('en-US', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',

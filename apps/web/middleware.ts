@@ -30,10 +30,11 @@ export async function middleware(request: NextRequest) {
   const isInvitePage = pathname.startsWith('/invite/')
   const isCronRoute = pathname.startsWith('/api/cron/')
   const isStripeWebhook = pathname === '/api/webhooks/stripe'
+  const isUnsubscribe = pathname.startsWith('/api/unsubscribe')
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
 
-  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage) {
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -42,7 +43,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check platform ban for authenticated users on protected routes
-  if (user && !isAuthRoute && !isAuthCallback && !isBannedPage && !isInvitePage && !isCronRoute) {
+  if (user && !isAuthRoute && !isAuthCallback && !isBannedPage && !isInvitePage && !isCronRoute && !isUnsubscribe) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_banned')
