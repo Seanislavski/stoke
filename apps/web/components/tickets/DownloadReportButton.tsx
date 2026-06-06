@@ -23,6 +23,7 @@ export default function DownloadReportButton({ communities, defaultCommunityId }
   const [period, setPeriod] = useState<Period>(30)
   const [communityId, setCommunityId] = useState<string>(defaultCommunityId ?? '')
   const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
 
   async function handleDownload() {
     setLoading(true)
@@ -124,6 +125,8 @@ export default function DownloadReportButton({ communities, defaultCommunityId }
         ? data.communityName.toLowerCase().replace(/\s+/g, '-')
         : 'platform'
       doc.save(`stoke-support-report-${scopeSlug}-${period}d.pdf`)
+      setDone(true)
+      setTimeout(() => setDone(false), 3000)
     } finally {
       setLoading(false)
     }
@@ -154,9 +157,15 @@ export default function DownloadReportButton({ communities, defaultCommunityId }
       <button
         onClick={handleDownload}
         disabled={loading || (!!communities && communities.length > 1 && !communityId)}
-        className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`text-xs px-3 py-1.5 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 ${done ? 'bg-green-600' : 'bg-orange-600 hover:bg-orange-500 active:bg-orange-700'}`}
       >
-        {loading ? 'Building…' : 'Download report'}
+        {loading && (
+          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+          </svg>
+        )}
+        {loading ? 'Building report…' : done ? '✓ Downloaded' : 'Download report'}
       </button>
     </div>
   )
