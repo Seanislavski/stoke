@@ -58,4 +58,5 @@ export const ACTION_LABELS: Record<string, string> = {
   'ticket_category.deleted': 'Deleted ticket category',
   'ticket_category.enabled': 'Enabled ticket category',
   'ticket_category.disabled': 'Disabled ticket category',
+  'email.blast': 'Sent email blast',
 }

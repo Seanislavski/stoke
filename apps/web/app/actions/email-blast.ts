@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { communityBlastHtml } from '@/lib/email'
+import { logAction } from '@/lib/audit'
 import { Resend } from 'resend'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://stoke.community'
@@ -110,6 +111,13 @@ export async function sendEmailBlast(
     sent_by: user.id,
     subject,
     recipient_count: sent,
+  })
+
+  void logAction({
+    actorId: user.id,
+    communityId,
+    action: 'email.blast',
+    metadata: { subject, recipient_count: sent },
   })
 
   return { sent }

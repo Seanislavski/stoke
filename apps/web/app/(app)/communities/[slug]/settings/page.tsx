@@ -218,6 +218,9 @@ export default async function CommunitySettingsPage({
                     {entry.action === 'member.role_changed' && meta && (
                       <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
                     )}
+                    {entry.action === 'email.blast' && meta && (
+                      <span className="text-stone-400"> · "{String(meta.subject)}" · {String(meta.recipient_count)} recipients</span>
+                    )}
                     {targetLink && (
                       <Link href={targetLink} className="ml-2 text-xs text-orange-500 hover:text-orange-700 hover:underline shrink-0">
                         View →
