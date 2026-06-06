@@ -154,7 +154,7 @@ export default function DownloadReportButton({ communities, defaultCommunityId }
       <button
         onClick={handleDownload}
         disabled={loading || (!!communities && communities.length > 1 && !communityId)}
-        className="text-xs px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Building…' : 'Download report'}
       </button>
