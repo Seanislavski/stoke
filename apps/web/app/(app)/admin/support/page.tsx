@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { getTicketCategories, buildCategoryLabels } from '@/lib/ticket-categories'
 import CategoryManager from '@/components/tickets/CategoryManager'
+import DownloadReportButton from '@/components/tickets/DownloadReportButton'
 
 const STATUS_STYLES: Record<string, string> = {
   open: 'bg-blue-100 text-blue-700',
@@ -52,9 +53,12 @@ export default async function AdminSupportPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
         <h1 className="text-xl font-semibold text-stone-900">Support Tickets</h1>
-        <span className="text-sm text-stone-400">{tickets?.length ?? 0} shown</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-stone-400">{tickets?.length ?? 0} shown</span>
+          <DownloadReportButton />
+        </div>
       </div>
 
       {/* Filters */}

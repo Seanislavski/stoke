@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import NewTicketForm from '@/components/tickets/NewTicketForm'
 import { getTicketCategories, buildCategoryLabels } from '@/lib/ticket-categories'
+import DownloadReportButton from '@/components/tickets/DownloadReportButton'
 
 const STATUS_STYLES: Record<string, string> = {
   open: 'bg-blue-100 text-blue-700',
@@ -95,9 +96,15 @@ export default async function SupportPage() {
       {/* Community tickets */}
       {communityTickets && communityTickets.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
-            Community tickets ({communityTickets.length})
-          </h2>
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
+            <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide">
+              Community tickets ({communityTickets.length})
+            </h2>
+            <DownloadReportButton
+              communities={orgCommunities}
+              defaultCommunityId={orgCommunities.length === 1 ? orgCommunities[0].id : undefined}
+            />
+          </div>
           <div className="space-y-2">
             {communityTickets.map(t => <TicketRow key={t.id} ticket={t} showAuthor categoryLabels={CATEGORY_LABELS} />)}
           </div>
