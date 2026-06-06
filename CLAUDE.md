@@ -234,6 +234,11 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 - Webhook endpoint: `https://web-production-3d840.up.railway.app/api/webhooks/stripe`; events: `customer.subscription.created/updated/deleted`, `invoice.payment_failed`
 - Supabase tables: `subscriptions` (user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end, cancel_at_period_end), `stripe_webhook_events` (stripe_event_id)
 
+## Known Bugs / Open Items
+- **createChannel + deleteChannel missing role check** (`apps/web/lib/actions/channels.ts`): only checks `!user`, not org/mod — any authenticated user can call directly. Fix: add `requireModOrThrow(communityId)` same as `invites.ts` + `community.ts`
+- **deletePost column mismatch** (`apps/web/lib/actions/bulletin.ts`): `deletePost` selects `submitted_by` but `submitPost` inserts `author_id` — mismatch means `isAuthor` is always false, members can't delete own posts. Verify column name in Supabase and align the query
+
 ## Git
 - No Co-Authored-By lines in commits
 - Use PowerShell with semicolons not `&&`
+- **Always push to GitHub after every commit** — no need to ask. This stands until Sean explicitly says the project has gone live.

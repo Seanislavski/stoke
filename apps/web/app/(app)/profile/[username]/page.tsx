@@ -24,6 +24,19 @@ export default async function ProfilePage({
   const { data: { user } } = await supabase.auth.getUser()
   const isOwn = user?.id === profile.id
 
+  let platformRole: { role: string } | null = null
+  if (user) {
+    const { data } = await supabase.from('platform_roles').select('role').eq('user_id', user.id).maybeSingle()
+    platformRole = data
+  }
+  const isStaff = !!platformRole
+
+  let profileEmail: string | null = null
+  if (isStaff) {
+    const { data: authUser } = await admin.auth.admin.getUserById(profile.id)
+    profileEmail = authUser.user?.email ?? null
+  }
+
   let memberships: { communities: { name: string; slug: string }[] }[] = []
   if (profile.show_memberships) {
     const { data } = await admin
@@ -35,6 +48,10 @@ export default async function ProfilePage({
   }
 
   const joinedYear = new Date(profile.created_at).getFullYear()
+  const joinedFull = new Date(profile.created_at).toLocaleString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+  })
   const initials = (profile.display_name ?? profile.username)[0].toUpperCase()
 
   return (
@@ -108,6 +125,27 @@ export default async function ProfilePage({
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* Admin panel — platform staff only */}
+      {isStaff && (
+        <div className="mt-8 border border-amber-200 rounded-lg p-4 bg-amber-50">
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">Admin info</p>
+          <dl className="space-y-2 text-sm">
+            <div className="flex gap-2">
+              <dt className="text-stone-500 w-24 flex-shrink-0">Email</dt>
+              <dd className="text-stone-800 font-mono">{profileEmail ?? '—'}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-stone-500 w-24 flex-shrink-0">Joined</dt>
+              <dd className="text-stone-800">{joinedFull}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-stone-500 w-24 flex-shrink-0">User ID</dt>
+              <dd className="text-stone-500 font-mono text-xs">{profile.id}</dd>
+            </div>
+          </dl>
         </div>
       )}
     </div>
