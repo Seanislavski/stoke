@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { getTicketReportData } from '@/app/actions/tickets'
-import { getTicketCategories, buildCategoryLabels } from '@/lib/ticket-categories'
 
 type Period = 7 | 30 | 90
 type Community = { id: string; name: string }
@@ -28,11 +27,8 @@ export default function DownloadReportButton({ communities, defaultCommunityId }
   async function handleDownload() {
     setLoading(true)
     try {
-      const [data, categoryRows] = await Promise.all([
-        getTicketReportData(period, communityId || null),
-        getTicketCategories(),
-      ])
-      const CATEGORY_LABELS = buildCategoryLabels(categoryRows)
+      const data = await getTicketReportData(period, communityId || null)
+      const CATEGORY_LABELS = data.categoryLabels
 
       // Dynamic import so jspdf doesn't bloat the server bundle
       const { default: jsPDF } = await import('jspdf')

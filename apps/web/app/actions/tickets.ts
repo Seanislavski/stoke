@@ -139,6 +139,7 @@ export async function getTicketReportData(
   byCategory: Array<{ category: string; count: number; avgHours: number | null }>
   oldestOpen: Array<{ id: string; title: string; category: string; ageHours: number; status: string }>
   communityName?: string
+  categoryLabels: Record<string, string>
 }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -163,6 +164,11 @@ export async function getTicketReportData(
 
   const admin = createAdminClient()
   const since = new Date(Date.now() - period * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: categoryRows } = await admin.from('ticket_categories').select('key, label')
+  const categoryLabels: Record<string, string> = Object.fromEntries(
+    (categoryRows ?? []).map(c => [c.key, c.label])
+  )
 
   let query = admin
     .from('tickets')
@@ -243,5 +249,6 @@ export async function getTicketReportData(
     byCategory,
     oldestOpen,
     communityName,
+    categoryLabels,
   }
 }
