@@ -59,6 +59,8 @@ A platform for building reciprocal communities — anyone can create and organiz
 - `/support/[ticketId]` (chat-style ticket thread)
 - `/admin/*` (platform admin: users, communities, support — role-gated)
 - `/auth/callback`
+- `/privacy` (Privacy Policy — public)
+- `/terms` (Terms of Service — public)
 
 ## Monorepo Structure
 ```
@@ -166,7 +168,8 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 ## Email Notifications
 - Email provider: **Resend** (`resend` npm package in `apps/web`)
 - Helper + templates: `apps/web/lib/email.ts` — `sendEmail(to, subject, html)` silently skips if no `RESEND_API_KEY`
-- From address: `Stoke Community <noreply@stoke.community>` (domain must be verified in Resend dashboard + DNS in Cloudflare)
+- From address: `Stoke Community <noreply@stoke.community>` (domain verified in Resend + Cloudflare DNS)
+- `support@stoke.community` forwards to Sean's personal email via Cloudflare Email Routing
 - Fire-and-forget pattern: `void (async () => { ... })()` — emails never block server action response
 - Triggers: join request → notify mods (`membership.ts`); approved/rejected → notify applicant (`community.ts`); ticket reply → notify other party (`tickets.ts`)
 - Env vars needed: `RESEND_API_KEY`, `SUPPORT_EMAIL` (inbox for user→staff ticket replies), `CRON_SECRET`
@@ -235,8 +238,7 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 - Supabase tables: `subscriptions` (user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end, cancel_at_period_end), `stripe_webhook_events` (stripe_event_id)
 
 ## Known Bugs / Open Items
-- **createChannel + deleteChannel missing role check** (`apps/web/lib/actions/channels.ts`): only checks `!user`, not org/mod — any authenticated user can call directly. Fix: add `requireModOrThrow(communityId)` same as `invites.ts` + `community.ts`
-- **deletePost column mismatch** (`apps/web/lib/actions/bulletin.ts`): `deletePost` selects `submitted_by` but `submitPost` inserts `author_id` — mismatch means `isAuthor` is always false, members can't delete own posts. Verify column name in Supabase and align the query
+- None currently.
 
 ## Git
 - No Co-Authored-By lines in commits
