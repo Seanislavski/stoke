@@ -33,8 +33,9 @@ export async function middleware(request: NextRequest) {
   const isUnsubscribe = pathname.startsWith('/api/unsubscribe')
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
+  const isLegalPage = pathname === '/privacy' || pathname === '/terms'
 
-  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe) {
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe && !isLegalPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

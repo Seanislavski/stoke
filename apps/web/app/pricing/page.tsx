@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
+import MarketingFooter from '@/components/MarketingFooter'
 
 function CheckIcon() {
   return (
@@ -185,9 +186,7 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-stone-200 bg-white py-6 text-center text-sm text-stone-400">
-        © {new Date().getFullYear()} Stoke Community
-      </footer>
+      <MarketingFooter />
     </div>
   )
 }

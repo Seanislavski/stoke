@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
+import MarketingFooter from '@/components/MarketingFooter'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -98,10 +99,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-stone-200 bg-white py-6 text-center text-sm text-stone-400">
-        © {new Date().getFullYear()} Stoke Community
-      </footer>
+      <MarketingFooter />
     </div>
   )
 }
