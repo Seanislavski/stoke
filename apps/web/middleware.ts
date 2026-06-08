@@ -34,8 +34,9 @@ export async function middleware(request: NextRequest) {
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
   const isLegalPage = pathname === '/privacy' || pathname === '/terms' || pathname === '/about'
+  const isOgImage = pathname.endsWith('/opengraph-image') || pathname === '/opengraph-image'
 
-  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe && !isLegalPage) {
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe && !isLegalPage && !isOgImage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
