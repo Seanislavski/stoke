@@ -13,8 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stoke",
-  description: "Find and build your community",
+  metadataBase: new URL('https://stoke.community'),
+  title: {
+    default: 'Stoke Community',
+    template: '%s — Stoke Community',
+  },
+  description: 'Build reciprocal communities where every member gives and receives — skills, time, knowledge, and support.',
+  openGraph: {
+    siteName: 'Stoke Community',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
 };
 
 export default function RootLayout({

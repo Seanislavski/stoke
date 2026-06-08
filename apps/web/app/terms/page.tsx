@@ -3,7 +3,16 @@ import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
 
-export const metadata = { title: 'Terms of Service — Stoke Community' }
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'The terms and conditions for using Stoke Community.',
+  openGraph: {
+    title: 'Terms of Service — Stoke Community',
+    url: 'https://stoke.community/terms',
+  },
+}
 
 export default async function TermsPage() {
   const supabase = await createClient()

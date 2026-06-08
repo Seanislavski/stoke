@@ -3,7 +3,16 @@ import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
 
-export const metadata = { title: 'Privacy Policy — Stoke Community' }
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'How Stoke Community collects, uses, and protects your information.',
+  openGraph: {
+    title: 'Privacy Policy — Stoke Community',
+    url: 'https://stoke.community/privacy',
+  },
+}
 
 export default async function PrivacyPage() {
   const supabase = await createClient()

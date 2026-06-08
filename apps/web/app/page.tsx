@@ -1,8 +1,19 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
+
+export const metadata: Metadata = {
+  title: 'Stoke Community — A place where everyone has something to offer',
+  description: 'Build reciprocal communities where every member gives and receives — skills, time, knowledge, and support. No algorithms. No noise. Just people helping each other.',
+  openGraph: {
+    title: 'Stoke Community — A place where everyone has something to offer',
+    description: 'Build reciprocal communities where every member gives and receives — skills, time, knowledge, and support.',
+    url: 'https://stoke.community',
+  },
+}
 
 const communityTypes = [
   { emoji: '🏘️', name: 'Neighborhood groups', description: 'Stay connected with the people who live around you.' },

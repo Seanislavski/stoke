@@ -1,7 +1,18 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
+
+export const metadata: Metadata = {
+  title: 'Pricing',
+  description: 'Simple, honest pricing for community builders. Start free, upgrade when your community is ready.',
+  openGraph: {
+    title: 'Pricing — Stoke Community',
+    description: 'Simple, honest pricing for community builders. Start free, upgrade when your community is ready.',
+    url: 'https://stoke.community/pricing',
+  },
+}
 
 function CheckIcon() {
   return (

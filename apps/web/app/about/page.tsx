@@ -3,7 +3,17 @@ import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
 
-export const metadata = { title: 'About — Stoke Community' }
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'Not a platform where the first one wins. Here, everybody wins by design. Learn about the mission behind Stoke Community.',
+  openGraph: {
+    title: 'About — Stoke Community',
+    description: 'Not a platform where the first one wins. Here, everybody wins by design.',
+    url: 'https://stoke.community/about',
+  },
+}
 
 const beliefs = [
   {
