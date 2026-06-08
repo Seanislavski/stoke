@@ -113,6 +113,24 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                     {entry.action.startsWith('ticket_category.') && typeof meta?.label === 'string' && (
                       <span className="text-stone-400"> · {meta.label}</span>
                     )}
+                    {entry.action === 'ticket.status_changed' && meta && (
+                      <span className="text-stone-400"> · {String(meta.from_status)} → {String(meta.to_status)}</span>
+                    )}
+                    {entry.action === 'community.created' && typeof meta?.name === 'string' && (
+                      <span className="text-stone-400"> · {meta.name}</span>
+                    )}
+                    {entry.action === 'community.settings_updated' && meta && (
+                      <span className="text-stone-400"> · {typeof meta.name === 'string' ? meta.name : ''}{typeof meta.join_mode === 'string' ? ` · ${meta.join_mode}` : ''}{typeof meta.is_listed === 'boolean' ? ` · ${meta.is_listed ? 'listed' : 'unlisted'}` : ''}</span>
+                    )}
+                    {entry.action === 'community.listing_changed' && typeof meta?.is_listed === 'boolean' && (
+                      <span className="text-stone-400"> · {meta.is_listed ? 'listed' : 'unlisted'}</span>
+                    )}
+                    {(entry.action === 'channel.created' || entry.action === 'channel.deleted') && typeof meta?.name === 'string' && (
+                      <span className="text-stone-400"> · #{meta.name}</span>
+                    )}
+                    {entry.action === 'email.blast' && typeof meta?.subject === 'string' && (
+                      <span className="text-stone-400"> · &ldquo;{meta.subject}&rdquo;{typeof meta.recipient_count === 'number' ? ` · ${meta.recipient_count} recipients` : ''}</span>
+                    )}
                     {community && (
                       <span className="ml-2 text-xs text-stone-300">in {community.name}</span>
                     )}
