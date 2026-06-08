@@ -59,6 +59,7 @@ A platform for building reciprocal communities — anyone can create and organiz
 - `/support/[ticketId]` (chat-style ticket thread)
 - `/admin/*` (platform admin: users, communities, support — role-gated)
 - `/auth/callback`
+- `/about` (About / mission page — public)
 - `/privacy` (Privacy Policy — public)
 - `/terms` (Terms of Service — public)
 
