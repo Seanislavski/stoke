@@ -18,6 +18,7 @@ import PhotoGallery from '@/components/PhotoGallery'
 import { deletePost } from '@/app/actions/bulletin'
 import { deleteEvent } from '@/app/actions/events'
 import { deleteResource } from '@/app/actions/resources'
+import OnboardingChecklist from '@/components/community/OnboardingChecklist'
 
 export default async function CommunityPage({
   params,
@@ -89,6 +90,15 @@ export default async function CommunityPage({
           .eq('status', 'banned')
       : Promise.resolve({ count: 0 }),
   ])
+
+  // Onboarding checklist data (organizers only)
+  const [onboardingPostCount, onboardingChannelCount, onboardingEventCount] = isMod
+    ? await Promise.all([
+        admin.from('bulletin_posts').select('*', { count: 'exact', head: true }).eq('community_id', community.id).eq('status', 'published').then(r => r.count ?? 0),
+        admin.from('channels').select('*', { count: 'exact', head: true }).eq('community_id', community.id).then(r => r.count ?? 0),
+        admin.from('events').select('*', { count: 'exact', head: true }).eq('community_id', community.id).then(r => r.count ?? 0),
+      ])
+    : [0, 0, 0]
 
   // Bulletin tab data
   const [publishedPosts, pendingPosts] = await Promise.all([
@@ -232,6 +242,17 @@ export default async function CommunityPage({
           </div>
         </div>
       </div>
+
+      {/* Onboarding checklist — organizers only, disappears when all steps done */}
+      {isMod && (
+        <OnboardingChecklist
+          slug={slug}
+          hasPost={onboardingPostCount > 0}
+          hasChannel={onboardingChannelCount > 0}
+          hasMember={(members?.length ?? 0) > 1}
+          hasEvent={onboardingEventCount > 0}
+        />
+      )}
 
       {/* Gate: non-members */}
       {!canSee && (
