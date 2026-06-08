@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { checkCommunityLimit } from '@/lib/billing'
+import { logAction } from '@/lib/audit'
 
 function slugify(name: string): string {
   return name
@@ -63,12 +64,19 @@ export async function createCommunity(formData: FormData) {
       is_listed: isListed,
       owner_id: user.id,
     })
-    .select('slug')
+    .select('id, slug')
     .single()
 
   if (error) {
     return { error: 'Something went wrong. Please try again.' }
   }
+
+  await logAction({
+    actorId: user.id,
+    communityId: community.id,
+    action: 'community.created',
+    metadata: { name, slug: community.slug, join_mode: joinMode, is_listed: isListed },
+  })
 
   redirect(`/communities/${community.slug}`)
 }

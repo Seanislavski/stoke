@@ -56,6 +56,17 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
 
   if (error) return { error: error.message }
 
+  logAction({
+    actorId: caller.userId,
+    communityId,
+    action: 'community.settings_updated',
+    metadata: {
+      name: formData.get('name'),
+      join_mode: formData.get('join_mode'),
+      is_listed: formData.get('is_listed') === 'on',
+      category_id: formData.get('category_id') || null,
+    },
+  })
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }

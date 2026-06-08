@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { checkChannelLimit } from '@/lib/billing'
+import { logAction } from '@/lib/audit'
 
 async function requireOrgOrMod(communityId: string) {
   const supabase = await createClient()
@@ -37,11 +38,14 @@ export async function createChannel(communityId: string, slug: string, formData:
   }
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data: channel, error } = await supabase
     .from('channels')
     .insert({ community_id: communityId, name, description, created_by: user.id })
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+  logAction({ actorId: user.id, communityId, action: 'channel.created', targetId: channel.id, targetType: 'channel', metadata: { name } })
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
@@ -49,14 +53,18 @@ export async function createChannel(communityId: string, slug: string, formData:
 
 export async function deleteChannel(channelId: string, slug: string) {
   const admin = createAdminClient()
-  const { data: channel } = await admin.from('channels').select('community_id').eq('id', channelId).single()
+  const { data: channel } = await admin.from('channels').select('community_id, name').eq('id', channelId).single()
   if (!channel) return { error: 'Channel not found' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { error: authError } = await requireOrgOrMod(channel.community_id)
   if (authError) return { error: authError }
 
   const { error } = await admin.from('channels').delete().eq('id', channelId)
   if (error) return { error: error.message }
+  if (user) logAction({ actorId: user.id, communityId: channel.community_id, action: 'channel.deleted', targetId: channelId, targetType: 'channel', metadata: { name: channel.name } })
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, ticketReplyHtml } from '@/lib/email'
+import { logAction } from '@/lib/audit'
 
 async function getAccessOrThrow(ticketId: string) {
   const supabase = await createClient()
@@ -118,11 +119,13 @@ export async function updateTicketStatus(ticketId: string, status: string) {
   if (!platformRole) throw new Error('Forbidden')
 
   const admin = createAdminClient()
+  const { data: ticket } = await admin.from('tickets').select('status').eq('id', ticketId).single()
   const resolved = status === 'resolved' || status === 'closed'
   await admin.from('tickets').update({
     status,
     resolved_at: resolved ? new Date().toISOString() : null,
   }).eq('id', ticketId)
+  logAction({ actorId: user.id, action: 'ticket.status_changed', targetId: ticketId, targetType: 'ticket', metadata: { from_status: ticket?.status, to_status: status } })
   revalidatePath(`/support/${ticketId}`)
   revalidatePath('/admin/support')
 }

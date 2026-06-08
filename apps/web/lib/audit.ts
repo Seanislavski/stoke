@@ -59,4 +59,10 @@ export const ACTION_LABELS: Record<string, string> = {
   'ticket_category.enabled': 'Enabled ticket category',
   'ticket_category.disabled': 'Disabled ticket category',
   'email.blast': 'Sent email blast',
+  'community.created': 'Created community',
+  'community.settings_updated': 'Updated community settings',
+  'community.listing_changed': 'Changed community listing status',
+  'channel.created': 'Created channel',
+  'channel.deleted': 'Deleted channel',
+  'ticket.status_changed': 'Changed ticket status',
 }

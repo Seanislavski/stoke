@@ -54,8 +54,9 @@ export async function assignPlatformRole(userId: string, role: string | null) {
 }
 
 export async function toggleCommunityListed(communityId: string, isListed: boolean) {
-  await requirePlatformRole('owner', 'community_manager')
+  const caller = await requirePlatformRole('owner', 'community_manager')
   const admin = createAdminClient()
   await admin.from('communities').update({ is_listed: isListed }).eq('id', communityId)
+  logAction({ actorId: caller.id, communityId, action: 'community.listing_changed', metadata: { is_listed: isListed } })
   revalidatePath('/admin/communities')
 }
