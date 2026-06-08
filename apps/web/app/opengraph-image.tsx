@@ -5,6 +5,36 @@ export const alt = 'Stoke Community'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
+function Flame({ size: s = 80 }: { size?: number }) {
+  const h = Math.round(s * (200 / 150))
+  return (
+    <svg viewBox="325 125 150 200" width={s} height={h} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="og-flameBase" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#ad3a18" />
+          <stop offset="100%" stopColor="#d95d26" />
+        </linearGradient>
+        <linearGradient id="og-flameCore" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#e67e22" />
+          <stop offset="50%" stopColor="#f39c12" />
+          <stop offset="100%" stopColor="#f1c40f" />
+        </linearGradient>
+        <linearGradient id="og-flameTop" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#f1c40f" />
+          <stop offset="100%" stopColor="#fff0aa" />
+        </linearGradient>
+      </defs>
+      <g transform="translate(0, 10)">
+        <path d="M 330,270 C 330,310 470,310 470,270 C 470,240 440,230 400,230 C 360,230 330,240 330,270 Z" fill="url(#og-flameBase)" />
+        <path d="M 350,260 C 350,295 450,295 450,260 C 450,210 415,180 415,150 C 415,190 385,200 350,260 Z" fill="url(#og-flameCore)" />
+        <path d="M 375,250 C 375,275 425,275 425,250 C 425,210 400,190 400,165 C 400,195 375,210 375,250 Z" fill="url(#og-flameTop)" />
+        <path d="M 396,140 C 396,145 404,145 404,140 C 404,130 400,125 400,120 C 400,125 396,130 396,140 Z" fill="#f1c40f" />
+        <path d="M 416,160 C 416,163 422,163 422,160 C 422,153 419,150 419,146 C 419,150 416,153 416,160 Z" fill="#f39c12" />
+      </g>
+    </svg>
+  )
+}
+
 export default function Image() {
   return new ImageResponse(
     (
@@ -33,19 +63,8 @@ export default function Image() {
         />
 
         {/* Flame + Wordmark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          {/* Flame SVG */}
-          <svg width="56" height="56" viewBox="0 0 32 36" fill="none">
-            <path
-              d="M16 2C13.5 6 9 10.5 8 16.5C7 21.5 9 27 12.5 30C11 26.5 11.5 22.5 13.5 20C13 23 14 26 16 28C18 26 19 23 18.5 20C20.5 22.5 21 26.5 19.5 30C23 27 25 21.5 24 16.5C23 10.5 18.5 6 16 2Z"
-              fill="#f97316"
-            />
-            <path
-              d="M16 16C14.8 18 14 20 14 22C14 24.2 14.9 26 16 26C17.1 26 18 24.2 18 22C18 20 17.2 18 16 16Z"
-              fill="#fed7aa"
-            />
-          </svg>
-          {/* Wordmark */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+          <Flame size={80} />
           <span
             style={{
               fontFamily: 'ui-sans-serif, system-ui, sans-serif',
