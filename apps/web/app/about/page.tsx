@@ -7,10 +7,10 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Not a platform where the first one wins. Here, everybody wins by design. Learn about the mission behind Stoke Community.',
+  description: 'What if the whole community could win? Here, everybody wins by design. Learn about the mission behind Stoke Community.',
   openGraph: {
     title: 'About — Stoke Community',
-    description: 'Not a platform where the first one wins. Here, everybody wins by design.',
+    description: 'What if the whole community could win? Here, everybody wins by design.',
     url: 'https://stoke.community/about',
   },
 }
@@ -73,7 +73,7 @@ export default async function AboutPage() {
         {/* Mission */}
         <section className="max-w-3xl mx-auto px-4 pt-16 pb-12 text-center">
           <h1 className="text-4xl font-bold text-stone-900 mb-5 leading-tight">
-            Not a platform where the first one wins.<br />
+            What if the whole community could win?<br />
             <span className="text-orange-500">Here, everybody wins by design.</span>
           </h1>
           <p className="text-lg text-stone-600 leading-relaxed max-w-2xl mx-auto">
