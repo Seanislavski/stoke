@@ -84,7 +84,7 @@ export default async function AboutPage() {
         {/* What makes Stoke different */}
         <section className="bg-white border-y border-stone-200 py-14">
           <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-2xl font-bold text-stone-900 text-center mb-10">What makes Stoke different</h2>
+            <h2 className="text-2xl font-bold text-stone-900 text-center mb-10">Ways Stoke is different</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="rounded-2xl border border-stone-200 p-6">
                 <h3 className="font-semibold text-stone-400 text-xs uppercase tracking-widest mb-3">Most platforms</h3>
