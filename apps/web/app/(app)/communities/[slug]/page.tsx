@@ -196,7 +196,7 @@ export default async function CommunityPage({
   const now = new Date()
 
   return (
-    <div className="max-w-2xl mx-auto py-8 space-y-6">
+    <div className="max-w-5xl mx-auto py-8 space-y-6">
 
       {/* Header */}
       <div className="relative bg-white rounded-xl border border-stone-200 p-6">
@@ -261,32 +261,11 @@ export default async function CommunityPage({
         </div>
       )}
 
-      {/* Members */}
-      {canSee && members && (
-        <section>
-          <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
-            Members ({members.length})
-          </h2>
-          <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
-            {members.map((m) => {
-              const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-              if (!profile) return null
-              return (
-                <div key={m.user_id} className="flex items-center justify-between px-4 py-3">
-                  <Link href={`/profile/${profile.username}`} className="text-sm font-medium text-stone-800 hover:text-orange-600">
-                    {profile.display_name ?? profile.username}
-                  </Link>
-                  <span className="text-xs text-stone-400 capitalize">{m.role}</span>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Tabs */}
+      {/* Main content + members sidebar */}
       {canSee && (
-        <div>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_18rem] gap-6 items-start">
+          {/* Main column: tabs + content */}
+          <div className="min-w-0">
           <div className="flex border-b border-stone-200 mb-6">
             {TABS.map(t => (
               <Link
@@ -589,6 +568,30 @@ export default async function CommunityPage({
                 </div>
               )}
             </div>
+          )}
+          </div>
+
+          {/* Members sidebar */}
+          {members && (
+            <aside className="lg:sticky lg:top-8">
+              <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
+                Members ({members.length})
+              </h2>
+              <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+                {members.map((m) => {
+                  const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                  if (!profile) return null
+                  return (
+                    <div key={m.user_id} className="flex items-center justify-between px-4 py-3">
+                      <Link href={`/profile/${profile.username}`} className="text-sm font-medium text-stone-800 hover:text-orange-600">
+                        {profile.display_name ?? profile.username}
+                      </Link>
+                      <span className="text-xs text-stone-400 capitalize">{m.role}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </aside>
           )}
         </div>
       )}
