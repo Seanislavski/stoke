@@ -7,6 +7,7 @@ import CommunityInfoForm from '@/components/community/settings/CommunityInfoForm
 import MembersManager from '@/components/community/settings/MembersManager'
 import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
+import CategoryManager from '@/components/knowledge/CategoryManager'
 import { ACTION_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
 import EmailBlastForm from '@/components/community/settings/EmailBlastForm'
@@ -54,7 +55,7 @@ export default async function CommunitySettingsPage({
   const proto = headersList.get('x-forwarded-proto') ?? 'http'
   const baseUrl = `${proto}://${host}`
 
-  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }, { data: lastBlast }] = await Promise.all([
+  const [{ data: categories }, { data: members }, { data: channels }, { data: invites }, { data: auditLog }, { data: lastBlast }, { data: kbCategories }] = await Promise.all([
     supabase.from('categories').select('id, name').order('name'),
     admin
       .from('community_members')
@@ -86,6 +87,11 @@ export default async function CommunitySettingsPage({
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    admin
+      .from('kb_categories')
+      .select('id, name, description')
+      .eq('community_id', community.id)
+      .order('position'),
   ])
 
   const normalizedMembers = (members ?? []).map(m => ({
@@ -130,6 +136,19 @@ export default async function CommunitySettingsPage({
           communityId={community.id}
           slug={slug}
           initialChannels={channels ?? []}
+        />
+      </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Q&A categories */}
+      <section>
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Q&amp;A categories</h2>
+        <p className="text-sm text-stone-500 mb-4">Topics members can browse and filter approved questions by. You assign a category when you approve a question.</p>
+        <CategoryManager
+          communityId={community.id}
+          slug={slug}
+          initialCategories={kbCategories ?? []}
         />
       </section>
 
@@ -195,7 +214,9 @@ export default async function CommunitySettingsPage({
               const targetLink = (() => {
                 const type = entry.target_type
                 if ((type === 'post') && slug) return `/communities/${slug}?tab=bulletin`
-                if ((type === 'resource') && slug) return `/communities/${slug}?tab=resources`
+                if ((type === 'resource') && slug) return `/communities/${slug}?tab=qa`
+                if (type === 'question' && slug && entry.target_id) return `/communities/${slug}/questions/${entry.target_id}`
+                if (type === 'answer' && slug && typeof meta?.question_id === 'string') return `/communities/${slug}/questions/${meta.question_id}`
                 if ((type === 'event') && slug) return `/communities/${slug}?tab=events`
                 if (type === 'message' && typeof meta?.channel_id === 'string') return `/communities/${slug}/channels/${meta.channel_id}?message=${entry.target_id}`
                 if (targetUser?.username) return `/profile/${targetUser.username}`

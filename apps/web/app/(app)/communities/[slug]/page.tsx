@@ -9,15 +9,14 @@ import SubmitPostForm from '@/components/bulletin/SubmitPostForm'
 import ModActions from '@/components/bulletin/ModActions'
 import CreateEventButton from '@/components/events/CreateEventButton'
 import RsvpButton from '@/components/events/RsvpButton'
-import SubmitResourceForm from '@/components/resources/SubmitResourceForm'
-import ResourceModActions from '@/components/resources/ResourceModActions'
 import DeleteItemButton from '@/components/DeleteItemButton'
 import RichContent from '@/components/RichContent'
-import LinkPreview from '@/components/LinkPreview'
 import PhotoGallery from '@/components/PhotoGallery'
 import { deletePost } from '@/app/actions/bulletin'
 import { deleteEvent } from '@/app/actions/events'
-import { deleteResource } from '@/app/actions/resources'
+import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
+import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
+import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import OnboardingChecklist from '@/components/community/OnboardingChecklist'
 
 export default async function CommunityPage({
@@ -129,25 +128,65 @@ export default async function CommunityPage({
         .order('created_at')).data
     : null
 
-  // Resources tab data
-  const [publishedResources, pendingResources] = await Promise.all([
-    (tab === 'resources' && canSee)
-      ? admin.from('resources')
-          .select('id, title, description, url, resource_type, published_at, profiles(username, display_name)')
+  // Q&A (knowledge base) tab data
+  const [kbCategories, kbPublishedRaw, kbPending, kbAnswerRows] = await Promise.all([
+    (tab === 'qa' && canSee)
+      ? admin.from('kb_categories')
+          .select('id, name')
+          .eq('community_id', community.id)
+          .order('position')
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
+    (tab === 'qa' && canSee)
+      ? admin.from('kb_questions')
+          .select('id, title, body, category_id, created_at, profiles!asker_id(username, display_name)')
           .eq('community_id', community.id)
           .eq('status', 'published')
           .order('published_at', { ascending: false })
-          .then(r => r.data)
-      : Promise.resolve(null),
-    (tab === 'resources' && isMod)
-      ? admin.from('resources')
-          .select('id, title, description, url, resource_type, created_at, profiles(username, display_name)')
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
+    (tab === 'qa' && isMod)
+      ? admin.from('kb_questions')
+          .select('id, title, body, created_at, profiles!asker_id(username, display_name)')
           .eq('community_id', community.id)
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
-          .then(r => r.data)
-      : Promise.resolve(null),
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
+    (tab === 'qa' && canSee)
+      ? admin.from('kb_answers')
+          .select('question_id, is_accepted')
+          .eq('community_id', community.id)
+          .eq('status', 'published')
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
   ])
+
+  // Tally answer counts + accepted flag per question
+  const answerCounts: Record<string, number> = {}
+  const hasAccepted: Record<string, boolean> = {}
+  for (const row of kbAnswerRows as { question_id: string; is_accepted: boolean }[]) {
+    answerCounts[row.question_id] = (answerCounts[row.question_id] ?? 0) + 1
+    if (row.is_accepted) hasAccepted[row.question_id] = true
+  }
+
+  const boardQuestions: BoardQuestion[] = (kbPublishedRaw as Array<{
+    id: string; title: string; body: string | null; category_id: string | null; created_at: string
+    profiles: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null
+  }>).map(q => {
+    const asker = Array.isArray(q.profiles) ? q.profiles[0] : q.profiles
+    return {
+      id: q.id,
+      title: q.title,
+      body: q.body,
+      category_id: q.category_id,
+      asker_name: asker?.display_name ?? null,
+      asker_username: asker?.username ?? null,
+      created_at: q.created_at,
+      answer_count: answerCounts[q.id] ?? 0,
+      has_accepted: hasAccepted[q.id] ?? false,
+    }
+  })
 
   // Events tab data
   let events: Event[] | null = null
@@ -189,7 +228,7 @@ export default async function CommunityPage({
   const TABS = [
     { key: 'bulletin', label: 'Bulletin' },
     { key: 'events', label: 'Events' },
-    { key: 'resources', label: 'Resources' },
+    { key: 'qa', label: 'Q&A' },
     { key: 'channels', label: 'Channels' },
   ]
 
@@ -410,134 +449,39 @@ export default async function CommunityPage({
             </div>
           )}
 
-          {/* Resources tab */}
-          {tab === 'resources' && (
-            <div className="space-y-4">
-              {isMod && pendingResources && pendingResources.length > 0 && (
+          {/* Q&A (knowledge base) tab */}
+          {tab === 'qa' && (
+            <div className="space-y-5">
+              {isMod && kbPending.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
-                    Awaiting review ({pendingResources.length})
+                    Questions awaiting review ({kbPending.length})
                   </p>
-                  {pendingResources.map(resource => {
-                    const author = Array.isArray(resource.profiles) ? resource.profiles[0] : resource.profiles
+                  {(kbPending as Array<{ id: string; title: string; body: string | null; created_at: string; profiles: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null }>).map(q => {
+                    const author = Array.isArray(q.profiles) ? q.profiles[0] : q.profiles
                     return (
-                      <div key={resource.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs text-stone-400 mb-1">
-                              {author?.username ? (
-                                <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
-                                  {author.display_name ?? author.username}
-                                </Link>
-                              ) : 'Unknown'}
-                              {' · '}
-                              <span className="capitalize">{resource.resource_type}</span>
-                            </p>
-                            <h3 className="font-medium text-stone-900 text-sm">{resource.title}</h3>
-                            {resource.resource_type === 'photo' ? (
-                              <img src={resource.url} alt="" className="mt-1 max-h-32 rounded-lg border border-stone-200 object-contain" />
-                            ) : (
-                              <>
-                                <a href={resource.url} target="_blank" rel="noopener noreferrer"
-                                  className="text-xs text-orange-600 hover:underline truncate block mt-0.5">
-                                  {resource.url}
-                                </a>
-                                <LinkPreview url={resource.url} />
-                              </>
-                            )}
-                            {resource.description && (
-                              <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
-                            )}
-                          </div>
-                        </div>
-                        <ResourceModActions resourceId={resource.id} communityId={community.id} slug={community.slug} />
+                      <div key={q.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                        <p className="text-xs text-stone-400 mb-1">
+                          {author?.username ? (
+                            <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
+                              {author.display_name ?? author.username}
+                            </Link>
+                          ) : 'Unknown'}
+                        </p>
+                        <Link href={`/communities/${slug}/questions/${q.id}`} className="font-medium text-stone-900 text-sm hover:text-orange-600">
+                          {q.title}
+                        </Link>
+                        {q.body && <RichContent content={q.body} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" embeds={false} />}
+                        <QuestionModActions questionId={q.id} communityId={community.id} slug={slug} categories={kbCategories} />
                       </div>
                     )
                   })}
                 </div>
               )}
 
-              {(() => {
-                const photoResources = publishedResources?.filter(r => r.resource_type === 'photo') ?? []
-                const otherResources = publishedResources?.filter(r => r.resource_type !== 'photo') ?? []
+              <KnowledgeBoard slug={slug} questions={boardQuestions} categories={kbCategories} />
 
-                return (
-                  <>
-                    {photoResources.length > 0 && (
-                      <div className="bg-white border border-stone-200 rounded-xl p-4">
-                        <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">Photo Gallery</p>
-                        <PhotoGallery photos={photoResources.map(r => r.url)} />
-                        {isMod && (
-                          <div className="mt-3 space-y-1">
-                            {photoResources.map(r => (
-                              <div key={r.id} className="flex items-center justify-between text-xs text-stone-400">
-                                <span className="truncate">{r.title}</span>
-                                <DeleteItemButton
-                                  action={deleteResource.bind(null, r.id, community.id, slug)}
-                                  confirm="Delete this photo?"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {otherResources.length > 0 ? (
-                      <div className="space-y-3">
-                        {otherResources.map(resource => {
-                          const author = Array.isArray(resource.profiles) ? resource.profiles[0] : resource.profiles
-                          const date = resource.published_at
-                            ? new Date(resource.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                            : ''
-                          return (
-                            <div key={resource.id} className="bg-white border border-stone-200 rounded-xl p-4">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-stone-400 mb-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="capitalize bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">
-                                        {resource.resource_type}
-                                      </span>
-                                      {author?.username && (
-                                        <Link href={`/profile/${author.username}`} className="hover:text-orange-600">
-                                          {author.display_name ?? author.username}
-                                        </Link>
-                                      )}
-                                      {date && <span>{date}</span>}
-                                    </div>
-                                    {isMod && (
-                                      <DeleteItemButton
-                                        action={deleteResource.bind(null, resource.id, community.id, slug)}
-                                        confirm="Delete this resource?"
-                                      />
-                                    )}
-                                  </div>
-                                  <h3 className="font-semibold text-stone-900">{resource.title}</h3>
-                                  <a href={resource.url} target="_blank" rel="noopener noreferrer"
-                                    className="text-sm text-orange-600 hover:underline break-all">
-                                    {resource.url}
-                                  </a>
-                                  <LinkPreview url={resource.url} />
-                                  {resource.description && (
-                                    <RichContent content={resource.description} className="text-stone-600 text-sm mt-1" embeds={false} />
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : photoResources.length === 0 ? (
-                      <div className="bg-white border border-stone-200 rounded-xl p-6 text-center text-stone-400 text-sm">
-                        No resources yet.
-                      </div>
-                    ) : null}
-                  </>
-                )
-              })()}
-
-              <SubmitResourceForm communityId={community.id} slug={community.slug} isMod={isMod} />
+              <AskQuestionForm communityId={community.id} slug={slug} isMod={isMod} categories={kbCategories} />
             </div>
           )}
 

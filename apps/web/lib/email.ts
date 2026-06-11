@@ -80,6 +80,39 @@ export function communityBlastHtml(subject: string, body: string, communityName:
   `)
 }
 
+export function kbQuestionSubmittedHtml(communityName: string, communitySlug: string, questionTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">A new question is awaiting review in <strong>${communityName}</strong>:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${questionTitle}</p>
+    ${btn('Review question', `${BASE_URL}/communities/${communitySlug}?tab=qa`)}
+  `)
+}
+
+export function kbQuestionApprovedHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">Your question was published in <strong>${communityName}</strong>:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${questionTitle}</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">Members can now answer it.</p>
+    ${btn('View question', `${BASE_URL}/communities/${communitySlug}/questions/${questionId}`)}
+  `)
+}
+
+export function kbAnswerSubmittedHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">A new answer is awaiting review in <strong>${communityName}</strong>, on:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${questionTitle}</p>
+    ${btn('Review answer', `${BASE_URL}/communities/${communitySlug}/questions/${questionId}`)}
+  `)
+}
+
+export function kbAnswerApprovedHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">Your answer was published in <strong>${communityName}</strong>, on:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${questionTitle}</p>
+    ${btn('View answer', `${BASE_URL}/communities/${communitySlug}/questions/${questionId}`)}
+  `)
+}
+
 export function eventReminderHtml(eventTitle: string, communityName: string, communitySlug: string, startsAt: string) {
   const time = new Date(startsAt).toLocaleString('en-US', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
