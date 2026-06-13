@@ -49,9 +49,10 @@ A platform for building reciprocal communities — anyone can create and organiz
 - `/login`, `/signup`, `/home`, `/banned`
 - `/communities` (directory: search + category filter)
 - `/communities/new` (create form)
-- `/communities/[slug]` (community page: URL-based tabs — Bulletin/Events/Resources/Channels)
-- `/communities/[slug]/settings` (general info, channel management, invite links, member management)
+- `/communities/[slug]` (community page: URL-based tabs — Bulletin/Events/Q&A/Channels)
+- `/communities/[slug]/settings` (general info, channel management, Q&A categories, invite links, member management)
 - `/communities/[slug]/channels/[channelId]` (realtime text chat)
+- `/communities/[slug]/questions/[questionId]` (Q&A question detail page — durable, linkable)
 - `/settings/profile` (edit display name, bio, avatar upload, show_memberships toggle)
 - `/profile/[username]` (public profile page)
 - `/invite/[token]` (public invite landing page, works unauthenticated)
@@ -62,6 +63,7 @@ A platform for building reciprocal communities — anyone can create and organiz
 - `/about` (About / mission page — public)
 - `/privacy` (Privacy Policy — public)
 - `/terms` (Terms of Service — public)
+- `/guide` (Organizer Guide — **staff-only**, not public; server-side staff guard + gated nav link)
 
 ## Monorepo Structure
 ```
@@ -86,17 +88,37 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 **Platform roles** (`platform_roles` table: user_id PK + role enum + granted_at):
 - `owner` — full platform access (Sean)
 - `platform_moderator` — cross-community mod, platform-wide bans
-- `community_manager` — works with organizers, feature/delist communities
+- `community_manager` — works with organizers, feature/delist communities (platform-WIDE; per-community scoping was considered 06/13/2026 and DEFERRED — Sean's real need was community organizers delegating moderation, which already exists)
 - `support` — tickets + account help
 
 **Community roles** (`community_members.role` enum):
-- `organizer` — community owner equivalent, can change member roles
-- `moderator` — can edit info, approve/reject/ban members
+- `organizer` — community owner equivalent, can change member roles + email all members
+- `moderator` — full everyday moderation (approve/reject/ban/remove members, approve posts/Q&A, manage channels/events/invites) but CANNOT change roles or send email blasts
 - `member` — standard member
+- DB trigger `handle_new_community` auto-adds the creating owner as an `organizer` member row → "is this user community staff?" = has a `community_members` row with role in (`organizer`,`moderator`) status active (covers owners too)
+
+**Governance rules — organizers are owner-protected (06/13/2026):**
+- Only the community **owner** (and platform staff, which `getCallerRole` treats as owner-equivalent) can **appoint, change role of, ban, or remove** an `organizer`. Non-owner organizers can do none of those to a fellow organizer.
+- Non-owner organizers CAN appoint/demote/ban/remove `moderator` and `member` — they delegate moderation, just can't touch co-owners.
+- Enforced in `app/actions/community.ts`: `updateMemberRole` guard (`caller.role !== 'owner' && (role === 'organizer' || prev?.role === 'organizer')`), plus `removeMember`/`banMember` guards via `isTargetOrganizer()` helper. Mirrored in UI `MembersManager.tsx`: `ownerOnlyTarget = isOrganizerMember && callerRole !== 'owner'` hides the Organizer dropdown option + Ban/Remove buttons on organizer rows for non-owners.
+- `getCallerRole(communityId)` in `community.ts` is the central in-community authority chokepoint — returns `'owner'` for the community owner OR platform staff (owner/platform_moderator); role-scoped to that one community.
+- Auth pattern is duplicated across action files (bulletin/events/invites/knowledge/messages/resources): each fetches `platform_roles ... .in('role',['owner','platform_moderator'])` → `isPlatformStaff = !!platformRole`. `channels.ts` `requireOrgOrMod` does NOT check platform roles (pre-existing gap; only community owner + org/mod can manage channels).
+- All everyday mod checks = `['organizer','moderator'].includes(membership.role)` keyed to one `community_id` — community roles NEVER cross between communities.
 
 ## Gear Menus
 - **Global gear** (AppNav): avatar + gear icon → dropdown; items gated on `platformRole` prop passed from layout; platform team items only shown when role exists
 - **Community gear** (`CommunityGear.tsx`): shown to organizers/mods/owner on community page header; shows pending count badge if join_mode=request
+
+## Organizer Guide (06/13/2026)
+- **Two deliverables, one content:** portable markdown doc `docs/running-a-community.md` (paste into email/Discord/hand off) + in-app page `apps/web/app/guide/page.tsx`. Layered: quick-start ("first 15 minutes") + full feature reference + closing philosophy.
+- **Staff-only access** (not public — Sean: "I do not want a public guide link, but I want the guide to be available to moderators/organizers/owners"):
+  - `/guide` REMOVED from middleware public-route bypass → unauth redirects to `/login`, platform-ban check applies
+  - Page (`guide/page.tsx`) has a **server-side guard**: `if (!user) redirect('/login')`; computes `isStaff = (community_members count, role in [organizer,moderator] active, via admin client) > 0 || !!platform_roles` ; `if (!isStaff) redirect('/home')` — real protection, not just hidden link
+  - `(app)/layout.tsx` computes `isCommunityStaff` the same way and passes it to `AppNav`; gear-menu "Organizer guide" link only renders when `isCommunityStaff`
+  - `MarketingFooter.tsx` has NO guide link (public surface); links = About / Privacy / Terms
+  - OnboardingChecklist keeps its guide link ("New to running a community? Read the organizer guide →") — only mods/orgs see the checklist anyway
+- **Plan caps are sourced from code, not memory:** `apps/web/lib/billing.ts` PLANS map is authoritative (enforces limits at runtime). Free `{1, 50, 3}`, Starter `{3, 300, 15}`, Pro `{Infinity×3}` (communities/members/channels). LESSON: when a "missing fact" is about platform BEHAVIOR, check the code first.
+- Guide page is standalone (outside `(app)` group) with its own marketing-style header + `MarketingFooter`; uses `Section`/`Tip` helper subcomponents + TOC jump-nav anchors.
 
 ## Storage
 - `avatars` bucket (public): path `{userId}/avatar`, upsert:true; URL has `?t={Date.now()}` for cache busting
@@ -115,10 +137,25 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 - Events tab on community page; past events in `<details>` toggle
 - RSVPs: Going/Maybe/Can't go buttons; clicking active status clears (upsert with null)
 
-## Resources
+## Resources (LEGACY — replaced by Q&A 06/11/2026)
+- `resources` table still exists; `resources.ts` actions + `SubmitResourceForm`/`ResourceModActions` components left in place but ORPHANED (no longer rendered). Resources tab was replaced by the Q&A Knowledge Base.
 - `resources` table: community_id, submitted_by, title, url, description, status (pending/published/rejected)
-- Members submit; auto-published if submitter is mod/organizer; otherwise requires approval
-- Resources tab on community page; pending shown to mods only
+
+## Q&A Knowledge Base (replaces Resources tab — 06/11/2026)
+- **Concept:** community Q&A as durable, searchable "external memory" — members ask questions + contribute answers; BOTH queue for mod approval; only approved content is viewable. Replaces the old flat link/photo Resources tab. Piloted with Body Doubling (premiere/flagship community before official Stoke launch). Origin: Fable 5 phone convo (saved in Obsidian `+ Encounters/Fable 5 and Sean.md`) — "the knowledge exists; the retrieval fails."
+- **Tables** (migration `20260611000000_knowledge_base.sql`):
+  - `kb_categories`: community_id, name, description, position, created_by — organizer-defined; assigned to a question at approval time
+  - `kb_questions`: community_id, category_id (FK→kb_categories on delete set null), asker_id, title, body, status (published/pending/rejected), approved_by, published_at
+  - `kb_answers`: question_id, community_id (denormalized), author_id, body, url, status, is_accepted bool, approved_by, published_at
+- **PostgREST FK hint REQUIRED:** kb_questions has asker_id + approved_by both → profiles, kb_answers has author_id + approved_by both → profiles ⇒ ambiguous joins → always use `profiles!asker_id(...)` / `profiles!author_id(...)`
+- **RLS:** select published-only + insert-own; all pending reads + mod writes go through `createAdminClient()` (same pattern as bulletin/resources). No `is_community_mod` helper used.
+- **Decisions locked:** ranking = accepted-answer marking ONLY, NO upvotes/karma (Fable warning: gamifying "attract[s] transactional behavior + repel[s] genuine helpers"); tab name = "Q&A" (reserving "Ask" for the future real-time requests flow); both Q + A need approval (high question volume expected, many rejected); accepted answer = asker OR mod, one per question (`toggleAcceptAnswer` clears all then sets)
+- **Files:** `app/actions/knowledge.ts` (all actions + `modEmails()`/`emailFor()` helpers); `components/knowledge/` (KnowledgeBoard=client instant search+category-chip filter; AskQuestionForm, AnswerForm, QuestionModActions=approve+file-category in one step, AnswerModActions, AcceptAnswerButton, CategoryManager); detail route at `questions/[questionId]/page.tsx`
+- **UX:** Q&A tab = mod pending-questions review section + KnowledgeBoard (search/filter) + AskQuestionForm; pending answers reviewed inline on the question detail page (contextual). Client-side instant search for v1 (no tsvector); answer authors credited with profile links ("close the loop visibly").
+- **Email templates** (`lib/email.ts`): kbQuestionSubmitted/Approved, kbAnswerSubmitted/Approved. **Audit actions** (`lib/audit.ts`): question.created/submitted/approved/rejected/deleted, answer.created/submitted/approved/rejected/deleted/accepted.
+- **DEFERRED sibling feature:** real-time "Ask / I can help" requests flow (ephemeral: "partner at 2pm" → tap "I can help" → fulfilled). Designed KB as a clean sibling; NOT built. Scope decision was "Both, knowledge base first."
+- **Body Doubling community:** slug `bodydoublingcom`, id `5310e8c7-1276-485f-b77e-406d7edcf890`, owner_id `4e216ab6...` (Sean's account; also owns dorky-platypus-lovers + dracula-fans). Currently unlisted.
+- **Seed script:** `scripts/seed-bodydoubling-qa.mjs` — 6 categories + 6 starter questions (the recurring Discord ones), authored by owner so auto-published. Idempotent; `--remove` to undo. Already run successfully.
 
 ## Support Tickets
 - `tickets` table: submitter_id, community_id (nullable), category (text), subject, status (open/in_progress/resolved/closed)
