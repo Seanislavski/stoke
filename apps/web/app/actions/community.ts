@@ -20,6 +20,17 @@ async function isPlatformProtected(userId: string): Promise<boolean> {
   return !!data
 }
 
+async function isTargetOrganizer(communityId: string, userId: string): Promise<boolean> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('community_members')
+    .select('role')
+    .eq('community_id', communityId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data?.role === 'organizer'
+}
+
 async function getCallerRole(communityId: string): Promise<{ userId: string; role: CallerRole } | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -105,6 +116,9 @@ export async function removeMember(communityId: string, slug: string, userId: st
   if (!caller) return { error: 'Not authorized' }
   if (caller.userId === userId) return { error: 'Cannot remove yourself' }
   if (await isPlatformProtected(userId)) return { error: 'Cannot remove platform staff' }
+  if (caller.role !== 'owner' && await isTargetOrganizer(communityId, userId)) {
+    return { error: 'Only the community owner can remove an organizer.' }
+  }
 
   const admin = createAdminClient()
   const { error } = await admin
@@ -124,6 +138,9 @@ export async function banMember(communityId: string, slug: string, userId: strin
   if (!caller) return { error: 'Not authorized' }
   if (caller.userId === userId) return { error: 'Cannot ban yourself' }
   if (await isPlatformProtected(userId)) return { error: 'Cannot ban platform staff' }
+  if (caller.role !== 'owner' && await isTargetOrganizer(communityId, userId)) {
+    return { error: 'Only the community owner can ban an organizer.' }
+  }
 
   const admin = createAdminClient()
   const { error } = await admin

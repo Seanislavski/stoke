@@ -131,9 +131,11 @@ export default function MembersManager({
             if (!profile) return null
             const isSelf = m.user_id === callerId
             const isProtected = staffSet.has(m.user_id)
-            // Only the community owner can grant or change the Organizer role.
+            // Only the community owner can grant/change the Organizer role or ban/remove an organizer.
             const isOrganizerMember = m.role === 'organizer'
-            const canEditRole = canChangeRoles && !isSelf && !isProtected && (callerRole === 'owner' || !isOrganizerMember)
+            const ownerOnlyTarget = isOrganizerMember && callerRole !== 'owner'
+            const canEditRole = canChangeRoles && !isSelf && !isProtected && !ownerOnlyTarget
+            const canRemoveMember = !isSelf && !isProtected && !ownerOnlyTarget
             return (
               <div key={m.user_id} className="flex items-center justify-between px-4 py-3 gap-4">
                 <div className="flex items-center gap-2 min-w-0">
@@ -167,7 +169,7 @@ export default function MembersManager({
                     <span className="text-xs text-stone-400 capitalize">{isProtected && m.role === 'member' ? 'Platform Staff' : m.role}</span>
                   )}
 
-                  {!isSelf && !isProtected && (
+                  {canRemoveMember && (
                     <>
                       <button
                         disabled={!!busy}
