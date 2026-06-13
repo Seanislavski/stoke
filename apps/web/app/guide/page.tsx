@@ -313,7 +313,7 @@ export default async function GuidePage() {
                   </thead>
                   <tbody className="divide-y divide-stone-100 bg-white text-stone-600">
                     <tr><td className="px-4 py-3 font-semibold text-stone-800">Free</td><td className="px-4 py-3">$0</td><td className="px-4 py-3">1</td><td className="px-4 py-3">up to 50</td><td className="px-4 py-3">up to 3</td></tr>
-                    <tr><td className="px-4 py-3 font-semibold text-stone-800">Starter</td><td className="px-4 py-3">$19/mo</td><td className="px-4 py-3">more</td><td className="px-4 py-3">more</td><td className="px-4 py-3">more</td></tr>
+                    <tr><td className="px-4 py-3 font-semibold text-stone-800">Starter</td><td className="px-4 py-3">$19/mo</td><td className="px-4 py-3">3</td><td className="px-4 py-3">up to 300</td><td className="px-4 py-3">up to 15</td></tr>
                     <tr><td className="px-4 py-3 font-semibold text-stone-800">Pro</td><td className="px-4 py-3">$49/mo</td><td className="px-4 py-3">unlimited</td><td className="px-4 py-3">unlimited</td><td className="px-4 py-3">unlimited</td></tr>
                   </tbody>
                 </table>

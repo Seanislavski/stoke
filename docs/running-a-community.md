@@ -190,7 +190,7 @@ Every organizer starts on the **Free** plan. You can upgrade any time in **Setti
 | Plan | Price | Communities | Members | Channels |
 |---|---|---|---|---|
 | **Free** | $0 | 1 | up to 50 | up to 3 |
-| **Starter** | $19/mo | more | more | more |
+| **Starter** | $19/mo | 3 | up to 300 | up to 15 |
 | **Pro** | $49/mo | unlimited | unlimited | unlimited |
 
 When you hit a limit (e.g. inviting your 51st member on Free), Stoke shows an **Upgrade** prompt that links straight to billing. Nothing breaks — you're just asked to upgrade to grow further.
