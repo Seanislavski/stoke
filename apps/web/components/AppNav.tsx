@@ -110,6 +110,13 @@ export default function AppNav({
                   My communities
                 </Link>
                 <Link
+                  href="/guide"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                >
+                  Organizer guide
+                </Link>
+                <Link
                   href="/settings/billing"
                   onClick={() => setOpen(false)}
                   className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"

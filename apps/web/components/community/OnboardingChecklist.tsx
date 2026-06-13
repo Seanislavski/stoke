@@ -74,6 +74,11 @@ export default function OnboardingChecklist({ slug, hasPost, hasChannel, hasMemb
           description="Give members something to look forward to and show up for."
         />
       </div>
+      <div className="mt-3 pt-3 border-t border-stone-100">
+        <Link href="/guide" className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline">
+          New to running a community? Read the organizer guide →
+        </Link>
+      </div>
     </div>
   )
 }
