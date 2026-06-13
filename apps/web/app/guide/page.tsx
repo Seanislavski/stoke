@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
@@ -86,6 +88,21 @@ function Tip({ children }: { children: React.ReactNode }) {
 export default async function GuidePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Guide is for community staff (organizers/moderators/owners) and platform staff only
+  const admin = createAdminClient()
+  const [{ count: staffCount }, { data: platformRoleRow }] = await Promise.all([
+    admin
+      .from('community_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .in('role', ['organizer', 'moderator'])
+      .eq('status', 'active'),
+    supabase.from('platform_roles').select('role').eq('user_id', user.id).maybeSingle(),
+  ])
+  const isStaff = (staffCount ?? 0) > 0 || !!platformRoleRow
+  if (!isStaff) redirect('/home')
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">

@@ -29,10 +29,12 @@ export default function AppNav({
   profile,
   platformRole = null,
   userId,
+  isCommunityStaff = false,
 }: {
   profile: Profile | null
   platformRole?: PlatformRole
   userId: string
+  isCommunityStaff?: boolean
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -109,13 +111,15 @@ export default function AppNav({
                 >
                   My communities
                 </Link>
-                <Link
-                  href="/guide"
-                  onClick={() => setOpen(false)}
-                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                >
-                  Organizer guide
-                </Link>
+                {isCommunityStaff && (
+                  <Link
+                    href="/guide"
+                    onClick={() => setOpen(false)}
+                    className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                  >
+                    Organizer guide
+                  </Link>
+                )}
                 <Link
                   href="/settings/billing"
                   onClick={() => setOpen(false)}
