@@ -76,10 +76,18 @@ export async function updateMemberRole(communityId: string, slug: string, userId
   const caller = await getCallerRole(communityId)
   if (!caller || !['owner', 'organizer'].includes(caller.role)) return { error: 'Not authorized' }
   if (caller.userId === userId) return { error: 'Cannot change your own role' }
+  if (!['member', 'moderator', 'organizer'].includes(role)) return { error: 'Invalid role' }
   if (await isPlatformProtected(userId)) return { error: 'Cannot modify platform staff' }
 
   const admin = createAdminClient()
   const { data: prev } = await admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', userId).single()
+
+  // Only the community owner (or platform staff) may grant or change the Organizer role.
+  // Organizers can delegate moderation (assign Moderator) but cannot create or alter co-owners.
+  if (caller.role !== 'owner' && (role === 'organizer' || prev?.role === 'organizer')) {
+    return { error: 'Only the community owner can assign or change the Organizer role.' }
+  }
+
   const { error } = await admin
     .from('community_members')
     .update({ role })

@@ -114,15 +114,26 @@ export default function MembersManager({
 
       {/* Active members */}
       <section>
-        <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-1">
           Members ({active.length})
         </h3>
+        {canChangeRoles && (
+          <p className="text-sm text-stone-500 mb-3">
+            Promote a member to <span className="font-medium text-stone-700">Moderator</span> so they can review posts, approve join requests, and moderate content — their powers apply only within this community.
+            {callerRole === 'owner'
+              ? ' Only you, the owner, can appoint Organizers.'
+              : ' Only the community owner can appoint Organizers.'}
+          </p>
+        )}
         <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
           {active.map(m => {
             const profile = m.profiles
             if (!profile) return null
             const isSelf = m.user_id === callerId
             const isProtected = staffSet.has(m.user_id)
+            // Only the community owner can grant or change the Organizer role.
+            const isOrganizerMember = m.role === 'organizer'
+            const canEditRole = canChangeRoles && !isSelf && !isProtected && (callerRole === 'owner' || !isOrganizerMember)
             return (
               <div key={m.user_id} className="flex items-center justify-between px-4 py-3 gap-4">
                 <div className="flex items-center gap-2 min-w-0">
@@ -134,7 +145,7 @@ export default function MembersManager({
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {canChangeRoles && !isSelf && !isProtected ? (
+                  {canEditRole ? (
                     <select
                       value={m.role}
                       disabled={!!busy}
@@ -150,7 +161,7 @@ export default function MembersManager({
                     >
                       <option value="member">Member</option>
                       <option value="moderator">Moderator</option>
-                      <option value="organizer">Organizer</option>
+                      {callerRole === 'owner' && <option value="organizer">Organizer</option>}
                     </select>
                   ) : (
                     <span className="text-xs text-stone-400 capitalize">{isProtected && m.role === 'member' ? 'Platform Staff' : m.role}</span>
