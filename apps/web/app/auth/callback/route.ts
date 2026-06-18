@@ -6,6 +6,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
 
+  // Where to send the user after confirming. Only allow relative paths to
+  // avoid open-redirect; default to /home.
+  const nextParam = searchParams.get('next')
+  const next = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+    ? nextParam
+    : '/home'
+
   const forwardedHost = request.headers.get('x-forwarded-host')
   const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https'
   const base = forwardedHost
@@ -31,5 +38,5 @@ export async function GET(request: NextRequest) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(`${base}/home`)
+  return NextResponse.redirect(`${base}${next}`)
 }
