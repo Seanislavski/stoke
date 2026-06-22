@@ -107,6 +107,9 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                     {entry.action === 'member.role_changed' && meta && (
                       <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
                     )}
+                    {entry.action === 'community.ownership_transferred' && typeof meta?.from_owner_name === 'string' && (
+                      <span className="text-stone-400"> · from {meta.from_owner_name}</span>
+                    )}
                     {(entry.action === 'platform.role.assigned' || entry.action === 'platform.role.removed') && typeof meta?.role === 'string' && (
                       <span className="text-stone-400"> · {meta.role}</span>
                     )}

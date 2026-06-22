@@ -225,23 +225,35 @@ export async function transferOwnership(communityId: string, slug: string, newOw
     .eq('community_id', communityId)
     .eq('user_id', prevOwnerId)
 
+  // Resolve names once for the audit metadata + the notification email.
+  const { data: nameRows } = await admin
+    .from('profiles')
+    .select('id, username, display_name')
+    .in('id', [prevOwnerId, newOwnerId])
+  const nameOf = (id: string) => {
+    const p = nameRows?.find(r => r.id === id)
+    return p?.display_name ?? p?.username ?? null
+  }
+  const prevName = nameOf(prevOwnerId)
+
   logAction({
     actorId: user.id,
     communityId,
     action: 'community.ownership_transferred',
     targetUserId: newOwnerId,
-    metadata: { from_owner: prevOwnerId, to_owner: newOwnerId },
+    metadata: {
+      from_owner: prevOwnerId,
+      to_owner: newOwnerId,
+      from_owner_name: prevName,
+      to_owner_name: nameOf(newOwnerId),
+    },
   })
 
   // Notify the new owner (fire-and-forget).
   void (async () => {
-    const [{ data: newUser }, { data: prevProfile }] = await Promise.all([
-      admin.auth.admin.getUserById(newOwnerId),
-      admin.from('profiles').select('username, display_name').eq('id', prevOwnerId).single(),
-    ])
+    const { data: newUser } = await admin.auth.admin.getUserById(newOwnerId)
     const email = newUser.user?.email
-    const prevName = prevProfile?.display_name ?? prevProfile?.username ?? 'The previous owner'
-    if (email) await sendEmail(email, `You're now the owner of ${community.name}`, ownershipTransferredHtml(community.name, slug, prevName))
+    if (email) await sendEmail(email, `You're now the owner of ${community.name}`, ownershipTransferredHtml(community.name, slug, prevName ?? 'The previous owner'))
   })()
 
   revalidatePath(`/communities/${slug}`)

@@ -261,6 +261,9 @@ export default async function CommunitySettingsPage({
                     {entry.action === 'member.role_changed' && meta && (
                       <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
                     )}
+                    {entry.action === 'community.ownership_transferred' && typeof meta?.from_owner_name === 'string' && (
+                      <span className="text-stone-400"> · from {meta.from_owner_name}</span>
+                    )}
                     {entry.action === 'email.blast' && meta && (
                       <span className="text-stone-400"> · "{String(meta.subject)}" · {String(meta.recipient_count)} recipients</span>
                     )}
