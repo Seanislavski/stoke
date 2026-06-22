@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
-import { sendEmail, joinApprovedHtml, joinRejectedHtml } from '@/lib/email'
-import { checkMemberLimit } from '@/lib/billing'
+import { sendEmail, joinApprovedHtml, joinRejectedHtml, ownershipTransferredHtml } from '@/lib/email'
+import { checkMemberLimit, checkCommunityLimit } from '@/lib/billing'
 
 type CallerRole = 'owner' | 'organizer' | 'moderator'
 
@@ -168,6 +168,83 @@ export async function unbanMember(communityId: string, slug: string, userId: str
 
   if (error) return { error: error.message }
   logAction({ actorId: caller.userId, communityId, action: 'member.unbanned', targetUserId: userId })
+  revalidatePath(`/communities/${slug}/settings`)
+  return { success: true }
+}
+
+export async function transferOwnership(communityId: string, slug: string, newOwnerId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const { data: community } = await admin
+    .from('communities')
+    .select('owner_id, name')
+    .eq('id', communityId)
+    .single()
+  if (!community) return { error: 'Community not found' }
+
+  // Only the actual community owner (or platform staff) may transfer ownership.
+  const isOwner = community.owner_id === user.id
+  const platformStaff = await isPlatformProtected(user.id)
+  if (!isOwner && !platformStaff) return { error: 'Only the community owner can transfer ownership.' }
+
+  if (newOwnerId === community.owner_id) return { error: 'That person is already the owner.' }
+
+  // The recipient must be an active organizer — a deliberately pre-vetted co-owner.
+  const { data: target } = await admin
+    .from('community_members')
+    .select('role, status')
+    .eq('community_id', communityId)
+    .eq('user_id', newOwnerId)
+    .maybeSingle()
+  if (!target || target.status !== 'active' || target.role !== 'organizer') {
+    return { error: 'You can only transfer ownership to an active organizer. Promote them to Organizer first.' }
+  }
+
+  // Billing guardrail: the new owner must have room under their plan's community cap.
+  try {
+    await checkCommunityLimit(newOwnerId)
+  } catch (e) {
+    return { error: `Can't transfer — the new owner is at their plan limit. ${(e as Error).message}` }
+  }
+
+  const prevOwnerId = community.owner_id
+
+  const { error } = await admin
+    .from('communities')
+    .update({ owner_id: newOwnerId })
+    .eq('id', communityId)
+  if (error) return { error: error.message }
+
+  // Keep the previous owner as an active organizer — they retain access, lose owner-only powers.
+  await admin
+    .from('community_members')
+    .update({ role: 'organizer', status: 'active' })
+    .eq('community_id', communityId)
+    .eq('user_id', prevOwnerId)
+
+  logAction({
+    actorId: user.id,
+    communityId,
+    action: 'community.ownership_transferred',
+    targetUserId: newOwnerId,
+    metadata: { from_owner: prevOwnerId, to_owner: newOwnerId },
+  })
+
+  // Notify the new owner (fire-and-forget).
+  void (async () => {
+    const [{ data: newUser }, { data: prevProfile }] = await Promise.all([
+      admin.auth.admin.getUserById(newOwnerId),
+      admin.from('profiles').select('username, display_name').eq('id', prevOwnerId).single(),
+    ])
+    const email = newUser.user?.email
+    const prevName = prevProfile?.display_name ?? prevProfile?.username ?? 'The previous owner'
+    if (email) await sendEmail(email, `You're now the owner of ${community.name}`, ownershipTransferredHtml(community.name, slug, prevName))
+  })()
+
+  revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }

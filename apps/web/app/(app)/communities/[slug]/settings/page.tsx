@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import Link from 'next/link'
 import CommunityInfoForm from '@/components/community/settings/CommunityInfoForm'
 import MembersManager from '@/components/community/settings/MembersManager'
+import TransferOwnershipSection from '@/components/community/settings/TransferOwnershipSection'
 import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
 import CategoryManager from '@/components/knowledge/CategoryManager'
@@ -105,6 +106,11 @@ export default async function CommunitySettingsPage({
     : { data: [] }
   const platformStaffIds = new Set((platformRoleRows ?? []).map(r => r.user_id))
 
+  // Eligible transfer recipients: active organizers other than the current owner.
+  const eligibleOrganizers = normalizedMembers
+    .filter(m => m.status === 'active' && m.role === 'organizer' && m.user_id !== community.owner_id && m.profiles)
+    .map(m => ({ user_id: m.user_id, username: m.profiles!.username, display_name: m.profiles!.display_name }))
+
   return (
     <div className="max-w-2xl mx-auto py-8 space-y-10">
       <div className="flex items-center gap-3">
@@ -193,6 +199,22 @@ export default async function CommunitySettingsPage({
             lastBlastAt={lastBlast?.created_at ?? null}
           />
         </section>
+      )}
+
+      {/* Transfer ownership — real community owner only */}
+      {isOwner && (
+        <>
+          <hr className="border-stone-200" />
+          <section>
+            <h2 className="text-base font-semibold text-stone-800 mb-4">Danger zone</h2>
+            <TransferOwnershipSection
+              communityId={community.id}
+              slug={slug}
+              communityName={community.name}
+              organizers={eligibleOrganizers}
+            />
+          </section>
+        </>
       )}
 
       <hr className="border-stone-200" />

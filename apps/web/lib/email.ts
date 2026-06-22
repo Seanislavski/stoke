@@ -61,6 +61,15 @@ export function joinRejectedHtml(communityName: string) {
   `)
 }
 
+export function ownershipTransferredHtml(communityName: string, communitySlug: string, previousOwnerName: string) {
+  return wrap(`
+    <p style="margin:0 0 12px;">You're now the owner of <strong>${communityName}</strong>.</p>
+    <p style="margin:0 0 8px;color:#57534e;"><strong>${previousOwnerName}</strong> has transferred ownership of the community to you.</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">As the owner you can now appoint and manage organizers, transfer ownership, and your plan now governs this community's limits.</p>
+    ${btn('Go to community', `${BASE_URL}/communities/${communitySlug}`)}
+  `)
+}
+
 export function ticketReplyHtml(ticketId: string, ticketTitle: string, replierName: string) {
   return wrap(`
     <p style="margin:0 0 8px;"><strong>${replierName}</strong> replied to a support ticket:</p>

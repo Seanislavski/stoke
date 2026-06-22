@@ -73,6 +73,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'community.created': 'Created community',
   'community.settings_updated': 'Updated community settings',
   'community.listing_changed': 'Changed community listing status',
+  'community.ownership_transferred': 'Transferred community ownership',
   'channel.created': 'Created channel',
   'channel.deleted': 'Deleted channel',
   'ticket.status_changed': 'Changed ticket status',
