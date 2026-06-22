@@ -98,11 +98,40 @@ export default async function LandingPage() {
             Start a community
           </Link>
           <Link
-            href="/login"
+            href="/signup"
             className="w-full sm:w-auto bg-white border border-stone-300 text-stone-700 px-6 py-3 rounded-xl font-semibold text-base hover:bg-stone-50 transition-colors"
           >
-            Sign in
+            Join a community
           </Link>
+        </div>
+        <p className="mt-4 text-sm text-stone-500">
+          Have an invite link? Just open it — we&apos;ll walk you through joining.
+        </p>
+      </section>
+
+      {/* Two ways in */}
+      <section className="max-w-5xl mx-auto px-4 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="bg-white rounded-2xl border border-stone-200 p-6">
+            <div className="text-2xl mb-3">🧭</div>
+            <h3 className="font-semibold text-stone-900 text-base mb-1">Organizing a community?</h3>
+            <p className="text-stone-500 text-sm leading-relaxed mb-4">
+              Set up a real home for your people in minutes — bulletin board, events, channels, and more. Start free, no credit card.
+            </p>
+            <Link href="/signup" className="text-sm font-semibold text-orange-600 hover:underline">
+              Start a community →
+            </Link>
+          </div>
+          <div className="bg-white rounded-2xl border border-stone-200 p-6">
+            <div className="text-2xl mb-3">🤝</div>
+            <h3 className="font-semibold text-stone-900 text-base mb-1">Here to join one?</h3>
+            <p className="text-stone-500 text-sm leading-relaxed mb-4">
+              One free account works everywhere on Stoke. Got an invite link? Open it and you&apos;re in. Otherwise, sign up and browse the communities that fit you.
+            </p>
+            <Link href="/signup" className="text-sm font-semibold text-orange-600 hover:underline">
+              Create your free account →
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -178,6 +207,12 @@ export default async function LandingPage() {
           >
             Start a community — it&apos;s free
           </Link>
+          <p className="mt-4 text-sm text-orange-100">
+            Just here to join a community?{' '}
+            <Link href="/signup" className="text-white font-semibold underline hover:text-orange-50">
+              Create a free account
+            </Link>
+          </p>
         </div>
       </section>
 
