@@ -35,8 +35,27 @@ export async function middleware(request: NextRequest) {
   const isPricingPage = pathname === '/pricing'
   const isLegalPage = pathname === '/privacy' || pathname === '/terms' || pathname === '/about'
   const isOgImage = pathname.endsWith('/opengraph-image') || pathname === '/opengraph-image'
+  const isPreviewPage = pathname.startsWith('/preview/')
 
-  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe && !isLegalPage && !isOgImage) {
+  // A bare /communities/{slug} (not the directory, /new, /mine, or any subpath)
+  const communitySlugMatch = pathname.match(/^\/communities\/([^/]+)\/?$/)
+  const previewSlug =
+    communitySlugMatch && !['new', 'mine'].includes(communitySlugMatch[1])
+      ? communitySlugMatch[1]
+      : null
+
+  // Logged-out visitors get a public read-only preview at the canonical community URL
+  if (!user && previewSlug) {
+    return NextResponse.rewrite(new URL(`/preview/${previewSlug}`, request.url))
+  }
+
+  // Logged-in users shouldn't see the public preview — send them to the full page
+  if (user && isPreviewPage) {
+    const target = pathname.replace(/^\/preview\//, '/communities/').replace(/\/$/, '')
+    return NextResponse.redirect(new URL(target, request.url))
+  }
+
+  if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe && !isLegalPage && !isOgImage && !isPreviewPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
