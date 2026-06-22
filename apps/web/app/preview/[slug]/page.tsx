@@ -29,9 +29,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const community = await getCommunity(slug)
-  if (!community) return { title: 'Community not found — Stoke' }
+  if (!community) return { title: 'Community not found' }
   return {
-    title: `${community.name} — Stoke Community`,
+    title: community.name,
     description: community.description ?? `Join ${community.name} on Stoke.`,
     openGraph: {
       title: `${community.name} on Stoke`,
