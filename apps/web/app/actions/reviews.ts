@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { sendEmail, reviewSubmittedHtml, reviewFeaturedHtml } from '@/lib/email'
 
+// How many featured reviews show publicly per scope.
+const MAX_FEATURED = 6
+
 // ─── helpers ───────────────────────────────────────────────────────────────────
 // A review's scope is its community_id: non-null = a community review, null = a
 // platform-level review of Stoke. "Mod" authority differs by scope.
@@ -230,7 +233,19 @@ export async function toggleFeatureReview(reviewId: string, communityId: string 
   if (r.status !== 'published') return { error: 'Approve the review before featuring it' }
 
   const next = !r.is_featured
-  await admin.from('reviews').update({ is_featured: next }).eq('id', reviewId)
+
+  if (next) {
+    // Enforce the public cap and append this review to the end of the featured order.
+    const base = admin.from('reviews').select('featured_position', { count: 'exact' }).eq('is_featured', true)
+    const { data: featured, count } = await (communityId ? base.eq('community_id', communityId) : base.is('community_id', null))
+      .order('featured_position', { ascending: false })
+    if ((count ?? 0) >= MAX_FEATURED) return { error: `You can feature up to ${MAX_FEATURED} reviews — unfeature one first.` }
+    const maxPos = featured?.[0]?.featured_position ?? 0
+    await admin.from('reviews').update({ is_featured: true, featured_position: maxPos + 1 }).eq('id', reviewId)
+  } else {
+    await admin.from('reviews').update({ is_featured: false, featured_position: 0 }).eq('id', reviewId)
+  }
+
   logAction({ actorId: user.id, communityId, action: next ? 'review.featured' : 'review.unfeatured', targetId: reviewId, targetType: 'review' })
 
   if (next) {
@@ -239,6 +254,48 @@ export async function toggleFeatureReview(reviewId: string, communityId: string 
       const to = await emailFor(r.author_id)
       if (to) await sendEmail(to, 'Your review is now featured', reviewFeaturedHtml(s.name, s.viewPath))
     })()
+  }
+
+  revalidateFor(communityId, slug)
+  return {}
+}
+
+export async function reorderFeatured(communityId: string | null, slug: string | null, orderedIds: string[]) {
+  const user = await getUser()
+  if (!user) return { error: 'Not logged in' }
+  if (!(await requireMod(communityId, user.id))) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  await Promise.all(orderedIds.map((id, i) =>
+    admin.from('reviews').update({ featured_position: i + 1 }).eq('id', id)
+  ))
+  logAction({ actorId: user.id, communityId, action: 'review.reordered', targetId: null, targetType: 'review' })
+  revalidateFor(communityId, slug)
+  return {}
+}
+
+// Organizer response to a review. Empty body removes the reply. Public replies show
+// wherever the review shows; private replies are visible only to the author + staff.
+export async function setReviewReply(reviewId: string, communityId: string | null, slug: string | null, formData: FormData) {
+  const user = await getUser()
+  if (!user) return { error: 'Not logged in' }
+  if (!(await requireMod(communityId, user.id))) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const body = (formData.get('reply_body') as string)?.trim()
+  const isPublic = (formData.get('reply_visibility') as string) === 'public'
+
+  if (!body) {
+    await admin.from('reviews').update({ reply_body: null, reply_is_public: false, reply_by: null, reply_at: null }).eq('id', reviewId)
+    logAction({ actorId: user.id, communityId, action: 'review.reply_removed', targetId: reviewId, targetType: 'review' })
+  } else {
+    await admin.from('reviews').update({
+      reply_body: body,
+      reply_is_public: isPublic,
+      reply_by: user.id,
+      reply_at: new Date().toISOString(),
+    }).eq('id', reviewId)
+    logAction({ actorId: user.id, communityId, action: 'review.replied', targetId: reviewId, targetType: 'review' })
   }
 
   revalidateFor(communityId, slug)

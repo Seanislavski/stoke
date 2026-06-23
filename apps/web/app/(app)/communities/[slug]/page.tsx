@@ -18,7 +18,8 @@ import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
 import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import ReviewForm from '@/components/reviews/ReviewForm'
-import ReviewList, { type ReviewItem } from '@/components/reviews/ReviewList'
+import ReviewList from '@/components/reviews/ReviewList'
+import { REVIEW_COLS, mapReview, type RawReview } from '@/lib/reviews'
 import OnboardingChecklist from '@/components/community/OnboardingChecklist'
 
 export default async function CommunityPage({
@@ -70,6 +71,7 @@ export default async function CommunityPage({
     { data: members },
     { count: pendingCount },
     { count: bannedCount },
+    { count: pendingReviewsCount },
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
@@ -89,6 +91,12 @@ export default async function CommunityPage({
           .select('*', { count: 'exact', head: true })
           .eq('community_id', community.id)
           .eq('status', 'banned')
+      : Promise.resolve({ count: 0 }),
+    isMod
+      ? admin.from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('status', 'pending')
       : Promise.resolve({ count: 0 }),
   ])
 
@@ -190,24 +198,14 @@ export default async function CommunityPage({
     }
   })
 
-  // Reviews tab data
-  type RawReview = {
-    id: string; body: string; rating: number | null; status: 'pending' | 'published' | 'rejected'; is_featured: boolean; created_at: string
-    profiles: { username: string; display_name: string | null; avatar_url: string | null } | { username: string; display_name: string | null; avatar_url: string | null }[] | null
-  }
-  const reviewCols = 'id, body, rating, status, is_featured, created_at, profiles!author_id(username, display_name, avatar_url)'
-  const [reviewsPublishedRaw, reviewsPendingRaw, myReviewRaw] = await Promise.all([
+  // Reviews tab data — members see published reviews here; mods curate in settings.
+  const [reviewsPublishedRaw, myReviewRaw] = await Promise.all([
     (tab === 'reviews' && canSee)
-      ? admin.from('reviews').select(reviewCols)
+      ? admin.from('reviews').select(REVIEW_COLS)
           .eq('community_id', community.id).eq('status', 'published')
           .order('is_featured', { ascending: false })
+          .order('featured_position', { ascending: true })
           .order('published_at', { ascending: false })
-          .then(r => r.data ?? [])
-      : Promise.resolve([]),
-    (tab === 'reviews' && isMod)
-      ? admin.from('reviews').select(reviewCols)
-          .eq('community_id', community.id).eq('status', 'pending')
-          .order('created_at', { ascending: false })
           .then(r => r.data ?? [])
       : Promise.resolve([]),
     (tab === 'reviews' && canSee)
@@ -218,16 +216,11 @@ export default async function CommunityPage({
       : Promise.resolve(null),
   ])
 
-  const toReviewItem = (r: RawReview): ReviewItem => {
-    const a = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
-    return {
-      id: r.id, body: r.body, rating: r.rating, status: r.status, is_featured: r.is_featured, created_at: r.created_at,
-      author_username: a?.username ?? null, author_name: a?.display_name ?? null, author_avatar: a?.avatar_url ?? null,
-    }
-  }
-  const publishedReviews = (reviewsPublishedRaw as RawReview[]).map(toReviewItem)
-  const pendingReviews = (reviewsPendingRaw as RawReview[]).map(toReviewItem)
+  const publishedReviews = ((reviewsPublishedRaw ?? []) as RawReview[]).map(mapReview)
   const myReview = myReviewRaw as { id: string; body: string; rating: number | null; status: 'pending' | 'published' | 'rejected' } | null
+  const myMember = members?.find(m => m.user_id === user!.id)
+  const myProfile = myMember ? (Array.isArray(myMember.profiles) ? myMember.profiles[0] : myMember.profiles) : null
+  const myUsername = (myProfile as { username?: string } | null)?.username ?? null
 
   // Events tab data
   let events: Event[] | null = null
@@ -317,7 +310,7 @@ export default async function CommunityPage({
             {isMod && (
               <CommunityGear
                 slug={slug}
-                pendingCount={pendingCount ?? 0}
+                pendingCount={(pendingCount ?? 0) + (pendingReviewsCount ?? 0)}
               />
             )}
           </div>
@@ -559,17 +552,15 @@ export default async function CommunityPage({
           {/* Reviews tab */}
           {tab === 'reviews' && (
             <div className="space-y-5">
-              {isMod && pendingReviews.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
-                    Reviews awaiting approval ({pendingReviews.length})
-                  </p>
-                  <ReviewList reviews={pendingReviews} communityId={community.id} slug={slug} isMod={isMod} />
-                </div>
+              {isMod && (
+                <p className="text-xs text-stone-400">
+                  Approve, reply to, and feature reviews from{' '}
+                  <Link href={`/communities/${slug}/settings`} className="text-orange-600 hover:underline">community settings</Link>.
+                </p>
               )}
 
               {publishedReviews.length > 0 ? (
-                <ReviewList reviews={publishedReviews} communityId={community.id} slug={slug} isMod={isMod} />
+                <ReviewList reviews={publishedReviews} viewerIsStaff={isMod} viewerUsername={myUsername} />
               ) : (
                 <p className="text-sm text-stone-400">No reviews yet. Be the first to share your experience.</p>
               )}

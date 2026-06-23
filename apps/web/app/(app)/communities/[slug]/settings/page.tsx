@@ -9,6 +9,8 @@ import TransferOwnershipSection from '@/components/community/settings/TransferOw
 import ChannelManager from '@/components/community/settings/ChannelManager'
 import InviteManager from '@/components/community/settings/InviteManager'
 import CategoryManager from '@/components/knowledge/CategoryManager'
+import ReviewsManager from '@/components/reviews/ReviewsManager'
+import { REVIEW_COLS, mapReview, type RawReview } from '@/lib/reviews'
 import { ACTION_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
 import EmailBlastForm from '@/components/community/settings/EmailBlastForm'
@@ -95,6 +97,13 @@ export default async function CommunitySettingsPage({
       .order('position'),
   ])
 
+  const { data: reviewsRaw } = await admin
+    .from('reviews')
+    .select(REVIEW_COLS)
+    .eq('community_id', community.id)
+    .order('created_at', { ascending: false })
+  const reviewItems = ((reviewsRaw ?? []) as RawReview[]).map(mapReview)
+
   const normalizedMembers = (members ?? []).map(m => ({
     ...m,
     profiles: Array.isArray(m.profiles) ? m.profiles[0] ?? null : m.profiles,
@@ -155,6 +164,19 @@ export default async function CommunitySettingsPage({
           communityId={community.id}
           slug={slug}
           initialCategories={kbCategories ?? []}
+        />
+      </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Reviews */}
+      <section>
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Reviews</h2>
+        <p className="text-sm text-stone-500 mb-4">Approve member reviews, reply to them, and feature up to 6 as public testimonials on your community&apos;s preview page.</p>
+        <ReviewsManager
+          communityId={community.id}
+          slug={slug}
+          initialReviews={reviewItems}
         />
       </section>
 

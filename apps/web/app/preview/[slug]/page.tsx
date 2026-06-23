@@ -63,20 +63,25 @@ export default async function CommunityPreviewPage({
   // show regardless of listing status (the organizer chose to feature each one).
   const { data: featuredReviewsRaw } = await admin
     .from('reviews')
-    .select('id, body, rating, profiles!author_id(username, display_name, avatar_url)')
+    .select('id, body, rating, reply_body, reply_is_public, profiles!author_id(username, display_name, avatar_url)')
     .eq('community_id', community.id)
     .eq('status', 'published')
     .eq('is_featured', true)
+    .order('featured_position', { ascending: true })
     .order('published_at', { ascending: false })
     .limit(6)
 
   type RawReview = {
-    id: string; body: string; rating: number | null
+    id: string; body: string; rating: number | null; reply_body: string | null; reply_is_public: boolean
     profiles: { username: string; display_name: string | null; avatar_url: string | null } | { username: string; display_name: string | null; avatar_url: string | null }[] | null
   }
   const featuredReviews = ((featuredReviewsRaw ?? []) as RawReview[]).map(r => {
     const a = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
-    return { id: r.id, body: r.body, rating: r.rating, name: a?.display_name ?? a?.username ?? 'Member', avatar: a?.avatar_url ?? null }
+    return {
+      id: r.id, body: r.body, rating: r.rating,
+      name: a?.display_name ?? a?.username ?? 'Member', avatar: a?.avatar_url ?? null,
+      reply: r.reply_is_public ? r.reply_body : null,
+    }
   })
 
   // Only listed communities expose a content teaser — unlisted ones stay private.
@@ -215,6 +220,12 @@ export default async function CommunityPreviewPage({
                     </div>
                     <span className="text-sm font-medium text-stone-600">{r.name}</span>
                   </div>
+                  {r.reply && (
+                    <div className="mt-3 border-l-2 border-orange-200 pl-3">
+                      <p className="text-xs font-semibold text-orange-600">Response from the organizers</p>
+                      <p className="mt-1 text-sm text-stone-600 leading-relaxed">{r.reply}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
