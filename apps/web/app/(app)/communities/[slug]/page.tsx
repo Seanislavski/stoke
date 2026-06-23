@@ -17,6 +17,8 @@ import { deleteEvent } from '@/app/actions/events'
 import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
 import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
+import ReviewForm from '@/components/reviews/ReviewForm'
+import ReviewList, { type ReviewItem } from '@/components/reviews/ReviewList'
 import OnboardingChecklist from '@/components/community/OnboardingChecklist'
 
 export default async function CommunityPage({
@@ -188,6 +190,45 @@ export default async function CommunityPage({
     }
   })
 
+  // Reviews tab data
+  type RawReview = {
+    id: string; body: string; rating: number | null; status: 'pending' | 'published' | 'rejected'; is_featured: boolean; created_at: string
+    profiles: { username: string; display_name: string | null; avatar_url: string | null } | { username: string; display_name: string | null; avatar_url: string | null }[] | null
+  }
+  const reviewCols = 'id, body, rating, status, is_featured, created_at, profiles!author_id(username, display_name, avatar_url)'
+  const [reviewsPublishedRaw, reviewsPendingRaw, myReviewRaw] = await Promise.all([
+    (tab === 'reviews' && canSee)
+      ? admin.from('reviews').select(reviewCols)
+          .eq('community_id', community.id).eq('status', 'published')
+          .order('is_featured', { ascending: false })
+          .order('published_at', { ascending: false })
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
+    (tab === 'reviews' && isMod)
+      ? admin.from('reviews').select(reviewCols)
+          .eq('community_id', community.id).eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
+    (tab === 'reviews' && canSee)
+      ? admin.from('reviews').select('id, body, rating, status')
+          .eq('community_id', community.id).eq('author_id', user!.id)
+          .maybeSingle()
+          .then(r => r.data)
+      : Promise.resolve(null),
+  ])
+
+  const toReviewItem = (r: RawReview): ReviewItem => {
+    const a = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+    return {
+      id: r.id, body: r.body, rating: r.rating, status: r.status, is_featured: r.is_featured, created_at: r.created_at,
+      author_username: a?.username ?? null, author_name: a?.display_name ?? null, author_avatar: a?.avatar_url ?? null,
+    }
+  }
+  const publishedReviews = (reviewsPublishedRaw as RawReview[]).map(toReviewItem)
+  const pendingReviews = (reviewsPendingRaw as RawReview[]).map(toReviewItem)
+  const myReview = myReviewRaw as { id: string; body: string; rating: number | null; status: 'pending' | 'published' | 'rejected' } | null
+
   // Events tab data
   let events: Event[] | null = null
   let rsvpCountMap: Record<string, { yes: number; maybe: number; no: number }> = {}
@@ -230,6 +271,7 @@ export default async function CommunityPage({
     { key: 'events', label: 'Events' },
     { key: 'qa', label: 'Q&A' },
     { key: 'channels', label: 'Channels' },
+    { key: 'reviews', label: 'Reviews' },
   ]
 
   const now = new Date()
@@ -510,6 +552,36 @@ export default async function CommunityPage({
                 <div className="bg-white rounded-xl border border-stone-200 p-6 text-center text-stone-400 text-sm">
                   No channels yet.{isMod ? ' Create one in community settings.' : ''}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Reviews tab */}
+          {tab === 'reviews' && (
+            <div className="space-y-5">
+              {isMod && pendingReviews.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
+                    Reviews awaiting approval ({pendingReviews.length})
+                  </p>
+                  <ReviewList reviews={pendingReviews} communityId={community.id} slug={slug} isMod={isMod} />
+                </div>
+              )}
+
+              {publishedReviews.length > 0 ? (
+                <ReviewList reviews={publishedReviews} communityId={community.id} slug={slug} isMod={isMod} />
+              ) : (
+                <p className="text-sm text-stone-400">No reviews yet. Be the first to share your experience.</p>
+              )}
+
+              {isMember && (
+                <ReviewForm
+                  communityId={community.id}
+                  slug={slug}
+                  isMod={isMod}
+                  scopeLabel={community.name}
+                  existing={myReview}
+                />
               )}
             </div>
           )}

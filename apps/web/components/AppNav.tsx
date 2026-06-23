@@ -134,6 +134,13 @@ export default function AppNav({
                 >
                   Support
                 </Link>
+                <Link
+                  href="/feedback"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                >
+                  Share your experience
+                </Link>
               </div>
 
               {/* Platform team items */}

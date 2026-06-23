@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
@@ -56,6 +57,27 @@ export default async function LandingPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) redirect('/home')
+
+  // Platform-level testimonials (community_id null). Section stays hidden until
+  // there are real featured reviews to show — no placeholders pre-launch.
+  const admin = createAdminClient()
+  const { data: platformReviewsRaw } = await admin
+    .from('reviews')
+    .select('id, body, rating, profiles!author_id(username, display_name, avatar_url)')
+    .is('community_id', null)
+    .eq('status', 'published')
+    .eq('is_featured', true)
+    .order('published_at', { ascending: false })
+    .limit(6)
+
+  type RawReview = {
+    id: string; body: string; rating: number | null
+    profiles: { username: string; display_name: string | null; avatar_url: string | null } | { username: string; display_name: string | null; avatar_url: string | null }[] | null
+  }
+  const platformReviews = ((platformReviewsRaw ?? []) as RawReview[]).map(r => {
+    const a = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+    return { id: r.id, body: r.body, rating: r.rating, name: a?.display_name ?? a?.username ?? 'Member', avatar: a?.avatar_url ?? null }
+  })
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -193,6 +215,32 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials — hidden until there are featured platform reviews */}
+      {platformReviews.length > 0 && (
+        <section className="max-w-5xl mx-auto px-4 py-16">
+          <h2 className="text-2xl font-bold text-stone-900 text-center mb-2">What organizers are saying</h2>
+          <p className="text-stone-500 text-center mb-10 text-base">Real communities, real people.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {platformReviews.map(r => (
+              <div key={r.id} className="bg-white rounded-2xl border border-stone-200 p-6">
+                {r.rating && (
+                  <div className="text-orange-500 text-sm mb-2 tracking-tight">
+                    {'★'.repeat(r.rating)}<span className="text-stone-300">{'★'.repeat(5 - r.rating)}</span>
+                  </div>
+                )}
+                <p className="text-stone-700 text-sm leading-relaxed">&ldquo;{r.body}&rdquo;</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-semibold text-stone-500 overflow-hidden">
+                    {r.avatar ? <img src={r.avatar} alt="" className="w-full h-full object-cover" /> : r.name[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-stone-600">{r.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Bottom CTA */}
       <section className="bg-orange-500 py-16">

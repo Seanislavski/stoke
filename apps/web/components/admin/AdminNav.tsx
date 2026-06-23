@@ -16,6 +16,7 @@ export default function AdminNav({ role }: { role: string }) {
     ...(canManageCommunities ? [{ href: '/admin/communities', label: 'Communities', exact: false }] : []),
     ...(canModerate ? [{ href: '/admin/moderation', label: 'Platform Bans', exact: false }] : []),
     ...(canSupport ? [{ href: '/admin/support', label: 'Support', exact: false }] : []),
+    ...(canModerate ? [{ href: '/admin/reviews', label: 'Reviews', exact: false }] : []),
     ...(canModerate ? [{ href: '/admin/audit-log', label: 'Audit Log', exact: false }] : []),
   ]
 

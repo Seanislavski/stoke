@@ -122,6 +122,23 @@ export function kbAnswerApprovedHtml(communityName: string, communitySlug: strin
   `)
 }
 
+export function reviewSubmittedHtml(scopeName: string, reviewPath: string, snippet: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">A new review is awaiting approval for <strong>${scopeName}</strong>:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;font-style:italic;">${snippet}</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">Approve it to show it to members, then feature it to display it publicly.</p>
+    ${btn('Review it', `${BASE_URL}${reviewPath}`)}
+  `)
+}
+
+export function reviewFeaturedHtml(scopeName: string, viewPath: string) {
+  return wrap(`
+    <p style="margin:0 0 12px;">Your review of <strong>${scopeName}</strong> is now featured!</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">It's being shown publicly as a testimonial. Thank you for sharing your experience.</p>
+    ${btn('See where it appears', `${BASE_URL}${viewPath}`)}
+  `)
+}
+
 export function eventReminderHtml(eventTitle: string, communityName: string, communitySlug: string, startsAt: string) {
   const time = new Date(startsAt).toLocaleString('en-US', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',

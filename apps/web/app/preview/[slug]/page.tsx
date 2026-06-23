@@ -59,6 +59,26 @@ export default async function CommunityPreviewPage({
     .eq('community_id', community.id)
     .eq('status', 'active')
 
+  // Featured reviews are an explicit organizer-curated public testimonial, so they
+  // show regardless of listing status (the organizer chose to feature each one).
+  const { data: featuredReviewsRaw } = await admin
+    .from('reviews')
+    .select('id, body, rating, profiles!author_id(username, display_name, avatar_url)')
+    .eq('community_id', community.id)
+    .eq('status', 'published')
+    .eq('is_featured', true)
+    .order('published_at', { ascending: false })
+    .limit(6)
+
+  type RawReview = {
+    id: string; body: string; rating: number | null
+    profiles: { username: string; display_name: string | null; avatar_url: string | null } | { username: string; display_name: string | null; avatar_url: string | null }[] | null
+  }
+  const featuredReviews = ((featuredReviewsRaw ?? []) as RawReview[]).map(r => {
+    const a = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+    return { id: r.id, body: r.body, rating: r.rating, name: a?.display_name ?? a?.username ?? 'Member', avatar: a?.avatar_url ?? null }
+  })
+
   // Only listed communities expose a content teaser — unlisted ones stay private.
   const recentPosts = community.is_listed
     ? (await admin
@@ -171,6 +191,33 @@ export default async function CommunityPreviewPage({
             <p className="text-sm text-stone-500">
               This is a private community. Sign in and join to see the bulletin board, events, Q&amp;A, and members.
             </p>
+          </div>
+        )}
+
+        {/* Featured reviews — organizer-curated testimonials */}
+        {featuredReviews.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
+              What members say
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {featuredReviews.map(r => (
+                <div key={r.id} className="bg-white rounded-2xl border border-stone-200 p-5">
+                  {r.rating && (
+                    <div className="text-orange-500 text-sm mb-2 tracking-tight">
+                      {'★'.repeat(r.rating)}<span className="text-stone-300">{'★'.repeat(5 - r.rating)}</span>
+                    </div>
+                  )}
+                  <p className="text-stone-700 text-sm leading-relaxed">&ldquo;{r.body}&rdquo;</p>
+                  <div className="mt-4 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-semibold text-stone-500 overflow-hidden">
+                      {r.avatar ? <img src={r.avatar} alt="" className="w-full h-full object-cover" /> : r.name[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-stone-600">{r.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </main>
