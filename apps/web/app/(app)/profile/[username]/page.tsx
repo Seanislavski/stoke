@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 
 export default async function ProfilePage({
   params,
@@ -56,6 +57,8 @@ export default async function ProfilePage({
 
   return (
     <div className="max-w-2xl">
+      <BackButton />
+
       {/* Header */}
       <div className="flex items-start gap-5 mb-6">
         <div className="w-20 h-20 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 photo-pop">
