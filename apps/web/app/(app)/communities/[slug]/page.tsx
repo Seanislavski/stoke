@@ -274,7 +274,7 @@ export default async function CommunityPage({
 
       {/* Header */}
       <div className="relative bg-white rounded-xl border border-stone-200 p-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
             {community.image_url && (
               <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-100 photo-pop">

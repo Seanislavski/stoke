@@ -29,7 +29,7 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
   }, [error])
 
   if (isOwner) return (
-    <span className="text-xs text-stone-400 font-medium uppercase tracking-wide">Organizer</span>
+    <span className="text-xs text-stone-400 font-medium uppercase tracking-wide whitespace-nowrap">Organizer</span>
   )
 
   if (joinMode === 'invite_only' && !localStatus) return null
