@@ -132,6 +132,23 @@ export async function approveQuestion(questionId: string, communityId: string, s
   return {}
 }
 
+export async function setQuestionCategory(questionId: string, communityId: string, slug: string, categoryId: string | null) {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  if (!user) return { error: 'Not logged in' }
+  const { allowed } = await requireModAccess(communityId, user.id, membership)
+  if (!allowed) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  await admin.from('kb_questions')
+    .update({ category_id: categoryId })
+    .eq('id', questionId)
+    .eq('community_id', communityId)
+  logAction({ actorId: user.id, communityId, action: 'question.recategorized', targetId: questionId, targetType: 'question' })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/questions/${questionId}`)
+  return {}
+}
+
 export async function rejectQuestion(questionId: string, communityId: string, slug: string) {
   const { user, membership } = await getMembershipOrThrow(communityId)
   if (!user) return { error: 'Not logged in' }

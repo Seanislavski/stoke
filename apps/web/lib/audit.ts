@@ -47,6 +47,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'question.created': 'Added a question',
   'question.submitted': 'Submitted a question for review',
   'question.approved': 'Approved a question',
+  'question.recategorized': 'Changed a question’s category',
   'question.rejected': 'Rejected a question',
   'question.deleted': 'Deleted a question',
   'answer.created': 'Added an answer',

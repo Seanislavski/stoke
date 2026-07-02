@@ -8,8 +8,10 @@ import DeleteItemButton from '@/components/DeleteItemButton'
 import AnswerForm from '@/components/knowledge/AnswerForm'
 import AnswerModActions from '@/components/knowledge/AnswerModActions'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
+import QuestionCategoryPicker from '@/components/knowledge/QuestionCategoryPicker'
 import AcceptAnswerButton from '@/components/knowledge/AcceptAnswerButton'
 import { deleteQuestion, deleteAnswer } from '@/app/actions/knowledge'
+import { getYouTubeId } from '@/lib/embeds'
 
 type Profile = { username: string; display_name: string | null }
 
@@ -130,6 +132,16 @@ export default async function QuestionPage({
         {question.status === 'pending' && isMod && (
           <QuestionModActions questionId={question.id} communityId={community.id} slug={slug} categories={categories ?? []} />
         )}
+
+        {question.status === 'published' && isMod && (
+          <QuestionCategoryPicker
+            questionId={question.id}
+            communityId={community.id}
+            slug={slug}
+            categories={categories ?? []}
+            currentCategoryId={question.category_id}
+          />
+        )}
       </div>
 
       {/* Pending answers — mods only */}
@@ -201,12 +213,21 @@ export default async function QuestionPage({
                 </div>
                 <RichContent content={a.body} className="text-stone-700 text-sm whitespace-pre-wrap" />
                 {a.url && (
-                  <>
-                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-600 hover:underline break-all mt-1 block">
-                      {a.url}
-                    </a>
-                    <LinkPreview url={a.url} />
-                  </>
+                  getYouTubeId(a.url) ? (
+                    <div className="mt-1">
+                      <LinkPreview url={a.url} />
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline mt-1 inline-block">
+                        Watch on YouTube ↗
+                      </a>
+                    </div>
+                  ) : (
+                    <>
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-600 hover:underline break-all mt-1 block">
+                        {a.url}
+                      </a>
+                      <LinkPreview url={a.url} />
+                    </>
+                  )
                 )}
               </div>
             )
