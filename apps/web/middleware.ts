@@ -59,6 +59,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/preview/${qSlug}/questions/${qId}`, request.url))
   }
 
+  // A numbered Question-of-the-Week link, e.g. /communities/{slug}/qotw/{n} — same
+  // public read-only treatment as a single question. (The bare /communities/{slug}/qotw
+  // management page has no trailing number, so it stays mod-gated below.)
+  const communityQotwMatch = pathname.match(/^\/communities\/([^/]+)\/qotw\/([^/]+)\/?$/)
+  if (!user && communityQotwMatch) {
+    const [, qSlug, qNum] = communityQotwMatch
+    return NextResponse.rewrite(new URL(`/preview/${qSlug}/qotw/${qNum}`, request.url))
+  }
+
   // Logged-in users shouldn't see the public preview — send them to the full page
   if (user && isPreviewPage) {
     const target = pathname.replace(/^\/preview\//, '/communities/').replace(/\/$/, '')

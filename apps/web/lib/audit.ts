@@ -56,6 +56,8 @@ export const ACTION_LABELS: Record<string, string> = {
   'answer.rejected': 'Rejected an answer',
   'answer.deleted': 'Deleted an answer',
   'answer.accepted': 'Marked accepted answer',
+  'qotw.published': 'Published a Question of the Week',
+  'qotw.deleted': 'Deleted a Question of the Week',
   'review.created': 'Added a review',
   'review.submitted': 'Submitted a review',
   'review.edited': 'Edited a review (re-queued for approval)',
