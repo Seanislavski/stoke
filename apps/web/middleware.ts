@@ -49,6 +49,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/preview/${previewSlug}`, request.url))
   }
 
+  // A single question URL, e.g. /communities/{slug}/questions/{id} — logged-out visitors
+  // get a public read-only view (used for shareable Question-of-the-Week links). The
+  // preview page itself enforces that only QOTW questions are actually exposed; the URL
+  // stays canonical/shareable. Logged-in users fall through to the real gated page.
+  const communityQuestionMatch = pathname.match(/^\/communities\/([^/]+)\/questions\/([^/]+)\/?$/)
+  if (!user && communityQuestionMatch) {
+    const [, qSlug, qId] = communityQuestionMatch
+    return NextResponse.rewrite(new URL(`/preview/${qSlug}/questions/${qId}`, request.url))
+  }
+
   // Logged-in users shouldn't see the public preview — send them to the full page
   if (user && isPreviewPage) {
     const target = pathname.replace(/^\/preview\//, '/communities/').replace(/\/$/, '')

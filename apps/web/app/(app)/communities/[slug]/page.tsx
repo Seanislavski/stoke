@@ -16,6 +16,7 @@ import { deletePost } from '@/app/actions/bulletin'
 import { deleteEvent } from '@/app/actions/events'
 import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
 import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
+import { findQotwCategoryId } from '@/lib/qotw'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import ReviewForm from '@/components/reviews/ReviewForm'
 import ReviewList from '@/components/reviews/ReviewList'
@@ -197,6 +198,13 @@ export default async function CommunityPage({
       has_accepted: hasAccepted[q.id] ?? false,
     }
   })
+
+  // Question of the Week: the newest published question in the QOTW category (if any).
+  // boardQuestions is already ordered published_at desc, so the first match is current.
+  const qotwCategoryId = findQotwCategoryId(kbCategories)
+  const qotwSpotlight = qotwCategoryId
+    ? boardQuestions.find(q => q.category_id === qotwCategoryId) ?? null
+    : null
 
   // Reviews tab data — members see published reviews here; mods curate in settings.
   const [reviewsPublishedRaw, myReviewRaw] = await Promise.all([
@@ -487,6 +495,20 @@ export default async function CommunityPage({
           {/* Q&A (knowledge base) tab */}
           {tab === 'qa' && (
             <div className="space-y-5">
+              {qotwSpotlight && (
+                <Link
+                  href={`/communities/${slug}/questions/${qotwSpotlight.id}`}
+                  className="block rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 hover:border-orange-300 transition-colors"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">⭐ Question of the Week</p>
+                  <h3 className="mt-1 text-lg font-semibold text-stone-900">{qotwSpotlight.title}</h3>
+                  {qotwSpotlight.body && <p className="mt-1 text-sm text-stone-600 line-clamp-2">{qotwSpotlight.body}</p>}
+                  <p className="mt-3 text-sm font-medium text-orange-600">
+                    {qotwSpotlight.answer_count} {qotwSpotlight.answer_count === 1 ? 'answer' : 'answers'} · Add yours →
+                  </p>
+                </Link>
+              )}
+
               {isMod && kbPending.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">
