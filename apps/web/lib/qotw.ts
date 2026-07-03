@@ -6,6 +6,15 @@
 
 export const QOTW_CATEGORY_NAME = 'Question of the Week'
 
+// A "preview as test" publish uses the sentinel number 0 → it renders as "QotW-t" and
+// never consumes a real number (real publishes are always max(number > 0) + 1 ≥ 1), so
+// you can preview the full flow without burning QotW-1.
+export const QOTW_TEST_NUMBER = 0
+
+export function qotwLabel(n: number): string {
+  return n === QOTW_TEST_NUMBER ? 'QotW-t' : `QotW-${n}`
+}
+
 type NamedCategory = { id: string; name: string }
 
 /** Returns the id of a community's "Question of the Week" category, or null if it has none. */

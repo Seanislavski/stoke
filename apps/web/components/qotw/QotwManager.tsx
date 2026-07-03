@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { addDraft, updateDraft, deleteItem, publishItem } from '@/app/actions/qotw'
+import { qotwLabel } from '@/lib/qotw'
 
 export type DraftItem = {
   id: string
@@ -140,6 +141,13 @@ export default function QotwManager({ communityId, slug, hasCategory, bank, publ
                           disabled={pending}
                           className="text-xs text-red-500 hover:text-red-700 px-2 py-1">Delete</button>
                         <button
+                          onClick={() => run(() => publishItem(item.id, communityId, slug, true))}
+                          disabled={pending || !hasCategory}
+                          title="Publish as a throwaway QotW-t preview — never uses a real number"
+                          className="text-xs border border-stone-300 text-stone-600 px-3 py-1.5 rounded-lg font-medium hover:bg-stone-50 disabled:opacity-50">
+                          Preview as test
+                        </button>
+                        <button
                           onClick={() => run(() => publishItem(item.id, communityId, slug))}
                           disabled={pending || !hasCategory}
                           title={!hasCategory ? 'Create the “Question of the Week” category first' : undefined}
@@ -165,7 +173,7 @@ export default function QotwManager({ communityId, slug, hasCategory, bank, publ
           <div className="space-y-2">
             {published.map(item => (
               <div key={item.id} className="bg-white border border-stone-200 rounded-xl p-4 flex items-start gap-3">
-                <span className="shrink-0 text-xs font-semibold text-orange-600 bg-orange-50 rounded px-2 py-1">QotW-{item.number}</span>
+                <span className="shrink-0 text-xs font-semibold text-orange-600 bg-orange-50 rounded px-2 py-1">{qotwLabel(item.number)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-stone-900 text-sm">{item.title}</p>
                   <div className="flex items-center gap-3 flex-wrap mt-2 text-xs">
@@ -175,7 +183,7 @@ export default function QotwManager({ communityId, slug, hasCategory, bank, publ
                       {copiedNum === item.number ? 'Copied!' : 'Copy link'}
                     </button>
                     <button
-                      onClick={() => { if (confirm(`Delete QotW-${item.number} and its answers? This can’t be undone.`)) run(() => deleteItem(item.id, communityId, slug)) }}
+                      onClick={() => { if (confirm(`Delete ${qotwLabel(item.number)} and its answers? This can’t be undone.`)) run(() => deleteItem(item.id, communityId, slug)) }}
                       disabled={pending}
                       className="ml-auto text-red-500 hover:text-red-700">Delete</button>
                   </div>

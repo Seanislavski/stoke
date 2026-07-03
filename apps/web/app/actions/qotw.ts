@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
-import { findQotwCategoryId } from '@/lib/qotw'
+import { findQotwCategoryId, QOTW_TEST_NUMBER } from '@/lib/qotw'
 
 async function requireMod(communityId: string) {
   const supabase = await createClient()
@@ -97,7 +97,7 @@ export async function deleteItem(itemId: string, communityId: string, slug: stri
  * QotW number and creates the answerable kb_question in the "Question of the Week"
  * category. Newest published QotW is what the Q&A spotlight surfaces.
  */
-export async function publishItem(itemId: string, communityId: string, slug: string) {
+export async function publishItem(itemId: string, communityId: string, slug: string, asTest = false) {
   const { user, allowed } = await requireMod(communityId)
   if (!user || !allowed) return { error: 'Not authorized' }
 
@@ -115,11 +115,20 @@ export async function publishItem(itemId: string, communityId: string, slug: str
   const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
   const authorId = community?.owner_id ?? user.id
 
-  const { data: maxRow } = await admin
-    .from('qotw_items').select('number')
-    .eq('community_id', communityId).not('number', 'is', null)
-    .order('number', { ascending: false }).limit(1).maybeSingle()
-  const nextNumber = (maxRow?.number ?? 0) + 1
+  let nextNumber: number
+  if (asTest) {
+    const { data: existingTest } = await admin.from('qotw_items')
+      .select('id').eq('community_id', communityId).eq('number', QOTW_TEST_NUMBER).maybeSingle()
+    if (existingTest) return { error: 'A test (QotW-t) already exists — delete it first.' }
+    nextNumber = QOTW_TEST_NUMBER
+  } else {
+    // Real numbers are always > 0, so the sentinel test (0) never inflates the count.
+    const { data: maxRow } = await admin
+      .from('qotw_items').select('number')
+      .eq('community_id', communityId).gt('number', 0)
+      .order('number', { ascending: false }).limit(1).maybeSingle()
+    nextNumber = (maxRow?.number ?? 0) + 1
+  }
 
   const now = new Date().toISOString()
   const { data: q, error: qErr } = await admin.from('kb_questions').insert({
