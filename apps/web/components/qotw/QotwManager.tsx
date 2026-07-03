@@ -183,7 +183,12 @@ export default function QotwManager({ communityId, slug, hasCategory, bank, publ
                       {copiedNum === item.number ? 'Copied!' : 'Copy link'}
                     </button>
                     <button
-                      onClick={() => { if (confirm(`Delete ${qotwLabel(item.number)} and its answers? This can’t be undone.`)) run(() => deleteItem(item.id, communityId, slug)) }}
+                      onClick={() => {
+                        const msg = item.number === 0
+                          ? 'Remove this QotW-t test? Your original question stays safe in the bank.'
+                          : `Delete ${qotwLabel(item.number)} and its answers? This can’t be undone.`
+                        if (confirm(msg)) run(() => deleteItem(item.id, communityId, slug))
+                      }}
                       disabled={pending}
                       className="ml-auto text-red-500 hover:text-red-700">Delete</button>
                   </div>

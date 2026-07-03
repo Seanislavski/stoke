@@ -143,10 +143,29 @@ export async function publishItem(itemId: string, communityId: string, slug: str
   }).select('id').single()
   if (qErr) return { error: qErr.message }
 
-  const { error: upErr } = await admin.from('qotw_items')
-    .update({ number: nextNumber, question_id: q.id, published_at: now })
-    .eq('id', itemId)
-  if (upErr) return { error: upErr.message }
+  if (asTest) {
+    // A test is a throwaway COPY — the original draft stays in the bank, so deleting
+    // QotW-t only removes the copy and never costs you the question.
+    const { error: insErr } = await admin.from('qotw_items').insert({
+      community_id: communityId,
+      title: item.title,
+      body: item.body,
+      number: nextNumber, // QOTW_TEST_NUMBER (0)
+      question_id: q.id,
+      created_by: user.id,
+      published_at: now,
+    })
+    if (insErr) {
+      await admin.from('kb_questions').delete().eq('id', q.id) // don't orphan the question
+      return { error: insErr.message }
+    }
+  } else {
+    // A real publish consumes the draft in place.
+    const { error: upErr } = await admin.from('qotw_items')
+      .update({ number: nextNumber, question_id: q.id, published_at: now })
+      .eq('id', itemId)
+    if (upErr) return { error: upErr.message }
+  }
 
   logAction({ actorId: user.id, communityId, action: 'qotw.published', targetId: q.id, targetType: 'qotw' })
   revalidate(slug)
