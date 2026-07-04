@@ -21,3 +21,5 @@ supabase/.temp/
 .DS_Store
 *.pem
 .vercel
+*.stackdump
+.claude/settings.local.json

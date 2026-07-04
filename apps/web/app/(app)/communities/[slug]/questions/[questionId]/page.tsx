@@ -12,6 +12,7 @@ import QuestionCategoryPicker from '@/components/knowledge/QuestionCategoryPicke
 import AcceptAnswerButton from '@/components/knowledge/AcceptAnswerButton'
 import { deleteQuestion, deleteAnswer } from '@/app/actions/knowledge'
 import { getYouTubeId } from '@/lib/embeds'
+import { qotwLabel } from '@/lib/qotw'
 
 type Profile = { username: string; display_name: string | null }
 
@@ -74,7 +75,7 @@ export default async function QuestionPage({
   // Pending/rejected questions are only visible to mods and the asker.
   if (question.status !== 'published' && !isMod && !isAsker) notFound()
 
-  const [{ data: category }, { data: answers }, { data: categories }] = await Promise.all([
+  const [{ data: category }, { data: answers }, { data: categories }, { data: qotwItem }] = await Promise.all([
     question.category_id
       ? admin.from('kb_categories').select('name').eq('id', question.category_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -88,7 +89,15 @@ export default async function QuestionPage({
     isMod
       ? admin.from('kb_categories').select('id, name').eq('community_id', community.id).order('position')
       : Promise.resolve({ data: [] }),
+    isMod
+      ? admin.from('qotw_items').select('number').eq('community_id', community.id).eq('question_id', questionId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
+
+  // A published QotW question is managed from the QotW manager — route deletion there
+  // (its number, numbered link, and answers are all cleaned up together) rather than
+  // offering the generic "delete this question" here, which used to orphan the QotW row.
+  const isQotw = isMod && qotwItem?.number != null
 
   const asker = one<Profile>(question.profiles)
   const date = new Date(question.published_at ?? question.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -112,12 +121,26 @@ export default async function QuestionPage({
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-semibold text-stone-900">{question.title}</h1>
           {isMod && (
-            <DeleteItemButton
-              action={deleteQuestion.bind(null, question.id, community.id, slug)}
-              confirm="Delete this question and its answers?"
-            />
+            isQotw ? (
+              <Link
+                href={`/communities/${slug}/qotw`}
+                className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-700 whitespace-nowrap"
+              >
+                Manage in QotW →
+              </Link>
+            ) : (
+              <DeleteItemButton
+                action={deleteQuestion.bind(null, question.id, community.id, slug)}
+                confirm="Delete this question and its answers?"
+              />
+            )
           )}
         </div>
+        {isQotw && (
+          <span className="inline-block mt-2 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
+            ⭐ {qotwLabel(qotwItem!.number)}
+          </span>
+        )}
         <div className="flex items-center gap-2 flex-wrap text-xs text-stone-400 mt-2">
           {category?.name && <span className="bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">{category.name}</span>}
           {asker?.username && (

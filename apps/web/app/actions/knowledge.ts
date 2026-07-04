@@ -169,9 +169,14 @@ export async function deleteQuestion(questionId: string, communityId: string, sl
   if (!allowed) return { error: 'Not authorized' }
 
   const admin = createAdminClient()
+  // A QotW question owns a qotw_items row (FK is ON DELETE SET NULL, so deleting the
+  // question alone would leave that row orphaned with a dead /qotw/N link). Remove it too
+  // so the two delete paths stay consistent with the QotW manager's own deleteItem.
+  await admin.from('qotw_items').delete().eq('community_id', communityId).eq('question_id', questionId)
   await admin.from('kb_questions').delete().eq('id', questionId)
   logAction({ actorId: user.id, communityId, action: 'question.deleted', targetId: questionId, targetType: 'question' })
   revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/qotw`)
   return {}
 }
 
