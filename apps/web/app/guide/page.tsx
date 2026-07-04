@@ -62,6 +62,7 @@ const toc = [
   { href: '#channels', label: 'Channels' },
   { href: '#events', label: 'Events' },
   { href: '#qa', label: 'Q&A Knowledge Base' },
+  { href: '#qotw', label: 'Question of the Week' },
   { href: '#members', label: 'Members & moderation' },
   { href: '#invites', label: 'Invites' },
   { href: '#email', label: 'Emailing members' },
@@ -278,6 +279,19 @@ export default async function GuidePage() {
                 <li>Every question has its own durable, shareable link.</li>
               </ul>
               <Tip>Seed it with the questions your community already asks over and over. Ten solid entries on day one makes the value obvious.</Tip>
+            </Section>
+
+            {/* Question of the Week */}
+            <Section id="qotw" title="Question of the Week">
+              <p>A gentle, recurring ritual built on top of Q&amp;A: one low-pressure prompt that gives members a reason to show up and share — no task, no obligation, just a question they want to answer. Manage it in <strong>Settings → Question of the Week</strong>.</p>
+              <ul className="space-y-2 list-disc pl-5">
+                <li><strong>Build a private bank.</strong> Write questions ahead of time — stockpile weeks or months of them. Drafts are visible only to your organizers and moderators.</li>
+                <li><strong>Publish with one click.</strong> When you&apos;re ready, publish a draft and it becomes <strong>QotW-1</strong> (then QotW-2, and so on) with its own permanent, shareable link — great for posting in a channel, newsletter, or a linked Discord.</li>
+                <li><strong>No deadlines, ever.</strong> Every published question stays open. Members can answer this week&apos;s, or wander back and answer an older one whenever they like.</li>
+                <li><strong>Preview safely.</strong> &ldquo;Preview as test&rdquo; publishes a throwaway <strong>QotW-t</strong> so you can see exactly how it looks and works without using up a real number.</li>
+                <li>Published questions land in your Q&amp;A library automatically, so good answers become durable, searchable knowledge — not something that scrolls away.</li>
+              </ul>
+              <Tip>Consistency beats frequency — same day, same time each week. Answer it yourself first to break the ice; an empty thread is intimidating, a thread with one honest answer feels safe.</Tip>
             </Section>
 
             {/* Members */}

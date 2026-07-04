@@ -143,6 +143,20 @@ The Q&A tab is your community's durable, searchable memory. In chat, good answer
 
 ---
 
+### Question of the Week
+
+A gentle, recurring ritual built on top of Q&A: one low-pressure prompt each week that gives members a reason to show up and share — no task, no obligation, just a question they *want* to answer. Manage it in **Settings → Question of the Week**.
+
+- **Build a private bank.** Write questions ahead of time and stockpile weeks or months of them. Drafts are visible only to your organizers and moderators.
+- **Publish with one click.** When you're ready, publish a draft and it becomes **QotW-1** (then QotW-2, and so on) with its own permanent, shareable link — great for a channel, a newsletter, or a linked Discord.
+- **No deadlines, ever.** Every published question stays open. Members can answer this week's or wander back to an older one whenever they like — no "must answer by."
+- **Preview safely.** "Preview as test" publishes a throwaway **QotW-t** so you can see exactly how it looks and works without using up a real number.
+- Published questions land in your Q&A library automatically, so good answers become durable, searchable knowledge instead of scrolling away.
+
+**Use it well:** Consistency beats frequency — same day, same time each week. Answer it yourself first to break the ice; an empty thread is intimidating, a thread with one honest answer feels safe.
+
+---
+
 ### Members & moderation
 
 Manage everyone in **Settings → Members**. Members are grouped into **Pending requests**, **active Members**, and **Banned**.

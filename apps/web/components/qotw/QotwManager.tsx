@@ -23,7 +23,6 @@ export type PublishedItem = {
 type Props = {
   communityId: string
   slug: string
-  hasCategory: boolean
   bank: DraftItem[]
   published: PublishedItem[]
 }
@@ -33,7 +32,7 @@ function fmtDate(d: string | null) {
   return new Date(d + (d.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export default function QotwManager({ communityId, slug, hasCategory, bank, published }: Props) {
+export default function QotwManager({ communityId, slug, bank, published }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -59,13 +58,6 @@ export default function QotwManager({ communityId, slug, hasCategory, bank, publ
 
   return (
     <div className="space-y-8">
-      {!hasCategory && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          To publish questions you first need a Q&amp;A category named <strong>Question of the Week</strong>.
-          Add it under <em>Q&amp;A categories</em> in community settings.
-        </div>
-      )}
-
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {/* Add to bank */}
@@ -142,15 +134,14 @@ export default function QotwManager({ communityId, slug, hasCategory, bank, publ
                           className="text-xs text-red-500 hover:text-red-700 px-2 py-1">Delete</button>
                         <button
                           onClick={() => run(() => publishItem(item.id, communityId, slug, true))}
-                          disabled={pending || !hasCategory}
+                          disabled={pending}
                           title="Publish as a throwaway QotW-t preview — never uses a real number"
                           className="text-xs border border-stone-300 text-stone-600 px-3 py-1.5 rounded-lg font-medium hover:bg-stone-50 disabled:opacity-50">
                           Preview as test
                         </button>
                         <button
                           onClick={() => run(() => publishItem(item.id, communityId, slug))}
-                          disabled={pending || !hasCategory}
-                          title={!hasCategory ? 'Create the “Question of the Week” category first' : undefined}
+                          disabled={pending}
                           className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50">
                           Publish as QotW
                         </button>

@@ -3,7 +3,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import QotwManager, { type DraftItem, type PublishedItem } from '@/components/qotw/QotwManager'
-import { findQotwCategoryId } from '@/lib/qotw'
 
 export default async function QotwManagePage({
   params,
@@ -29,13 +28,10 @@ export default async function QotwManagePage({
   const isMod = !!platformRole || isOwner || ['organizer', 'moderator'].includes(membership?.role ?? '')
   if (!isMod) redirect(`/communities/${slug}`)
 
-  const [items, cats] = await Promise.all([
-    admin.from('qotw_items')
-      .select('id, title, body, number, planned_for, question_id, published_at, position')
-      .eq('community_id', community.id)
-      .then(r => r.data ?? []),
-    admin.from('kb_categories').select('id, name').eq('community_id', community.id).then(r => r.data ?? []),
-  ])
+  const items = await admin.from('qotw_items')
+    .select('id, title, body, number, planned_for, question_id, published_at, position')
+    .eq('community_id', community.id)
+    .then(r => r.data ?? [])
 
   type Row = { id: string; title: string; body: string | null; number: number | null; planned_for: string | null; question_id: string | null; published_at: string | null; position: number }
   const rows = items as Row[]
@@ -49,8 +45,6 @@ export default async function QotwManagePage({
     .filter(r => r.number != null)
     .sort((a, b) => (b.number ?? 0) - (a.number ?? 0))
     .map(r => ({ id: r.id, number: r.number as number, title: r.title, question_id: r.question_id, published_at: r.published_at }))
-
-  const hasCategory = findQotwCategoryId(cats as { id: string; name: string }[]) != null
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6">
@@ -68,7 +62,6 @@ export default async function QotwManagePage({
       <QotwManager
         communityId={community.id}
         slug={slug}
-        hasCategory={hasCategory}
         bank={bank}
         published={published}
       />
