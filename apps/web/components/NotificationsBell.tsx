@@ -147,7 +147,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                       <div className={`flex-1 min-w-0 ${!isUnread ? 'ml-3.5' : ''}`}>
                         <p className="text-sm text-stone-800">
                           <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span>
-                          {' mentioned you in '}
+                          {n.type === 'reaction' ? ' reacted to your message in ' : ' mentioned you in '}
                           <span className="font-medium">#{n.channel?.name ?? 'a channel'}</span>
                         </p>
                         {n.community && (

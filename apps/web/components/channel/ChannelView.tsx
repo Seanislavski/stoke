@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { deleteMessage, restoreMessage } from '@/app/actions/messages'
 import { processMentions } from '@/app/actions/mentions'
+import { notifyReaction } from '@/app/actions/reactions'
 import RichContent from '@/components/RichContent'
 import ImageLightbox from '@/components/ImageLightbox'
 
@@ -213,7 +214,11 @@ export default function ChannelView({
       const { error } = await supabase
         .from('message_reactions')
         .insert({ message_id: messageId, channel_id: channelId, user_id: currentUserId, emoji })
-      if (error) setReactions(rs => rs.filter(r => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji))) // roll back
+      if (error) {
+        setReactions(rs => rs.filter(r => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji))) // roll back
+      } else {
+        void notifyReaction(messageId, channelId, communityId) // fire-and-forget author notification
+      }
     }
   }
 
