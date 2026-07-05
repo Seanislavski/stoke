@@ -140,12 +140,30 @@ export default async function PublicQuestionPage({
           {question.body && <RichContent content={question.body} className="text-stone-600 text-sm mt-4 whitespace-pre-wrap" />}
         </div>
 
-        {/* Answers (read-only) */}
+        {/* Answers — the QotW showcase shows them read-only; a plain toggled-public
+            question keeps its answers behind sign-up (the count is teased to pull people in). */}
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide">
             {answers.length} {answers.length === 1 ? 'Answer' : 'Answers'}
           </h2>
-          {answers.length === 0 ? (
+          {!isQotw ? (
+            answers.length === 0 ? (
+              <p className="text-sm text-stone-400">No answers yet — be the first to help.</p>
+            ) : (
+              <div className="rounded-xl border border-stone-200 bg-white p-6 text-center">
+                <p className="text-sm text-stone-600">
+                  🔒 {answers.length} {answers.length === 1 ? 'answer has' : 'answers have'} been shared.
+                </p>
+                <p className="mt-1 text-sm text-stone-500">Sign in to read {answers.length === 1 ? 'it' : 'them'} and add your own.</p>
+                <Link
+                  href={signupHref}
+                  className="mt-4 inline-block bg-orange-500 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
+                >
+                  Sign up to read the {answers.length === 1 ? 'answer' : 'answers'}
+                </Link>
+              </div>
+            )
+          ) : answers.length === 0 ? (
             <p className="text-sm text-stone-400">No answers yet — be the first to help.</p>
           ) : (
             answers.map(a => {
