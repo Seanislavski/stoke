@@ -10,6 +10,7 @@ import AnswerModActions from '@/components/knowledge/AnswerModActions'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import QuestionCategoryPicker from '@/components/knowledge/QuestionCategoryPicker'
 import QuestionPublicToggle from '@/components/knowledge/QuestionPublicToggle'
+import PublishAsQotwButton from '@/components/qotw/PublishAsQotwButton'
 import AcceptAnswerButton from '@/components/knowledge/AcceptAnswerButton'
 import { deleteQuestion, deleteAnswer } from '@/app/actions/knowledge'
 import { getYouTubeId } from '@/lib/embeds'
@@ -176,6 +177,17 @@ export default async function QuestionPage({
             slug={slug}
             isPublic={question.is_public === true}
             askerPref={question.asker_public_pref ?? null}
+          />
+        )}
+
+        {/* Promote a member's question straight to a numbered Question of the Week
+            (keeps their authorship). Hidden once it already is one. */}
+        {isMod && !isQotw && question.status !== 'rejected' && (
+          <PublishAsQotwButton
+            questionId={question.id}
+            communityId={community.id}
+            slug={slug}
+            isPending={question.status !== 'published'}
           />
         )}
       </div>

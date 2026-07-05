@@ -117,6 +117,67 @@ export async function deleteItem(itemId: string, communityId: string, slug: stri
 }
 
 /**
+ * Promote an EXISTING member-submitted question to the next Question of the Week —
+ * in place, so the original asker keeps authorship (no clone). Assigns the next QotW
+ * number, files it into the QotW category (approving/publishing it if still pending),
+ * and creates a qotw_items row linked to that question so it gets the permanent /qotw/N
+ * link and becomes the spotlight.
+ */
+export async function publishExistingQuestion(questionId: string, communityId: string, slug: string) {
+  const { user, allowed } = await requireMod(communityId)
+  if (!user || !allowed) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const { data: question } = await admin
+    .from('kb_questions').select('id, title, body, status')
+    .eq('id', questionId).eq('community_id', communityId).maybeSingle()
+  if (!question) return { error: 'Question not found' }
+
+  // Already a QotW? (has a qotw_items row pointing at it)
+  const { data: existingItem } = await admin
+    .from('qotw_items').select('id, number')
+    .eq('community_id', communityId).eq('question_id', questionId).maybeSingle()
+  if (existingItem) return { error: 'This question is already a Question of the Week.' }
+
+  const qotwCategoryId = await ensureQotwCategory(admin, communityId, user.id)
+  if (!qotwCategoryId) return { error: 'Could not set up the Question of the Week category.' }
+
+  // Next real number (test sentinel 0 never inflates the count).
+  const { data: maxRow } = await admin
+    .from('qotw_items').select('number')
+    .eq('community_id', communityId).gt('number', 0)
+    .order('number', { ascending: false }).limit(1).maybeSingle()
+  const nextNumber = (maxRow?.number ?? 0) + 1
+
+  const now = new Date().toISOString()
+  // Move it into the QotW category; publish it if it wasn't already. Authorship untouched.
+  const questionUpdate: Record<string, unknown> = { category_id: qotwCategoryId }
+  if (question.status !== 'published') {
+    questionUpdate.status = 'published'
+    questionUpdate.approved_by = user.id
+    questionUpdate.published_at = now
+  }
+  const { error: qErr } = await admin.from('kb_questions').update(questionUpdate).eq('id', questionId)
+  if (qErr) return { error: qErr.message }
+
+  const { error: insErr } = await admin.from('qotw_items').insert({
+    community_id: communityId,
+    title: question.title,
+    body: question.body,
+    number: nextNumber,
+    question_id: questionId,
+    created_by: user.id,
+    published_at: now,
+  })
+  if (insErr) return { error: insErr.message }
+
+  logAction({ actorId: user.id, communityId, action: 'qotw.published', targetId: questionId, targetType: 'qotw' })
+  revalidate(slug)
+  revalidatePath(`/communities/${slug}/questions/${questionId}`)
+  return { ok: true, number: nextNumber }
+}
+
+/**
  * Publish a draft as the next Question of the Week: assigns the community's next
  * QotW number and creates the answerable kb_question in the "Question of the Week"
  * category. Newest published QotW is what the Q&A spotlight surfaces.
