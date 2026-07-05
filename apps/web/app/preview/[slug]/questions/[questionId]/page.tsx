@@ -5,8 +5,6 @@ import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
 import RichContent from '@/components/RichContent'
-import LinkPreview from '@/components/LinkPreview'
-import { getYouTubeId } from '@/lib/embeds'
 import { findQotwCategoryId } from '@/lib/qotw'
 
 type Profile = { username: string; display_name: string | null }
@@ -53,13 +51,13 @@ async function loadPublicQuestion(slug: string, questionId: string) {
     return { community, question: null as null }
   }
 
+  // Only the COUNT is surfaced publicly (answers are gated behind sign-up), so don't even
+  // pull the bodies into memory.
   const { data: answers } = await admin
     .from('kb_answers')
-    .select('id, body, url, is_accepted, created_at, profiles!author_id(username, display_name)')
+    .select('id')
     .eq('question_id', questionId)
     .eq('status', 'published')
-    .order('is_accepted', { ascending: false })
-    .order('created_at', { ascending: true })
 
   return { community, question, answers: answers ?? [], isQotw }
 }
@@ -140,60 +138,27 @@ export default async function PublicQuestionPage({
           {question.body && <RichContent content={question.body} className="text-stone-600 text-sm mt-4 whitespace-pre-wrap" />}
         </div>
 
-        {/* Answers — the QotW showcase shows them read-only; a plain toggled-public
-            question keeps its answers behind sign-up (the count is teased to pull people in). */}
+        {/* Answers are always gated behind sign-up on the public page (QotW included) —
+            the count is teased to pull people in; the bodies are never rendered here. */}
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide">
             {answers.length} {answers.length === 1 ? 'Answer' : 'Answers'}
           </h2>
-          {!isQotw ? (
-            answers.length === 0 ? (
-              <p className="text-sm text-stone-400">No answers yet — be the first to help.</p>
-            ) : (
-              <div className="rounded-xl border border-stone-200 bg-white p-6 text-center">
-                <p className="text-sm text-stone-600">
-                  🔒 {answers.length} {answers.length === 1 ? 'answer has' : 'answers have'} been shared.
-                </p>
-                <p className="mt-1 text-sm text-stone-500">Sign in to read {answers.length === 1 ? 'it' : 'them'} and add your own.</p>
-                <Link
-                  href={signupHref}
-                  className="mt-4 inline-block bg-orange-500 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
-                >
-                  Sign up to read the {answers.length === 1 ? 'answer' : 'answers'}
-                </Link>
-              </div>
-            )
-          ) : answers.length === 0 ? (
+          {answers.length === 0 ? (
             <p className="text-sm text-stone-400">No answers yet — be the first to help.</p>
           ) : (
-            answers.map(a => {
-              const author = one<Profile>(a.profiles)
-              const aDate = new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              return (
-                <div key={a.id} className={`bg-white border rounded-xl p-4 ${a.is_accepted ? 'border-green-300 ring-1 ring-green-100' : 'border-stone-200'}`}>
-                  <div className="flex items-center gap-2 text-xs text-stone-400 mb-2">
-                    <span className="font-medium text-stone-600">{author ? (author.display_name ?? author.username) : 'Member'}</span>
-                    <span>· {aDate}</span>
-                    {a.is_accepted && <span className="text-green-700 font-medium">✓ Accepted answer</span>}
-                  </div>
-                  <RichContent content={a.body} className="text-stone-700 text-sm whitespace-pre-wrap" />
-                  {a.url && (
-                    getYouTubeId(a.url) ? (
-                      <div className="mt-1">
-                        <LinkPreview url={a.url} />
-                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline mt-1 inline-block">
-                          Watch on YouTube ↗
-                        </a>
-                      </div>
-                    ) : (
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-600 hover:underline break-all mt-1 block">
-                        {a.url}
-                      </a>
-                    )
-                  )}
-                </div>
-              )
-            })
+            <div className="rounded-xl border border-stone-200 bg-white p-6 text-center">
+              <p className="text-sm text-stone-600">
+                🔒 {answers.length} {answers.length === 1 ? 'answer has' : 'answers have'} been shared.
+              </p>
+              <p className="mt-1 text-sm text-stone-500">Sign in to read {answers.length === 1 ? 'it' : 'them'} and add your own.</p>
+              <Link
+                href={signupHref}
+                className="mt-4 inline-block bg-orange-500 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
+              >
+                Sign up to read the {answers.length === 1 ? 'answer' : 'answers'}
+              </Link>
+            </div>
           )}
         </div>
 
