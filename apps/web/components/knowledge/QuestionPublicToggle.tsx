@@ -48,7 +48,7 @@ export default function QuestionPublicToggle({ questionId, communityId, slug, is
         <span className="text-xs text-stone-600">
           <span className="font-medium text-stone-700">Visible to anyone with the link</span>
           <br />
-          Let logged-out visitors read this question and its answers (great for sharing in Discord). Off by default — the rest of your Q&amp;A stays private.
+          Let logged-out visitors read this question (great for sharing in Discord). Answers stay members-only — they prompt a sign-up. Off by default; the rest of your Q&amp;A stays private.
           {saving && <span className="ml-1 text-stone-400">Saving…</span>}
         </span>
       </label>
