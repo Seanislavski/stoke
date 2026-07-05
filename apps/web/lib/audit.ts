@@ -48,6 +48,8 @@ export const ACTION_LABELS: Record<string, string> = {
   'question.submitted': 'Submitted a question for review',
   'question.approved': 'Approved a question',
   'question.recategorized': 'Changed a question’s category',
+  'question.made_public': 'Made a question public',
+  'question.made_private': 'Made a question private',
   'question.rejected': 'Rejected a question',
   'question.deleted': 'Deleted a question',
   'answer.created': 'Added an answer',

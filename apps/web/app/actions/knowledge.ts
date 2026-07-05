@@ -149,6 +149,26 @@ export async function setQuestionCategory(questionId: string, communityId: strin
   return {}
 }
 
+// Toggle whether a published question is readable by logged-out visitors (shareable by
+// link). Private by default; mods flip it on per question. Only applies to published
+// questions — pending/rejected are never public.
+export async function setQuestionPublic(questionId: string, communityId: string, slug: string, isPublic: boolean) {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  if (!user) return { error: 'Not logged in' }
+  const { allowed } = await requireModAccess(communityId, user.id, membership)
+  if (!allowed) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  await admin.from('kb_questions')
+    .update({ is_public: isPublic })
+    .eq('id', questionId)
+    .eq('community_id', communityId)
+  logAction({ actorId: user.id, communityId, action: isPublic ? 'question.made_public' : 'question.made_private', targetId: questionId, targetType: 'question' })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/questions/${questionId}`)
+  return {}
+}
+
 export async function rejectQuestion(questionId: string, communityId: string, slug: string) {
   const { user, membership } = await getMembershipOrThrow(communityId)
   if (!user) return { error: 'Not logged in' }

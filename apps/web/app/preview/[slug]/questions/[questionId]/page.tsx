@@ -16,10 +16,11 @@ function one<T>(v: T | T[] | null | undefined): T | null {
 }
 
 /**
- * Public read-only view of a single question. Only questions filed into a community's
- * "Question of the Week" category are exposed here — the rest of the Q&A stays private.
- * Reached via a middleware rewrite of the canonical /communities/{slug}/questions/{id}
- * URL for logged-out visitors, so shared links stay clean.
+ * Public read-only view of a single question. A question is exposed here only if it is
+ * published AND either (a) filed into the community's "Question of the Week" category, or
+ * (b) explicitly flipped public by a mod (`is_public`). Everything else in the Q&A stays
+ * private. Reached via a middleware rewrite of the canonical
+ * /communities/{slug}/questions/{id} URL for logged-out visitors, so shared links stay clean.
  */
 async function loadPublicQuestion(slug: string, questionId: string) {
   const admin = createAdminClient()
@@ -36,17 +37,19 @@ async function loadPublicQuestion(slug: string, questionId: string) {
     .select('id, name')
     .eq('community_id', community.id)
   const qotwCategoryId = findQotwCategoryId(categories ?? [])
-  if (!qotwCategoryId) return { community, question: null as null }
 
   const { data: question } = await admin
     .from('kb_questions')
-    .select('id, title, body, status, category_id, created_at, published_at, profiles!asker_id(username, display_name)')
+    .select('id, title, body, status, category_id, is_public, created_at, published_at, profiles!asker_id(username, display_name)')
     .eq('id', questionId)
     .eq('community_id', community.id)
     .maybeSingle()
 
-  // Only a published question that is the QOTW is public.
-  if (!question || question.status !== 'published' || question.category_id !== qotwCategoryId) {
+  const isQotw = !!qotwCategoryId && question?.category_id === qotwCategoryId
+  const isPublic = question?.is_public === true
+
+  // Only a published question that is the QOTW or explicitly made public is exposed.
+  if (!question || question.status !== 'published' || (!isQotw && !isPublic)) {
     return { community, question: null as null }
   }
 
@@ -58,7 +61,7 @@ async function loadPublicQuestion(slug: string, questionId: string) {
     .order('is_accepted', { ascending: false })
     .order('created_at', { ascending: true })
 
-  return { community, question, answers: answers ?? [] }
+  return { community, question, answers: answers ?? [], isQotw }
 }
 
 export async function generateMetadata({
@@ -69,7 +72,9 @@ export async function generateMetadata({
   const { slug, questionId } = await params
   const loaded = await loadPublicQuestion(slug, questionId)
   if (!loaded?.question) return { title: 'Question of the Week' }
-  const desc = `Answer this week's question in ${loaded.community.name} on Stoke.`
+  const desc = loaded.isQotw
+    ? `Answer this week's question in ${loaded.community.name} on Stoke.`
+    : `Answer this question in ${loaded.community.name} on Stoke.`
   return {
     title: loaded.question.title,
     description: desc,
@@ -94,7 +99,7 @@ export default async function PublicQuestionPage({
   // leaking a 404 (logged-out /communities/{slug} rewrites to the preview).
   if (!loaded.question) redirect(`/communities/${slug}`)
 
-  const { community, question, answers } = loaded
+  const { community, question, answers, isQotw } = loaded
   const canonicalPath = `/communities/${community.slug}/questions/${question.id}`
   const signupHref = `/signup?redirect=${encodeURIComponent(canonicalPath)}`
   const loginHref = `/login?redirect=${encodeURIComponent(canonicalPath)}`
@@ -123,7 +128,9 @@ export default async function PublicQuestionPage({
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-10 space-y-6">
         {/* Question */}
         <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-6 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">⭐ Question of the Week</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
+            {isQotw ? '⭐ Question of the Week' : `${community.name} · Q&A`}
+          </p>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-stone-900">{question.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-400">
             <Link href={`/communities/${community.slug}`} className="hover:text-orange-600">{community.name}</Link>
