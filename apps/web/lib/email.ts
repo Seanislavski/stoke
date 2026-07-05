@@ -122,6 +122,15 @@ export function kbAnswerApprovedHtml(communityName: string, communitySlug: strin
   `)
 }
 
+export function qotwChosenHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string, numberLabel: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;font-size:17px;">⭐ Your question was chosen as the <strong>Question of the Week</strong> in <strong>${communityName}</strong>!</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fff7ed;border-left:3px solid #f97316;color:#57534e;">${questionTitle}</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">It's now featured as <strong>${numberLabel}</strong> with its own permanent link, and the community is invited to answer it. Thanks for asking a great question.</p>
+    ${btn('See your question', `${BASE_URL}/communities/${communitySlug}/questions/${questionId}`)}
+  `)
+}
+
 export function reviewSubmittedHtml(scopeName: string, reviewPath: string, snippet: string) {
   return wrap(`
     <p style="margin:0 0 8px;">A new review is awaiting approval for <strong>${scopeName}</strong>:</p>

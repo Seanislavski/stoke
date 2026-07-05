@@ -4,7 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
-import { findQotwCategoryId, QOTW_CATEGORY_NAME, QOTW_TEST_NUMBER } from '@/lib/qotw'
+import { findQotwCategoryId, qotwLabel, QOTW_CATEGORY_NAME, QOTW_TEST_NUMBER } from '@/lib/qotw'
+import { sendEmail, qotwChosenHtml } from '@/lib/email'
 
 // Find the community's "Question of the Week" Q&A category, creating it if missing, so
 // organizers never have to know the magic category name — publishing just provisions it.
@@ -171,15 +172,26 @@ export async function publishExistingQuestion(questionId: string, communityId: s
   })
   if (insErr) return { error: insErr.message }
 
-  // Congratulate the asker (unless they promoted their own question).
+  // Congratulate the asker (unless they promoted their own question) — bell + email.
   if (question.asker_id && question.asker_id !== user.id) {
+    const askerId = question.asker_id
     await admin.from('notifications').insert({
-      user_id: question.asker_id,
+      user_id: askerId,
       type: 'qotw',
       actor_id: user.id,
       community_id: communityId,
       message_id: questionId,
     })
+    void (async () => {
+      const [{ data: userData }, { data: c }] = await Promise.all([
+        admin.auth.admin.getUserById(askerId),
+        admin.from('communities').select('name, slug').eq('id', communityId).single(),
+      ])
+      const to = userData.user?.email
+      if (to && c) {
+        await sendEmail(to, `Your question is the Question of the Week in ${c.name}`, qotwChosenHtml(c.name, c.slug, questionId, question.title, qotwLabel(nextNumber)))
+      }
+    })()
   }
 
   logAction({ actorId: user.id, communityId, action: 'qotw.published', targetId: questionId, targetType: 'qotw' })
