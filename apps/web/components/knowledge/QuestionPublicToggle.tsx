@@ -20,8 +20,9 @@ export default function QuestionPublicToggle({ questionId, communityId, slug, is
   const shareUrl = `https://stoke.community/communities/${slug}/questions/${questionId}`
 
   async function handleToggle(next: boolean) {
-    // If the asker recorded a preference and this change goes against it, confirm first.
-    if (askerPref !== null && next !== askerPref) {
+    // Only warn on the privacy-sensitive direction: making a question public when the
+    // asker preferred to keep it private. Turning it back private is never blocked.
+    if (next && askerPref === false) {
       const ok = window.confirm(
         'Are you sure? This goes against what the asker indicated at the time of initial posting.'
       )
