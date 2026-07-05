@@ -65,7 +65,7 @@ export default async function QuestionPage({
 
   const { data: question } = await admin
     .from('kb_questions')
-    .select('id, title, body, status, category_id, is_public, asker_id, created_at, published_at, profiles!asker_id(username, display_name)')
+    .select('id, title, body, status, category_id, is_public, asker_public_pref, asker_id, created_at, published_at, profiles!asker_id(username, display_name)')
     .eq('id', questionId)
     .eq('community_id', community.id)
     .single()
@@ -175,6 +175,7 @@ export default async function QuestionPage({
             communityId={community.id}
             slug={slug}
             isPublic={question.is_public === true}
+            askerPref={question.asker_public_pref ?? null}
           />
         )}
       </div>

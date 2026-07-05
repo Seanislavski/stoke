@@ -68,6 +68,18 @@ export default function AskQuestionForm({ communityId, slug, isMod, categories }
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       )}
+      <label className="flex items-start gap-2 text-xs text-stone-500 cursor-pointer">
+        <input
+          type="checkbox"
+          name="public_ok"
+          defaultChecked
+          className="mt-0.5 h-3.5 w-3.5 accent-orange-500"
+        />
+        <span>
+          I&apos;m okay with this question being shared publicly. Organizers decide whether to actually
+          publish it; this just records your preference. (Answers always stay members-only.)
+        </span>
+      </label>
       {!isMod && (
         <p className="text-xs text-stone-400">Your question will be reviewed by a moderator before it appears.</p>
       )}

@@ -76,6 +76,9 @@ export async function submitQuestion(communityId: string, slug: string, formData
   if (!title) return { error: 'Question title is required' }
 
   const autoPublish = isMod || isOwner
+  // Asker's public-sharing preference (checkbox, checked by default). A signal for mods,
+  // not an auto-publish — the mod-controlled is_public toggle still governs actual visibility.
+  const askerPublicPref = formData.get('public_ok') === 'on'
   const { data: inserted, error } = await admin.from('kb_questions').insert({
     community_id: communityId,
     asker_id: user.id,
@@ -85,6 +88,7 @@ export async function submitQuestion(communityId: string, slug: string, formData
     status: autoPublish ? 'published' : 'pending',
     approved_by: autoPublish ? user.id : null,
     published_at: autoPublish ? new Date().toISOString() : null,
+    asker_public_pref: askerPublicPref,
   }).select('id').single()
 
   if (error) return { error: error.message }

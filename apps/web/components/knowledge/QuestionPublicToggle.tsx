@@ -8,9 +8,11 @@ type Props = {
   communityId: string
   slug: string
   isPublic: boolean
+  /** Asker's stated preference at posting time; null if none was recorded. */
+  askerPref: boolean | null
 }
 
-export default function QuestionPublicToggle({ questionId, communityId, slug, isPublic }: Props) {
+export default function QuestionPublicToggle({ questionId, communityId, slug, isPublic, askerPref }: Props) {
   const [pub, setPub] = useState(isPublic)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -18,6 +20,13 @@ export default function QuestionPublicToggle({ questionId, communityId, slug, is
   const shareUrl = `https://stoke.community/communities/${slug}/questions/${questionId}`
 
   async function handleToggle(next: boolean) {
+    // If the asker recorded a preference and this change goes against it, confirm first.
+    if (askerPref !== null && next !== askerPref) {
+      const ok = window.confirm(
+        'Are you sure? This goes against what the asker indicated at the time of initial posting.'
+      )
+      if (!ok) return // leave the checkbox as-is
+    }
     setPub(next)
     setSaving(true)
     const result = await setQuestionPublic(questionId, communityId, slug, next)
@@ -52,6 +61,14 @@ export default function QuestionPublicToggle({ questionId, communityId, slug, is
           {saving && <span className="ml-1 text-stone-400">Saving…</span>}
         </span>
       </label>
+
+      {askerPref !== null && (
+        <p className={`mt-2 pl-6 text-xs ${askerPref ? 'text-stone-500' : 'text-amber-700'}`}>
+          {askerPref
+            ? '✔ The asker is okay with this being shared publicly.'
+            : '⚠ The asker preferred to keep this private — you’ll be asked to confirm before turning it on.'}
+        </p>
+      )}
 
       {pub && (
         <div className="mt-2 flex items-center gap-2 pl-6">
