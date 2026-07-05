@@ -129,7 +129,7 @@ export async function publishExistingQuestion(questionId: string, communityId: s
 
   const admin = createAdminClient()
   const { data: question } = await admin
-    .from('kb_questions').select('id, title, body, status')
+    .from('kb_questions').select('id, title, body, status, asker_id')
     .eq('id', questionId).eq('community_id', communityId).maybeSingle()
   if (!question) return { error: 'Question not found' }
 
@@ -170,6 +170,17 @@ export async function publishExistingQuestion(questionId: string, communityId: s
     published_at: now,
   })
   if (insErr) return { error: insErr.message }
+
+  // Congratulate the asker (unless they promoted their own question).
+  if (question.asker_id && question.asker_id !== user.id) {
+    await admin.from('notifications').insert({
+      user_id: question.asker_id,
+      type: 'qotw',
+      actor_id: user.id,
+      community_id: communityId,
+      message_id: questionId,
+    })
+  }
 
   logAction({ actorId: user.id, communityId, action: 'qotw.published', targetId: questionId, targetType: 'qotw' })
   revalidate(slug)

@@ -80,7 +80,9 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       await markNotificationRead(n.id)
     }
     setOpen(false)
-    if (n.community && n.channel_id && n.message_id) {
+    if (n.type === 'qotw' && n.community && n.message_id) {
+      router.push(`/communities/${n.community.slug}/questions/${n.message_id}`)
+    } else if (n.community && n.channel_id && n.message_id) {
       router.push(`/communities/${n.community.slug}/channels/${n.channel_id}?mention=${n.message_id}`)
     }
   }
@@ -145,11 +147,17 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                     <div className="flex items-start gap-2">
                       {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />}
                       <div className={`flex-1 min-w-0 ${!isUnread ? 'ml-3.5' : ''}`}>
-                        <p className="text-sm text-stone-800">
-                          <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span>
-                          {n.type === 'reaction' ? ' reacted to your message in ' : ' mentioned you in '}
-                          <span className="font-medium">#{n.channel?.name ?? 'a channel'}</span>
-                        </p>
+                        {n.type === 'qotw' ? (
+                          <p className="text-sm text-stone-800">
+                            ⭐ <span className="font-medium">Your question was chosen as Question of the Week!</span>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-stone-800">
+                            <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span>
+                            {n.type === 'reaction' ? ' reacted to your message in ' : ' mentioned you in '}
+                            <span className="font-medium">#{n.channel?.name ?? 'a channel'}</span>
+                          </p>
+                        )}
                         {n.community && (
                           <p className="text-xs text-stone-400 mt-0.5">{n.community.name}</p>
                         )}
