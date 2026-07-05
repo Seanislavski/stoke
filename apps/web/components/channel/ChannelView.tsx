@@ -10,6 +10,9 @@ import RichContent from '@/components/RichContent'
 import ImageLightbox from '@/components/ImageLightbox'
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null }
+type Reaction = { message_id: string; user_id: string; emoji: string }
+
+const REACTION_CHOICES = ['👍', '❤️', '😂', '🎉', '😮', '😢', '🙏', '🔥']
 type Message = {
   id: string
   content: string
@@ -42,6 +45,7 @@ export default function ChannelView({
   isMod,
   initialMessages,
   initialProfiles,
+  initialReactions,
   highlightMessageId,
   mentionMessageId,
 }: {
@@ -53,11 +57,14 @@ export default function ChannelView({
   isMod: boolean
   initialMessages: Message[]
   initialProfiles: Record<string, Profile>
+  initialReactions: Reaction[]
   highlightMessageId?: string
   mentionMessageId?: string
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [profiles, setProfiles] = useState<Record<string, Profile>>(initialProfiles)
+  const [reactions, setReactions] = useState<Reaction[]>(initialReactions)
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
@@ -158,6 +165,57 @@ export default function ChannelView({
 
     return () => { supabase.removeChannel(channel) }
   }, [channelId])
+
+  // realtime subscription for reactions (filtered by channel_id; DELETE carries the full
+  // row thanks to REPLICA IDENTITY FULL on the table)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`reactions:${channelId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_reactions', filter: `channel_id=eq.${channelId}` },
+        (payload) => {
+          const r = payload.new as Reaction
+          setReactions(rs =>
+            rs.some(x => x.message_id === r.message_id && x.user_id === r.user_id && x.emoji === r.emoji)
+              ? rs
+              : [...rs, { message_id: r.message_id, user_id: r.user_id, emoji: r.emoji }]
+          )
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'message_reactions', filter: `channel_id=eq.${channelId}` },
+        (payload) => {
+          const r = payload.old as Reaction
+          setReactions(rs => rs.filter(x => !(x.message_id === r.message_id && x.user_id === r.user_id && x.emoji === r.emoji)))
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [channelId])
+
+  async function toggleReaction(messageId: string, emoji: string) {
+    setPickerFor(null)
+    const mine = reactions.some(r => r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji)
+    if (mine) {
+      setReactions(rs => rs.filter(r => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji)))
+      const { error } = await supabase
+        .from('message_reactions')
+        .delete()
+        .eq('message_id', messageId)
+        .eq('user_id', currentUserId)
+        .eq('emoji', emoji)
+      if (error) setReactions(rs => [...rs, { message_id: messageId, user_id: currentUserId, emoji }]) // roll back
+    } else {
+      setReactions(rs => [...rs, { message_id: messageId, user_id: currentUserId, emoji }])
+      const { error } = await supabase
+        .from('message_reactions')
+        .insert({ message_id: messageId, channel_id: channelId, user_id: currentUserId, emoji })
+      if (error) setReactions(rs => rs.filter(r => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji))) // roll back
+    }
+  }
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -298,6 +356,19 @@ export default function ChannelView({
     return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
+  // Group a message's reactions into ordered { emoji, count, mine } pills.
+  function reactionPills(messageId: string): { emoji: string; count: number; mine: boolean }[] {
+    const order: string[] = []
+    const byEmoji: Record<string, { count: number; mine: boolean }> = {}
+    for (const r of reactions) {
+      if (r.message_id !== messageId) continue
+      if (!byEmoji[r.emoji]) { byEmoji[r.emoji] = { count: 0, mine: false }; order.push(r.emoji) }
+      byEmoji[r.emoji].count++
+      if (r.user_id === currentUserId) byEmoji[r.emoji].mine = true
+    }
+    return order.map(emoji => ({ emoji, ...byEmoji[emoji] }))
+  }
+
   // group messages by date
   const grouped: { date: string; messages: Message[] }[] = []
   for (const msg of messages) {
@@ -313,6 +384,7 @@ export default function ChannelView({
   return (
     <>
     {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+    {pickerFor && <div className="fixed inset-0 z-20" onClick={() => setPickerFor(null)} />}
     <div className="flex flex-col" style={{ height: 'calc(100vh - 3.5rem - 3rem)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 pb-3 border-b border-stone-200 flex-shrink-0">
@@ -423,6 +495,52 @@ export default function ChannelView({
                               />
                             </button>
                           )}
+                          {!msg.id.startsWith('optimistic-') && (() => {
+                            const pills = reactionPills(msg.id)
+                            return (
+                              <div className="flex flex-wrap items-center gap-1 mt-1">
+                                {pills.map(p => (
+                                  <button
+                                    key={p.emoji}
+                                    onClick={() => toggleReaction(msg.id, p.emoji)}
+                                    className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors ${p.mine ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100'}`}
+                                    title={p.mine ? 'Remove your reaction' : 'React'}
+                                  >
+                                    <span>{p.emoji}</span>
+                                    <span className="tabular-nums">{p.count}</span>
+                                  </button>
+                                ))}
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setPickerFor(pickerFor === msg.id ? null : msg.id)}
+                                    className="flex items-center rounded-full border border-stone-200 bg-white px-1.5 py-1 text-stone-400 hover:text-orange-500 hover:border-orange-200 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                                    title="Add reaction"
+                                    aria-label="Add reaction"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="12" cy="12" r="10" />
+                                      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                      <line x1="9" y1="9" x2="9.01" y2="9" />
+                                      <line x1="15" y1="9" x2="15.01" y2="9" />
+                                    </svg>
+                                  </button>
+                                  {pickerFor === msg.id && (
+                                    <div className="absolute z-30 bottom-full mb-1 left-0 flex gap-0.5 rounded-lg border border-stone-200 bg-white p-1 shadow-md">
+                                      {REACTION_CHOICES.map(emoji => (
+                                        <button
+                                          key={emoji}
+                                          onClick={() => toggleReaction(msg.id, emoji)}
+                                          className="rounded px-1 py-0.5 text-base leading-none hover:bg-stone-100"
+                                        >
+                                          {emoji}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })()}
                         </>
                       )}
                     </div>

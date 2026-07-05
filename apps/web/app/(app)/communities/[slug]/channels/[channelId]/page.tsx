@@ -66,6 +66,12 @@ export default async function ChannelPage({
     profiles: Array.isArray(m.profiles) ? m.profiles[0] ?? null : m.profiles,
   }))
 
+  // load reactions for the visible messages
+  const messageIds = normalizedMessages.map(m => m.id)
+  const { data: reactionRows } = messageIds.length
+    ? await admin.from('message_reactions').select('message_id, user_id, emoji').in('message_id', messageIds)
+    : { data: [] as { message_id: string; user_id: string; emoji: string }[] }
+
   // build profile cache for client
   const profileCache: Record<string, { username: string; display_name: string | null; avatar_url: string | null }> = {}
   for (const m of normalizedMessages) {
@@ -94,6 +100,7 @@ export default async function ChannelPage({
       isMod={isMod}
       initialMessages={normalizedMessages as Parameters<typeof ChannelView>[0]['initialMessages']}
       initialProfiles={profileCache}
+      initialReactions={reactionRows ?? []}
       highlightMessageId={highlightMessageId}
       mentionMessageId={mentionMessageId}
     />
