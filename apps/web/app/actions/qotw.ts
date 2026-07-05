@@ -4,32 +4,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
-import { findQotwCategoryId, qotwLabel, QOTW_CATEGORY_NAME, QOTW_TEST_NUMBER } from '@/lib/qotw'
+import { qotwLabel, QOTW_TEST_NUMBER } from '@/lib/qotw'
+import { ensureQotwCategory } from '@/lib/qotw-publish'
 import { sendEmail, qotwChosenHtml } from '@/lib/email'
-
-// Find the community's "Question of the Week" Q&A category, creating it if missing, so
-// organizers never have to know the magic category name — publishing just provisions it.
-async function ensureQotwCategory(
-  admin: ReturnType<typeof createAdminClient>,
-  communityId: string,
-  userId: string,
-): Promise<string | null> {
-  const { data: cats } = await admin.from('kb_categories').select('id, name').eq('community_id', communityId)
-  const existing = findQotwCategoryId(cats ?? [])
-  if (existing) return existing
-
-  const { data: last } = await admin
-    .from('kb_categories').select('position')
-    .eq('community_id', communityId).order('position', { ascending: false }).limit(1).maybeSingle()
-  const { data: created } = await admin.from('kb_categories').insert({
-    community_id: communityId,
-    name: QOTW_CATEGORY_NAME,
-    description: "This week's question — add your answer.",
-    position: (last?.position ?? -1) + 1,
-    created_by: userId,
-  }).select('id').single()
-  return created?.id ?? null
-}
 
 async function requireMod(communityId: string) {
   const supabase = await createClient()

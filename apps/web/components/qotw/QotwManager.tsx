@@ -79,7 +79,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
           />
           <div className="flex items-center gap-3 flex-wrap">
             <label className="text-xs text-stone-500 flex items-center gap-2">
-              Planned week (optional)
+              Auto-publish date (optional)
               <input name="planned_for" type="date" className="px-2 py-1 border border-stone-300 rounded text-xs text-stone-900" />
             </label>
             <button
@@ -89,6 +89,10 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
               Add to bank
             </button>
           </div>
+          <p className="text-xs text-stone-400">
+            Set a date to auto-publish this question that day. Leave it blank and it joins the weekly auto-rotation (the next
+            undated draft publishes once ~7 days have passed since the last one). You can always publish any draft manually below.
+          </p>
         </form>
       </section>
 
@@ -123,7 +127,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                     {item.body && <p className="text-stone-500 text-sm mt-1 whitespace-pre-wrap">{item.body}</p>}
                     <div className="flex items-center gap-3 flex-wrap mt-3">
                       {item.planned_for && (
-                        <span className="text-xs bg-stone-100 text-stone-500 px-2 py-0.5 rounded">Planned: {fmtDate(item.planned_for)}</span>
+                        <span className="text-xs bg-stone-100 text-stone-500 px-2 py-0.5 rounded">⏱ Auto-publishes {fmtDate(item.planned_for)}</span>
                       )}
                       <div className="ml-auto flex items-center gap-2">
                         <button onClick={() => setEditingId(item.id)} disabled={pending}
