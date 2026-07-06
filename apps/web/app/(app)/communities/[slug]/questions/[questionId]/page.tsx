@@ -12,6 +12,8 @@ import QuestionCategoryPicker from '@/components/knowledge/QuestionCategoryPicke
 import QuestionPublicToggle from '@/components/knowledge/QuestionPublicToggle'
 import PublishAsQotwButton from '@/components/qotw/PublishAsQotwButton'
 import AcceptAnswerButton from '@/components/knowledge/AcceptAnswerButton'
+import EditQuestion from '@/components/knowledge/EditQuestion'
+import EditAnswer from '@/components/knowledge/EditAnswer'
 import { deleteQuestion, deleteAnswer } from '@/app/actions/knowledge'
 import { getYouTubeId } from '@/lib/embeds'
 import { qotwLabel } from '@/lib/qotw'
@@ -107,6 +109,11 @@ export default async function QuestionPage({
   const pendingAnswers = (answers ?? []).filter(a => a.status === 'pending')
   const canAccept = isAsker || isMod
 
+  // A QotW question is edit-locked to mods (protects the featured/numbered link). Otherwise
+  // the asker edits their own; a member's edit re-queues, a mod's stays live.
+  const canEditQuestion = isMod || (isAsker && !isQotw)
+  const questionWillRequeue = !isMod && question.status === 'published'
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6">
       <Link href={`/communities/${slug}?tab=qa`} className="text-sm text-stone-400 hover:text-stone-700">
@@ -115,44 +122,54 @@ export default async function QuestionPage({
 
       {/* Question */}
       <div className="bg-white border border-stone-200 rounded-xl p-6">
-        {question.status !== 'published' && (
-          <p className="text-xs font-medium text-amber-600 uppercase tracking-wide mb-2">
-            {question.status === 'pending' ? 'Awaiting review' : 'Not approved'}
-          </p>
-        )}
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold text-stone-900">{question.title}</h1>
-          {isMod && (
-            isQotw ? (
-              <Link
-                href={`/communities/${slug}/qotw`}
-                className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-700 whitespace-nowrap"
-              >
-                Manage in QotW →
+        <EditQuestion
+          questionId={question.id}
+          communityId={community.id}
+          slug={slug}
+          initialTitle={question.title}
+          initialBody={question.body ?? ''}
+          willRequeue={questionWillRequeue}
+          canEdit={canEditQuestion}
+        >
+          {question.status !== 'published' && (
+            <p className="text-xs font-medium text-amber-600 uppercase tracking-wide mb-2">
+              {question.status === 'pending' ? 'Awaiting review' : 'Not approved'}
+            </p>
+          )}
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-semibold text-stone-900">{question.title}</h1>
+            {isMod && (
+              isQotw ? (
+                <Link
+                  href={`/communities/${slug}/qotw`}
+                  className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-700 whitespace-nowrap"
+                >
+                  Manage in QotW →
+                </Link>
+              ) : (
+                <DeleteItemButton
+                  action={deleteQuestion.bind(null, question.id, community.id, slug)}
+                  confirm="Delete this question and its answers?"
+                />
+              )
+            )}
+          </div>
+          {isQotw && (
+            <span className="inline-block mt-2 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
+              ⭐ {qotwLabel(qotwItem!.number)}
+            </span>
+          )}
+          <div className="flex items-center gap-2 flex-wrap text-xs text-stone-400 mt-2">
+            {category?.name && <span className="bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">{category.name}</span>}
+            {asker?.username && (
+              <Link href={`/profile/${asker.username}`} className="hover:text-orange-600">
+                {asker.display_name ?? asker.username}
               </Link>
-            ) : (
-              <DeleteItemButton
-                action={deleteQuestion.bind(null, question.id, community.id, slug)}
-                confirm="Delete this question and its answers?"
-              />
-            )
-          )}
-        </div>
-        {isQotw && (
-          <span className="inline-block mt-2 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
-            ⭐ {qotwLabel(qotwItem!.number)}
-          </span>
-        )}
-        <div className="flex items-center gap-2 flex-wrap text-xs text-stone-400 mt-2">
-          {category?.name && <span className="bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">{category.name}</span>}
-          {asker?.username && (
-            <Link href={`/profile/${asker.username}`} className="hover:text-orange-600">
-              {asker.display_name ?? asker.username}
-            </Link>
-          )}
-          <span>{date}</span>
-        </div>
-        {question.body && <RichContent content={question.body} className="text-stone-600 text-sm mt-3 whitespace-pre-wrap" />}
+            )}
+            <span>{date}</span>
+          </div>
+          {question.body && <RichContent content={question.body} className="text-stone-600 text-sm mt-3 whitespace-pre-wrap" />}
+        </EditQuestion>
 
         {question.status === 'pending' && isMod && (
           <QuestionModActions questionId={question.id} communityId={community.id} slug={slug} categories={categories ?? []} />
@@ -259,24 +276,34 @@ export default async function QuestionPage({
                     )}
                   </div>
                 </div>
-                <RichContent content={a.body} className="text-stone-700 text-sm whitespace-pre-wrap" />
-                {a.url && (
-                  getYouTubeId(a.url) ? (
-                    <div className="mt-1">
-                      <LinkPreview url={a.url} />
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline mt-1 inline-block">
-                        Watch on YouTube ↗
-                      </a>
-                    </div>
-                  ) : (
-                    <>
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-600 hover:underline break-all mt-1 block">
-                        {a.url}
-                      </a>
-                      <LinkPreview url={a.url} />
-                    </>
-                  )
-                )}
+                <EditAnswer
+                  answerId={a.id}
+                  communityId={community.id}
+                  slug={slug}
+                  initialBody={a.body}
+                  initialUrl={a.url}
+                  willRequeue={!isMod}
+                  canEdit={a.author_id === user!.id}
+                >
+                  <RichContent content={a.body} className="text-stone-700 text-sm whitespace-pre-wrap" />
+                  {a.url && (
+                    getYouTubeId(a.url) ? (
+                      <div className="mt-1">
+                        <LinkPreview url={a.url} />
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline mt-1 inline-block">
+                          Watch on YouTube ↗
+                        </a>
+                      </div>
+                    ) : (
+                      <>
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-600 hover:underline break-all mt-1 block">
+                          {a.url}
+                        </a>
+                        <LinkPreview url={a.url} />
+                      </>
+                    )
+                  )}
+                </EditAnswer>
               </div>
             )
           })

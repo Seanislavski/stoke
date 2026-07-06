@@ -204,6 +204,55 @@ export async function deleteQuestion(questionId: string, communityId: string, sl
   return {}
 }
 
+// Edit a question's title/body. The asker edits their own; a member's edit to an already
+// published question sends it back through review. Mods edit in place (stays published).
+// A QotW question is edit-locked to mods so a member can't pull a live/numbered QotW back
+// into the review queue.
+export async function editQuestion(questionId: string, communityId: string, slug: string, formData: FormData) {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  if (!user) return { error: 'Not logged in' }
+
+  const admin = createAdminClient()
+  const { data: q } = await admin.from('kb_questions').select('asker_id, status').eq('id', questionId).eq('community_id', communityId).single()
+  if (!q) return { error: 'Question not found' }
+  const { allowed: isMod } = await requireModAccess(communityId, user.id, membership)
+  const isAsker = q.asker_id === user.id
+  const { data: qotw } = await admin.from('qotw_items').select('id').eq('community_id', communityId).eq('question_id', questionId).maybeSingle()
+  const isQotw = !!qotw
+
+  const canEdit = isMod || (isAsker && !isQotw)
+  if (!canEdit) return { error: 'Not authorized' }
+
+  const title = (formData.get('title') as string)?.trim()
+  if (!title) return { error: 'Question title is required' }
+  const body = (formData.get('body') as string)?.trim() || null
+
+  // Member edit to published content → back to review; mod edit stays live.
+  const requeue = !isMod && q.status !== 'pending'
+  const update: Record<string, unknown> = { title, body }
+  if (requeue) {
+    update.status = 'pending'
+    update.approved_by = null
+    update.published_at = null
+  }
+  const { error } = await admin.from('kb_questions').update(update).eq('id', questionId)
+  if (error) return { error: error.message }
+
+  logAction({ actorId: user.id, communityId, action: 'question.edited', targetId: questionId, targetType: 'question', metadata: { requeued: requeue } })
+
+  if (requeue) {
+    void (async () => {
+      const { community: c, emails } = await modEmails(communityId)
+      if (!c) return
+      for (const to of emails) await sendEmail(to, `An edited question awaits review in ${c.name}`, kbQuestionSubmittedHtml(c.name, c.slug, title))
+    })()
+  }
+
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/questions/${questionId}`)
+  return { requeued: requeue }
+}
+
 // ─── answers ────────────────────────────────────────────────────────────────────
 
 export async function submitAnswer(questionId: string, communityId: string, slug: string, formData: FormData) {
@@ -301,6 +350,50 @@ export async function deleteAnswer(answerId: string, communityId: string, slug: 
   logAction({ actorId: user.id, communityId, action: 'answer.deleted', targetId: answerId, targetType: 'answer' })
   if (a) revalidatePath(`/communities/${slug}/questions/${a.question_id}`)
   return {}
+}
+
+// Edit an answer's body/link. Author-only. A member editing their own already-published
+// answer sends it back through review (and clears any accepted mark); a mod's edit stays
+// live.
+export async function editAnswer(answerId: string, communityId: string, slug: string, formData: FormData) {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  if (!user) return { error: 'Not logged in' }
+
+  const admin = createAdminClient()
+  const { data: a } = await admin.from('kb_answers').select('author_id, question_id, status').eq('id', answerId).eq('community_id', communityId).single()
+  if (!a) return { error: 'Answer not found' }
+  if (a.author_id !== user.id) return { error: 'Not authorized' }
+  const { allowed: isMod } = await requireModAccess(communityId, user.id, membership)
+
+  const body = (formData.get('body') as string)?.trim()
+  if (!body) return { error: 'Answer cannot be empty' }
+  const url = (formData.get('url') as string)?.trim() || null
+
+  const requeue = !isMod && a.status !== 'pending'
+  const update: Record<string, unknown> = { body, url }
+  if (requeue) {
+    update.status = 'pending'
+    update.approved_by = null
+    update.published_at = null
+    update.is_accepted = false
+  }
+  const { error } = await admin.from('kb_answers').update(update).eq('id', answerId)
+  if (error) return { error: error.message }
+
+  logAction({ actorId: user.id, communityId, action: 'answer.edited', targetId: answerId, targetType: 'answer', metadata: { question_id: a.question_id, requeued: requeue } })
+
+  if (requeue) {
+    void (async () => {
+      const { community: c, emails } = await modEmails(communityId)
+      const { data: q } = await admin.from('kb_questions').select('title').eq('id', a.question_id).single()
+      if (!c || !q) return
+      for (const to of emails) await sendEmail(to, `An edited answer awaits review in ${c.name}`, kbAnswerSubmittedHtml(c.name, c.slug, a.question_id, q.title))
+    })()
+  }
+
+  revalidatePath(`/communities/${slug}/questions/${a.question_id}`)
+  revalidatePath(`/communities/${slug}`)
+  return { requeued: requeue }
 }
 
 // Accept / unaccept an answer — askers and mods. One accepted answer per question.
