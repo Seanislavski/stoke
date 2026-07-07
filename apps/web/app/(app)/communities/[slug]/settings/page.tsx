@@ -133,6 +133,17 @@ export default async function CommunitySettingsPage({
         <p className="mt-1 text-sm text-stone-500 capitalize">Your role: {callerRole}</p>
       </div>
 
+      <Link
+        href={`/communities/${slug}/moderation`}
+        className="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3 hover:border-orange-300 transition-colors"
+      >
+        <span>
+          <span className="text-sm font-medium text-stone-800">Review queue</span>
+          <span className="block text-xs text-stone-500">Approve or reject everything waiting on a moderator</span>
+        </span>
+        <span className="text-orange-600 text-sm">→</span>
+      </Link>
+
       {/* General info */}
       <section>
         <h2 className="text-base font-semibold text-stone-800 mb-4">General</h2>

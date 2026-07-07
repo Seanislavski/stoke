@@ -73,6 +73,9 @@ export default async function CommunityPage({
     { count: pendingCount },
     { count: bannedCount },
     { count: pendingReviewsCount },
+    { count: pendingPostsCount },
+    { count: pendingQuestionsCount },
+    { count: pendingAnswersCount },
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
@@ -99,7 +102,28 @@ export default async function CommunityPage({
           .eq('community_id', community.id)
           .eq('status', 'pending')
       : Promise.resolve({ count: 0 }),
+    isMod
+      ? admin.from('bulletin_posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('status', 'pending')
+      : Promise.resolve({ count: 0 }),
+    isMod
+      ? admin.from('kb_questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('status', 'pending')
+      : Promise.resolve({ count: 0 }),
+    isMod
+      ? admin.from('kb_answers')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('status', 'pending')
+      : Promise.resolve({ count: 0 }),
   ])
+
+  // Total items waiting on a mod — drives the gear badge + review-queue link.
+  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0)
 
   // Onboarding checklist data (organizers only)
   const [onboardingPostCount, onboardingChannelCount, onboardingEventCount] = isMod
@@ -315,10 +339,18 @@ export default async function CommunityPage({
               memberStatus={myMembership?.status ?? null}
               isOwner={isOwner}
             />
+            {isMod && totalPending > 0 && (
+              <Link
+                href={`/communities/${slug}/moderation`}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors whitespace-nowrap"
+              >
+                {totalPending} to review
+              </Link>
+            )}
             {isMod && (
               <CommunityGear
                 slug={slug}
-                pendingCount={(pendingCount ?? 0) + (pendingReviewsCount ?? 0)}
+                pendingCount={totalPending}
               />
             )}
           </div>
