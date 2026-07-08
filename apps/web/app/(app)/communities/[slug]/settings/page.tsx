@@ -133,6 +133,28 @@ export default async function CommunitySettingsPage({
         <p className="mt-1 text-sm text-stone-500 capitalize">Your role: {callerRole}</p>
       </div>
 
+      {/* Section quick-nav — jumps down the long settings page */}
+      <nav className="sticky top-14 z-[5] py-2 bg-stone-50/95 backdrop-blur border-b border-stone-200 overflow-x-auto">
+        <div className="flex gap-1 whitespace-nowrap text-sm">
+          {[
+            { href: '#general', label: 'General' },
+            { href: '#channels', label: 'Spaces' },
+            { href: '#qa-categories', label: 'Q&A' },
+            { href: '#qotw', label: 'QotW' },
+            { href: '#reviews', label: 'Reviews' },
+            { href: '#invites', label: 'Invites' },
+            { href: '#members', label: 'Members' },
+            ...(callerRole === 'organizer' || callerRole === 'owner' ? [{ href: '#email', label: 'Email' }] : []),
+            ...(isOwner ? [{ href: '#danger', label: 'Danger' }] : []),
+            { href: '#audit-log', label: 'Audit' },
+          ].map(i => (
+            <a key={i.href} href={i.href} className="px-3 py-1 rounded-lg text-stone-500 hover:bg-stone-200 hover:text-stone-800 transition-colors">
+              {i.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
       <Link
         href={`/communities/${slug}/moderation`}
         className="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3 hover:border-orange-300 transition-colors"
@@ -145,7 +167,7 @@ export default async function CommunitySettingsPage({
       </Link>
 
       {/* General info */}
-      <section>
+      <section id="general" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-4">General</h2>
         <CommunityInfoForm
           community={community}
@@ -156,7 +178,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Channels */}
-      <section>
+      <section id="channels" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-4">Gathering Spaces</h2>
         <ChannelManager
           communityId={community.id}
@@ -168,7 +190,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Q&A categories */}
-      <section>
+      <section id="qa-categories" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Q&amp;A categories</h2>
         <p className="text-sm text-stone-500 mb-4">Topics members can browse and filter approved questions by. You assign a category when you approve a question.</p>
         <CategoryManager
@@ -181,7 +203,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Question of the Week */}
-      <section>
+      <section id="qotw" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Question of the Week</h2>
         <p className="text-sm text-stone-500 mb-4">Stockpile questions ahead of time and publish one whenever you&apos;re ready. Each gets a permanent, deadline-free link to share.</p>
         <Link
@@ -195,7 +217,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Reviews */}
-      <section>
+      <section id="reviews" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Reviews</h2>
         <p className="text-sm text-stone-500 mb-4">Approve member reviews, reply to them, and feature up to 6 as public testimonials on your community&apos;s preview page.</p>
         <ReviewsManager
@@ -208,7 +230,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Invites */}
-      <section>
+      <section id="invites" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Invite links</h2>
         <p className="text-sm text-stone-500 mb-4">Share a link to bring people to this community. They'll join the approval queue even if the community is invite-only.</p>
         <InviteManager
@@ -222,7 +244,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Members */}
-      <section>
+      <section id="members" className="scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-4">Members</h2>
         <MembersManager
           communityId={community.id}
@@ -238,7 +260,7 @@ export default async function CommunitySettingsPage({
 
       {/* Email blast — organizers only */}
       {(callerRole === 'organizer' || callerRole === 'owner') && (
-        <section>
+        <section id="email" className="scroll-mt-20">
           <h2 className="text-base font-semibold text-stone-800">Email members</h2>
           <EmailBlastForm
             communityId={community.id}
@@ -252,7 +274,7 @@ export default async function CommunitySettingsPage({
       {isOwner && (
         <>
           <hr className="border-stone-200" />
-          <section>
+          <section id="danger" className="scroll-mt-20">
             <h2 className="text-base font-semibold text-stone-800 mb-4">Danger zone</h2>
             <TransferOwnershipSection
               communityId={community.id}
