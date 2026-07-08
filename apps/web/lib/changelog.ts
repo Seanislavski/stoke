@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Organizers get a new Review queue: everything waiting for approval (join requests, posts, questions, answers, reviews) now lives in one place instead of being scattered.',
       'Cleaner community menus — the gear now opens a quick menu (Review queue, Question of the Week, Settings, Audit log), and Settings has a jump-to-section nav.',
       'Your role now shows in the community header (Owner, Organizer, or Moderator).',
+      'This page! You can now see everything new on Stoke on the "What\'s new" page.',
     ],
   },
   {
