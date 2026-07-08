@@ -9,9 +9,18 @@ type Props = {
   slug: string
   memberStatus: string | null  // null = not a member
   isOwner: boolean
+  role?: string | null  // viewer's community role (organizer | moderator | member)
 }
 
-export default function JoinButton({ communityId, joinMode, slug, memberStatus, isOwner }: Props) {
+function RoleBadge({ label }: { label: string }) {
+  return (
+    <span className="text-xs text-stone-400 font-medium uppercase tracking-wide whitespace-nowrap">
+      {label}
+    </span>
+  )
+}
+
+export default function JoinButton({ communityId, joinMode, slug, memberStatus, isOwner, role = null }: Props) {
   const [loading, setLoading] = useState(false)
   const [localStatus, setLocalStatus] = useState(memberStatus)
   const [error, setError] = useState<string | null>(null)
@@ -28,9 +37,8 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [error])
 
-  if (isOwner) return (
-    <span className="text-xs text-stone-400 font-medium uppercase tracking-wide whitespace-nowrap">Organizer</span>
-  )
+  // Community owners can't leave, so they get a badge and no action.
+  if (isOwner) return <RoleBadge label="Owner" />
 
   if (joinMode === 'invite_only' && !localStatus) return null
 
@@ -50,15 +58,23 @@ export default function JoinButton({ communityId, joinMode, slug, memberStatus, 
     setLoading(false)
   }
 
+  // Staff roles get an accurate badge alongside their Leave action.
+  const roleLabel = localStatus === 'active'
+    ? (role === 'organizer' ? 'Organizer' : role === 'moderator' ? 'Moderator' : null)
+    : null
+
   if (localStatus === 'active') {
     return (
-      <button
-        onClick={handleLeave}
-        disabled={loading}
-        className="px-4 py-1.5 text-sm border border-stone-300 text-stone-600 rounded-lg hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
-      >
-        {loading ? '…' : 'Leave'}
-      </button>
+      <div className="flex items-center gap-2">
+        {roleLabel && <RoleBadge label={roleLabel} />}
+        <button
+          onClick={handleLeave}
+          disabled={loading}
+          className="px-4 py-1.5 text-sm border border-stone-300 text-stone-600 rounded-lg hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
+        >
+          {loading ? '…' : 'Leave'}
+        </button>
+      </div>
     )
   }
 

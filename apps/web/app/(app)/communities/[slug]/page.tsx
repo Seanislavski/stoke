@@ -338,6 +338,7 @@ export default async function CommunityPage({
               slug={community.slug}
               memberStatus={myMembership?.status ?? null}
               isOwner={isOwner}
+              role={myMembership?.role ?? null}
             />
             {isMod && (
               <CommunityGear
