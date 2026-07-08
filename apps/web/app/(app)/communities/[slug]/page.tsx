@@ -339,14 +339,6 @@ export default async function CommunityPage({
               memberStatus={myMembership?.status ?? null}
               isOwner={isOwner}
             />
-            {isMod && totalPending > 0 && (
-              <Link
-                href={`/communities/${slug}/moderation`}
-                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors whitespace-nowrap"
-              >
-                {totalPending} to review
-              </Link>
-            )}
             {isMod && (
               <CommunityGear
                 slug={slug}

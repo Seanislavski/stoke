@@ -267,7 +267,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Audit log */}
-      <section className="pb-8">
+      <section id="audit-log" className="pb-8 scroll-mt-20">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Audit log</h2>
         <p className="text-sm text-stone-500 mb-4">Recent moderation actions in this community.</p>
         {!auditLog || auditLog.length === 0 ? (
