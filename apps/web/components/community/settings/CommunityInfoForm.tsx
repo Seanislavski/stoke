@@ -12,6 +12,7 @@ type Community = {
   slug: string
   name: string
   description: string | null
+  about: string | null
   join_mode: string
   is_listed: boolean
   category_id: string | null
@@ -128,6 +129,23 @@ export default function CommunityInfoForm({
           rows={3}
           className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
         />
+        <p className="mt-1 text-xs text-stone-400">Short tagline shown in the header and the directory.</p>
+      </div>
+
+      <div>
+        <label htmlFor="about" className="block text-sm font-medium text-stone-700 mb-1">
+          About this community
+        </label>
+        <textarea
+          id="about"
+          name="about"
+          defaultValue={community.about ?? ''}
+          maxLength={5000}
+          rows={8}
+          className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+          placeholder="Tell people what this community is about — its mission, who it's for, how it works, when you meet, any guidelines. Links you paste become clickable."
+        />
+        <p className="mt-1 text-xs text-stone-400">The full story, shown at the top of your community page. Links become clickable.</p>
       </div>
 
       <div>

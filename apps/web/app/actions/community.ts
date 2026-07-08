@@ -59,6 +59,7 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
     .update({
       name: formData.get('name') as string,
       description: (formData.get('description') as string) || null,
+      about: (formData.get('about') as string) || null,
       join_mode: formData.get('join_mode') as string,
       is_listed: formData.get('is_listed') === 'on',
       category_id: (formData.get('category_id') as string) || null,

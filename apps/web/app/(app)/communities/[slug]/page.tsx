@@ -39,7 +39,7 @@ export default async function CommunityPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, join_mode, is_listed, owner_id, category_id, image_url')
+    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url')
     .eq('slug', slug)
     .single()
 
@@ -355,6 +355,14 @@ export default async function CommunityPage({
           </div>
         </div>
       </div>
+
+      {/* About this community */}
+      {community.about && (
+        <div className="bg-white rounded-xl border border-stone-200 p-6">
+          <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">About</h2>
+          <RichContent content={community.about} className="text-stone-700 leading-relaxed break-words whitespace-pre-wrap" />
+        </div>
+      )}
 
       {/* Onboarding checklist — organizers only, disappears when all steps done */}
       {isMod && (

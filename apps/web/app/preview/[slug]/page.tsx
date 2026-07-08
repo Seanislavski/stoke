@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
+import RichContent from '@/components/RichContent'
 
 const joinModeLabel: Record<string, string> = {
   open: 'Open to join',
@@ -16,7 +17,7 @@ async function getCommunity(slug: string) {
   const admin = createAdminClient()
   const { data: community } = await admin
     .from('communities')
-    .select('id, name, slug, description, join_mode, is_listed, image_url')
+    .select('id, name, slug, description, about, join_mode, is_listed, image_url')
     .eq('slug', slug)
     .single()
   return community
@@ -165,6 +166,16 @@ export default async function CommunityPreviewPage({
             </p>
           )}
         </div>
+
+        {/* About — listed communities only (unlisted stay private) */}
+        {community.is_listed && community.about && (
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">About</h2>
+            <div className="bg-white rounded-2xl border border-stone-200 p-6">
+              <RichContent content={community.about} embeds={false} className="text-stone-700 leading-relaxed break-words whitespace-pre-wrap" />
+            </div>
+          </div>
+        )}
 
         {/* Content teaser (listed communities only) */}
         {community.is_listed ? (
