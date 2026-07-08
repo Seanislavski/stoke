@@ -481,10 +481,10 @@ export default async function CommunityPage({
                 </div>
               ) : (
                 <>
-                  {/* Upcoming */}
-                  {events.filter(e => new Date(e.starts_at) >= now).length > 0 && (
+                  {/* Upcoming + in-progress (an event is "past" only once it has ended) */}
+                  {events.filter(e => !eventEnded(e, now)).length > 0 && (
                     <div className="space-y-3">
-                      {events.filter(e => new Date(e.starts_at) >= now).map(event => (
+                      {events.filter(e => !eventEnded(e, now)).map(event => (
                         <EventCard
                           key={event.id}
                           event={event}
@@ -493,19 +493,20 @@ export default async function CommunityPage({
                           counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
                           canDelete={event.created_by === user!.id || isMod}
                           viewerTz={viewerTz}
+                          ongoing={new Date(event.starts_at) <= now}
                         />
                       ))}
                     </div>
                   )}
 
                   {/* Past */}
-                  {events.filter(e => new Date(e.starts_at) < now).length > 0 && (
+                  {events.filter(e => eventEnded(e, now)).length > 0 && (
                     <details className="mt-4">
                       <summary className="text-xs font-medium text-stone-400 uppercase tracking-wide cursor-pointer hover:text-stone-600 select-none">
-                        Past events ({events.filter(e => new Date(e.starts_at) < now).length})
+                        Past events ({events.filter(e => eventEnded(e, now)).length})
                       </summary>
                       <div className="space-y-3 mt-3">
-                        {events.filter(e => new Date(e.starts_at) < now).reverse().map(event => (
+                        {events.filter(e => eventEnded(e, now)).reverse().map(event => (
                           <EventCard
                             key={event.id}
                             event={event}
@@ -674,6 +675,12 @@ type Event = {
   photos: string[] | null
 }
 
+// An event is "past" only once it has ended. If it has no end time, fall back
+// to its start time. So an in-progress event (started, not yet ended) is NOT past.
+function eventEnded(e: Event, now: Date): boolean {
+  return new Date(e.ends_at ?? e.starts_at) < now
+}
+
 function EventCard({
   event,
   communityId,
@@ -682,6 +689,7 @@ function EventCard({
   canDelete,
   viewerTz,
   past = false,
+  ongoing = false,
 }: {
   event: Event
   communityId: string
@@ -690,6 +698,7 @@ function EventCard({
   canDelete: boolean
   viewerTz: string
   past?: boolean
+  ongoing?: boolean
 }) {
   const dateStr = formatEventDate(event.starts_at, viewerTz)
   const timeStr = formatEventTime(event.starts_at, viewerTz)
@@ -697,11 +706,18 @@ function EventCard({
   const zoneLabel = tzAbbrev(event.starts_at, viewerTz)
 
   return (
-    <div className={`bg-white border rounded-xl p-4 ${past ? 'border-stone-100 opacity-70' : 'border-stone-200'}`}>
+    <div className={`bg-white border rounded-xl p-4 ${past ? 'border-stone-100 opacity-70' : ongoing ? 'border-green-300' : 'border-stone-200'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-stone-900">{event.title}</h3>
+            <h3 className="font-semibold text-stone-900">
+              {ongoing && (
+                <span className="mr-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 align-middle">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Happening now
+                </span>
+              )}
+              {event.title}
+            </h3>
             {canDelete && (
               <DeleteItemButton
                 action={deleteEvent.bind(null, event.id, communityId)}

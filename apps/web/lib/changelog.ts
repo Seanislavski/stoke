@@ -16,6 +16,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       'Event times now show in your own timezone, with the zone labeled — no more mental math.',
       'We set your timezone automatically from your browser. You can change it anytime under Settings → Profile.',
+      'Events that are underway now stay in the upcoming list with a "Happening now" tag, instead of disappearing into past events the moment they start.',
     ],
   },
   {

@@ -45,12 +45,13 @@ export default async function HomePage() {
     { data: recentPosts },
     { data: pendingRequests },
   ] = await Promise.all([
-    // Upcoming events across all joined communities
+    // Upcoming + in-progress events across all joined communities
+    // (an event still counts until it ends; if it has no end time, until it starts)
     admin
       .from('events')
       .select('id, title, starts_at, community_id, communities(name, slug)')
       .in('community_id', communityIds)
-      .gte('starts_at', now)
+      .or(`ends_at.gte.${now},and(ends_at.is.null,starts_at.gte.${now})`)
       .order('starts_at', { ascending: true })
       .limit(4),
 
