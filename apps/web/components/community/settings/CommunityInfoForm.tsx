@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { updateCommunityInfo } from '@/app/actions/community'
 import CommunityImageCropModal from './CommunityImageCropModal'
+import PhotoUploader from '@/components/PhotoUploader'
 
 type Category = { id: string; name: string }
 type Community = {
@@ -17,6 +18,8 @@ type Community = {
   is_listed: boolean
   category_id: string | null
   image_url: string | null
+  banner_url: string | null
+  photos: string[] | null
 }
 
 export default function CommunityInfoForm({
@@ -29,9 +32,14 @@ export default function CommunityInfoForm({
   const [imageUrl, setImageUrl]   = useState(community.image_url)
   const [cropFile, setCropFile]   = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [bannerUrl, setBannerUrl]     = useState(community.banner_url)
+  const [bannerFile, setBannerFile]   = useState<File | null>(null)
+  const [bannerBusy, setBannerBusy]   = useState(false)
+  const [photos, setPhotos]       = useState<string[]>(community.photos ?? [])
   const [saving, setSaving]       = useState(false)
   const [message, setMessage]     = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const bannerRef = useRef<HTMLInputElement>(null)
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -57,9 +65,43 @@ export default function CommunityInfoForm({
     setMessage('Image updated.')
   }
 
+  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBannerFile(file)
+    e.target.value = ''
+  }
+
+  async function handleBannerCropSave(blob: Blob) {
+    setBannerBusy(true)
+    setMessage('')
+    const supabase = createClient()
+    const path = `community-banner-${community.id}`
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+    if (error) { setMessage('Upload failed: ' + error.message); setBannerBusy(false); setBannerFile(null); return }
+    const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${path}?t=${Date.now()}`
+    await supabase.from('communities').update({ banner_url: url }).eq('id', community.id)
+    setBannerUrl(url)
+    setBannerBusy(false)
+    setBannerFile(null)
+    setMessage('Cover image updated.')
+  }
+
+  async function removeBanner() {
+    setBannerBusy(true)
+    const supabase = createClient()
+    await supabase.from('communities').update({ banner_url: null }).eq('id', community.id)
+    setBannerUrl(null)
+    setBannerBusy(false)
+    setMessage('Cover image removed.')
+  }
+
   async function handleSubmit(formData: FormData) {
     setSaving(true)
     setMessage('')
+    formData.set('photos', JSON.stringify(photos))
     const result = await updateCommunityInfo(community.id, community.slug, formData)
     setSaving(false)
     setMessage(result.error ? `Error: ${result.error}` : 'Saved.')
@@ -72,6 +114,16 @@ export default function CommunityInfoForm({
         file={cropFile}
         onSave={handleCropSave}
         onCancel={() => setCropFile(null)}
+      />
+    )}
+    {bannerFile && (
+      <CommunityImageCropModal
+        file={bannerFile}
+        onSave={handleBannerCropSave}
+        onCancel={() => setBannerFile(null)}
+        aspect={3}
+        outputWidth={1500}
+        title="Crop cover image"
       />
     )}
     <form action={handleSubmit} className="space-y-5 max-w-lg">
@@ -100,6 +152,35 @@ export default function CommunityInfoForm({
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
         </div>
+      </div>
+
+      {/* Cover image (banner) */}
+      <div>
+        <label className="block text-sm font-medium text-stone-700 mb-2">Cover image</label>
+        <div className="w-full aspect-[3/1] rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center mb-2">
+          {bannerUrl ? (
+            <img src={bannerUrl} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-sm text-stone-300">No cover image yet</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => bannerRef.current?.click()}
+            disabled={bannerBusy}
+            className="px-3 py-1.5 text-sm border border-stone-300 rounded-lg text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+          >
+            {bannerBusy ? 'Working…' : bannerUrl ? 'Change cover' : 'Upload cover'}
+          </button>
+          {bannerUrl && !bannerBusy && (
+            <button type="button" onClick={removeBanner} className="text-xs text-stone-400 hover:text-red-600">
+              Remove
+            </button>
+          )}
+          <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+        </div>
+        <p className="text-xs text-stone-400 mt-1">Wide image shown across the top of your community page.</p>
       </div>
 
       <div>
@@ -146,6 +227,17 @@ export default function CommunityInfoForm({
           placeholder="Tell people what this community is about — its mission, who it's for, how it works, when you meet, any guidelines. Links you paste become clickable."
         />
         <p className="mt-1 text-xs text-stone-400">The full story, shown at the top of your community page. Links become clickable.</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-stone-700 mb-1">Photo gallery</label>
+        <PhotoUploader
+          photos={photos}
+          onChange={setPhotos}
+          pathPrefix={`community-photos/gallery-${community.id}`}
+          multiple
+        />
+        <p className="mt-1 text-xs text-stone-400">Show off your community — events, people, the vibe. Saved when you click Save changes.</p>
       </div>
 
       <div>

@@ -2,18 +2,27 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-const PREVIEW = 280  // crop frame display size (px)
-const OUTPUT  = 400  // canvas output size (px)
-
 export default function CommunityImageCropModal({
   file,
   onSave,
   onCancel,
+  aspect = 1,                 // width / height of the crop (1 = square avatar, 3 = wide banner)
+  outputWidth = 400,          // exported canvas width in px (height derived from aspect)
+  title = 'Crop photo',
 }: {
   file: File
   onSave: (blob: Blob) => Promise<void>
   onCancel: () => void
+  aspect?: number
+  outputWidth?: number
+  title?: string
 }) {
+  // Crop frame display size — keep width bounded, derive height from the aspect.
+  const FRAME_W = aspect >= 2 ? 340 : 280
+  const FRAME_H = Math.round(FRAME_W / aspect)
+  const OUTPUT_W = outputWidth
+  const OUTPUT_H = Math.round(outputWidth / aspect)
+
   const [imgSrc, setImgSrc]         = useState('')
   const [loaded, setLoaded]         = useState(false)
   const [saving, setSaving]         = useState(false)
@@ -31,18 +40,18 @@ export default function CommunityImageCropModal({
 
   function handleLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { naturalWidth: nw, naturalHeight: nh } = e.currentTarget
-    const s  = Math.max(PREVIEW / nw, PREVIEW / nh)
+    const s  = Math.max(FRAME_W / nw, FRAME_H / nh)
     const dw = nw * s
     const dh = nh * s
     setDisplaySize({ w: dw, h: dh })
-    setOffset({ x: (PREVIEW - dw) / 2, y: (PREVIEW - dh) / 2 })
+    setOffset({ x: (FRAME_W - dw) / 2, y: (FRAME_H - dh) / 2 })
     setLoaded(true)
   }
 
   function clamp(o: { x: number; y: number }, size: { w: number; h: number }) {
     return {
-      x: Math.min(0, Math.max(PREVIEW - size.w, o.x)),
-      y: Math.min(0, Math.max(PREVIEW - size.h, o.y)),
+      x: Math.min(0, Math.max(FRAME_W - size.w, o.x)),
+      y: Math.min(0, Math.max(FRAME_H - size.h, o.y)),
     }
   }
 
@@ -67,17 +76,17 @@ export default function CommunityImageCropModal({
     setSaving(true)
 
     const canvas = document.createElement('canvas')
-    canvas.width  = OUTPUT
-    canvas.height = OUTPUT
+    canvas.width  = OUTPUT_W
+    canvas.height = OUTPUT_H
     const ctx = canvas.getContext('2d')!
 
     const scale = displaySize.w / img.naturalWidth
     const srcX  = -offset.x / scale
     const srcY  = -offset.y / scale
-    const srcW  = PREVIEW   / scale
-    const srcH  = PREVIEW   / scale
+    const srcW  = FRAME_W   / scale
+    const srcH  = FRAME_H   / scale
 
-    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, OUTPUT, OUTPUT)
+    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, OUTPUT_W, OUTPUT_H)
 
     canvas.toBlob(async (blob) => {
       if (blob) await onSave(blob)
@@ -87,14 +96,14 @@ export default function CommunityImageCropModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-        <h2 className="text-base font-semibold text-stone-900 mb-1">Crop photo</h2>
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+        <h2 className="text-base font-semibold text-stone-900 mb-1">{title}</h2>
         <p className="text-xs text-stone-400 mb-4">Drag to reposition</p>
 
         {/* Crop frame */}
         <div
           className="relative mx-auto overflow-hidden rounded-xl bg-stone-100 select-none cursor-grab active:cursor-grabbing"
-          style={{ width: PREVIEW, height: PREVIEW }}
+          style={{ width: FRAME_W, height: FRAME_H }}
           onMouseDown={e  => startDrag(e.clientX, e.clientY)}
           onMouseMove={e  => moveDrag(e.clientX, e.clientY)}
           onMouseUp={endDrag}

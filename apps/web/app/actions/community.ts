@@ -53,6 +53,12 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
   const caller = await getCallerRole(communityId)
   if (!caller) return { error: 'Not authorized' }
 
+  let photos: string[] = []
+  const photosRaw = formData.get('photos') as string | null
+  if (photosRaw) {
+    try { photos = JSON.parse(photosRaw) } catch { photos = [] }
+  }
+
   const supabase = await createClient()
   const { error } = await supabase
     .from('communities')
@@ -60,6 +66,7 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
       name: formData.get('name') as string,
       description: (formData.get('description') as string) || null,
       about: (formData.get('about') as string) || null,
+      photos,
       join_mode: formData.get('join_mode') as string,
       is_listed: formData.get('is_listed') === 'on',
       category_id: (formData.get('category_id') as string) || null,

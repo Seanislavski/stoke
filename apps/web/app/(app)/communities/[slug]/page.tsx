@@ -39,7 +39,7 @@ export default async function CommunityPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url')
+    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos')
     .eq('slug', slug)
     .single()
 
@@ -310,6 +310,13 @@ export default async function CommunityPage({
   return (
     <div className="max-w-5xl mx-auto py-8 space-y-6">
 
+      {/* Cover image */}
+      {community.banner_url && (
+        <div className="w-full aspect-[3/1] rounded-xl overflow-hidden border border-stone-200">
+          <Image src={community.banner_url} alt={`${community.name} cover`} width={1500} height={500} className="w-full h-full object-cover" priority />
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative bg-white rounded-xl border border-stone-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -361,6 +368,14 @@ export default async function CommunityPage({
         <div className="bg-white rounded-xl border border-stone-200 p-6">
           <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">About</h2>
           <RichContent content={community.about} className="text-stone-700 leading-relaxed break-words whitespace-pre-wrap" />
+        </div>
+      )}
+
+      {/* Photo gallery */}
+      {community.photos && community.photos.length > 0 && (
+        <div className="bg-white rounded-xl border border-stone-200 p-6">
+          <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-1">Photos</h2>
+          <PhotoGallery photos={community.photos} />
         </div>
       )}
 

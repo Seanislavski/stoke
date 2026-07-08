@@ -12,9 +12,10 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-07-08',
-    title: 'Recurring events, community About, and timezone-aware times',
+    title: 'Recurring events, richer community pages, and timezone-aware times',
     items: [
       'Communities now have an "About" section — organizers can add the full story (mission, who it\'s for, how it works, schedule) right at the top of the community page.',
+      'Communities can now have a wide cover image and a photo gallery, so a community page shows off its personality at a glance.',
       'Organizers can now create repeating events — weekly, every 2 weeks, or monthly — that end after a set number of times, on a date, or keep going until you turn them off.',
       'Deleting a repeating event lets you remove just that occurrence, this and all following, or the whole series.',
       'Event times now show in your own timezone, with the zone labeled — no more mental math.',

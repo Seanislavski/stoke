@@ -6,6 +6,7 @@ import Image from 'next/image'
 import StokeWordmark from '@/components/StokeWordmark'
 import MarketingFooter from '@/components/MarketingFooter'
 import RichContent from '@/components/RichContent'
+import PhotoGallery from '@/components/PhotoGallery'
 
 const joinModeLabel: Record<string, string> = {
   open: 'Open to join',
@@ -17,7 +18,7 @@ async function getCommunity(slug: string) {
   const admin = createAdminClient()
   const { data: community } = await admin
     .from('communities')
-    .select('id, name, slug, description, about, join_mode, is_listed, image_url')
+    .select('id, name, slug, description, about, join_mode, is_listed, image_url, banner_url, photos')
     .eq('slug', slug)
     .single()
   return community
@@ -120,6 +121,13 @@ export default async function CommunityPreviewPage({
       </header>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-10">
+        {/* Cover image */}
+        {community.banner_url && (
+          <div className="w-full aspect-[3/1] rounded-2xl overflow-hidden border border-stone-200 mb-6">
+            <img src={community.banner_url} alt={`${community.name} cover`} className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Community header card */}
         <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8">
           <div className="flex items-start gap-4">
@@ -173,6 +181,16 @@ export default async function CommunityPreviewPage({
             <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">About</h2>
             <div className="bg-white rounded-2xl border border-stone-200 p-6">
               <RichContent content={community.about} embeds={false} className="text-stone-700 leading-relaxed break-words whitespace-pre-wrap" />
+            </div>
+          </div>
+        )}
+
+        {/* Photo gallery — listed communities only */}
+        {community.is_listed && community.photos && community.photos.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">Photos</h2>
+            <div className="bg-white rounded-2xl border border-stone-200 p-6">
+              <PhotoGallery photos={community.photos} />
             </div>
           </div>
         )}
