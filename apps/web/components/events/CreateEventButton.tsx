@@ -9,9 +9,19 @@ export default function CreateEventButton({ communityId }: { communityId: string
   const [open, setOpen] = useState(false)
   const [locationType, setLocationType] = useState<'online' | 'in_person' | 'hybrid'>('online')
   const [photos, setPhotos] = useState<string[]>([])
+  const [repeat, setRepeat] = useState<'none' | 'weekly' | 'biweekly' | 'monthly'>('none')
+  const [endType, setEndType] = useState<'count' | 'until' | 'never'>('never')
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+
+  function resetForm() {
+    setPhotos([])
+    formRef.current?.reset()
+    setLocationType('online')
+    setRepeat('none')
+    setEndType('never')
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -22,13 +32,25 @@ export default function CreateEventButton({ communityId }: { communityId: string
       alert('End time must be after start time.')
       return
     }
+    if (repeat !== 'none' && endType === 'count') {
+      const n = parseInt((formData.get('repeat_count') as string) || '', 10)
+      if (!n || n < 1) {
+        alert('Enter how many times the event should repeat.')
+        return
+      }
+    }
+    if (repeat !== 'none' && endType === 'until') {
+      const until = formData.get('repeat_until') as string
+      if (!until || until < startsAt.split('T')[0]) {
+        alert('Choose an end date on or after the first event.')
+        return
+      }
+    }
     formData.set('photos', JSON.stringify(photos))
     startTransition(async () => {
       await createEvent(communityId, formData)
       setOpen(false)
-      setPhotos([])
-      formRef.current?.reset()
-      setLocationType('online')
+      resetForm()
       router.refresh()
     })
   }
@@ -91,6 +113,56 @@ export default function CreateEventButton({ communityId }: { communityId: string
                 </div>
               </div>
 
+              {/* Recurrence */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Repeats</label>
+                <select
+                  name="repeat_frequency"
+                  value={repeat}
+                  onChange={e => setRepeat(e.target.value as typeof repeat)}
+                  className="w-full px-3 py-2 text-sm text-stone-900 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                >
+                  <option value="none">Doesn&apos;t repeat</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+
+                {repeat !== 'none' && (
+                  <div className="mt-3 rounded-lg bg-stone-50 border border-stone-200 p-3 space-y-2">
+                    <p className="text-xs font-medium text-stone-600">Ends</p>
+                    <label className="flex items-center gap-2 text-sm text-stone-700">
+                      <input type="radio" name="repeat_end_type" value="never" checked={endType === 'never'} onChange={() => setEndType('never')} className="accent-orange-500" />
+                      Until I turn it off
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-stone-700">
+                      <input type="radio" name="repeat_end_type" value="count" checked={endType === 'count'} onChange={() => setEndType('count')} className="accent-orange-500" />
+                      After
+                      <input
+                        name="repeat_count"
+                        type="number"
+                        min={1}
+                        max={520}
+                        defaultValue={12}
+                        disabled={endType !== 'count'}
+                        className="w-16 px-2 py-1 text-sm text-stone-900 border border-stone-200 rounded disabled:opacity-40"
+                      />
+                      times
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-stone-700">
+                      <input type="radio" name="repeat_end_type" value="until" checked={endType === 'until'} onChange={() => setEndType('until')} className="accent-orange-500" />
+                      On date
+                      <input
+                        name="repeat_until"
+                        type="date"
+                        disabled={endType !== 'until'}
+                        className="px-2 py-1 text-sm text-stone-900 border border-stone-200 rounded disabled:opacity-40"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">Location type *</label>
                 <div className="flex gap-3">
@@ -145,7 +217,7 @@ export default function CreateEventButton({ communityId }: { communityId: string
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setOpen(false); setPhotos([]) }}
+                  onClick={() => { setOpen(false); resetForm() }}
                   className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 rounded-lg border border-stone-200"
                 >
                   Cancel

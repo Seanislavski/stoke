@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail, eventReminderHtml } from '@/lib/email'
+import { topUpAllSeries } from '@/lib/eventSeries'
 
 // Protected by CRON_SECRET env var.
 // Configure a Railway cron job to call:
@@ -19,6 +20,9 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient()
 
+  // Top up recurring-event series so their rolling horizon stays filled.
+  const generated = await topUpAllSeries(admin)
+
   // Find events starting in 25–35 minutes that haven't had a reminder sent
   const now = new Date()
   const windowStart = new Date(now.getTime() + 25 * 60 * 1000).toISOString()
@@ -32,7 +36,7 @@ export async function GET(req: NextRequest) {
     .is('reminder_sent_at', null)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!events || events.length === 0) return NextResponse.json({ sent: 0 })
+  if (!events || events.length === 0) return NextResponse.json({ sent: 0, generated })
 
   let sent = 0
 
@@ -76,5 +80,5 @@ export async function GET(req: NextRequest) {
     await admin.from('events').update({ reminder_sent_at: new Date().toISOString() }).eq('id', event.id)
   }
 
-  return NextResponse.json({ sent, events: events.length })
+  return NextResponse.json({ sent, events: events.length, generated })
 }

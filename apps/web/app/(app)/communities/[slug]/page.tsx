@@ -9,11 +9,11 @@ import SubmitPostForm from '@/components/bulletin/SubmitPostForm'
 import ModActions from '@/components/bulletin/ModActions'
 import CreateEventButton from '@/components/events/CreateEventButton'
 import RsvpButton from '@/components/events/RsvpButton'
+import EventDeleteControl from '@/components/events/EventDeleteControl'
 import DeleteItemButton from '@/components/DeleteItemButton'
 import RichContent from '@/components/RichContent'
 import PhotoGallery from '@/components/PhotoGallery'
 import { deletePost } from '@/app/actions/bulletin'
-import { deleteEvent } from '@/app/actions/events'
 import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
 import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
 import { findQotwCategoryId } from '@/lib/qotw'
@@ -268,7 +268,7 @@ export default async function CommunityPage({
 
     const { data: eventsData } = await admin
       .from('events')
-      .select('id, title, description, starts_at, ends_at, location_type, location_online, location_address, created_by, photos')
+      .select('id, title, description, starts_at, ends_at, location_type, location_online, location_address, created_by, photos, series_id, recurrence')
       .eq('community_id', community.id)
       .order('starts_at', { ascending: true })
 
@@ -673,12 +673,18 @@ type Event = {
   location_address: string | null
   created_by: string
   photos: string[] | null
+  series_id: string | null
+  recurrence: string | null
 }
 
 // An event is "past" only once it has ended. If it has no end time, fall back
 // to its start time. So an in-progress event (started, not yet ended) is NOT past.
 function eventEnded(e: Event, now: Date): boolean {
   return new Date(e.ends_at ?? e.starts_at) < now
+}
+
+function recurrenceLabel(recurrence: string): string {
+  return recurrence === 'biweekly' ? 'every 2 weeks' : recurrence === 'monthly' ? 'monthly' : 'weekly'
 }
 
 function EventCard({
@@ -719,15 +725,19 @@ function EventCard({
               {event.title}
             </h3>
             {canDelete && (
-              <DeleteItemButton
-                action={deleteEvent.bind(null, event.id, communityId)}
-                confirm="Delete this event?"
+              <EventDeleteControl
+                eventId={event.id}
+                communityId={communityId}
+                isSeries={!!event.series_id}
               />
             )}
           </div>
           <p className="text-sm text-stone-500 mt-0.5">
             {dateStr} · {timeStr}{endTimeStr ? ` – ${endTimeStr}` : ''} {zoneLabel}
           </p>
+          {event.recurrence && (
+            <p className="text-xs text-stone-400 mt-0.5">🔁 Repeats {recurrenceLabel(event.recurrence)}</p>
+          )}
 
           {event.location_type === 'online' && event.location_online && (
             <a

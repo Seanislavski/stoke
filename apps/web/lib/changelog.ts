@@ -12,8 +12,10 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-07-08',
-    title: 'Event times in your timezone',
+    title: 'Recurring events + timezone-aware times',
     items: [
+      'Organizers can now create repeating events — weekly, every 2 weeks, or monthly — that end after a set number of times, on a date, or keep going until you turn them off.',
+      'Deleting a repeating event lets you remove just that occurrence, this and all following, or the whole series.',
       'Event times now show in your own timezone, with the zone labeled — no more mental math.',
       'We set your timezone automatically from your browser. You can change it anytime under Settings → Profile.',
       'Events that are underway now stay in the upcoming list with a "Happening now" tag, instead of disappearing into past events the moment they start.',
