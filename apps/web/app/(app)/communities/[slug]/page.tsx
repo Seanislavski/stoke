@@ -22,6 +22,7 @@ import ReviewForm from '@/components/reviews/ReviewForm'
 import ReviewList from '@/components/reviews/ReviewList'
 import { REVIEW_COLS, mapReview, type RawReview } from '@/lib/reviews'
 import OnboardingChecklist from '@/components/community/OnboardingChecklist'
+import { formatEventDate, formatEventTime, tzAbbrev, DEFAULT_TZ } from '@/lib/eventTime'
 
 export default async function CommunityPage({
   params,
@@ -258,8 +259,13 @@ export default async function CommunityPage({
   let events: Event[] | null = null
   let rsvpCountMap: Record<string, { yes: number; maybe: number; no: number }> = {}
   let myRsvpMap: Record<string, string> = {}
+  let viewerTz = DEFAULT_TZ
 
   if (tab === 'events' && canSee) {
+    const { data: viewerProfile } = await admin
+      .from('profiles').select('timezone').eq('id', user!.id).maybeSingle()
+    viewerTz = viewerProfile?.timezone || DEFAULT_TZ
+
     const { data: eventsData } = await admin
       .from('events')
       .select('id, title, description, starts_at, ends_at, location_type, location_online, location_address, created_by, photos')
@@ -486,6 +492,7 @@ export default async function CommunityPage({
                           myRsvp={myRsvpMap[event.id] ?? null}
                           counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
                           canDelete={event.created_by === user!.id || isMod}
+                          viewerTz={viewerTz}
                         />
                       ))}
                     </div>
@@ -506,6 +513,7 @@ export default async function CommunityPage({
                             myRsvp={myRsvpMap[event.id] ?? null}
                             counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
                             canDelete={event.created_by === user!.id || isMod}
+                            viewerTz={viewerTz}
                             past
                           />
                         ))}
@@ -672,6 +680,7 @@ function EventCard({
   myRsvp,
   counts,
   canDelete,
+  viewerTz,
   past = false,
 }: {
   event: Event
@@ -679,14 +688,13 @@ function EventCard({
   myRsvp: string | null
   counts: { yes: number; maybe: number; no: number }
   canDelete: boolean
+  viewerTz: string
   past?: boolean
 }) {
-  const start = new Date(event.starts_at)
-  const end = event.ends_at ? new Date(event.ends_at) : null
-
-  const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  const endTimeStr = end?.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const dateStr = formatEventDate(event.starts_at, viewerTz)
+  const timeStr = formatEventTime(event.starts_at, viewerTz)
+  const endTimeStr = event.ends_at ? formatEventTime(event.ends_at, viewerTz) : null
+  const zoneLabel = tzAbbrev(event.starts_at, viewerTz)
 
   return (
     <div className={`bg-white border rounded-xl p-4 ${past ? 'border-stone-100 opacity-70' : 'border-stone-200'}`}>
@@ -702,7 +710,7 @@ function EventCard({
             )}
           </div>
           <p className="text-sm text-stone-500 mt-0.5">
-            {dateStr} · {timeStr}{endTimeStr ? ` – ${endTimeStr}` : ''}
+            {dateStr} · {timeStr}{endTimeStr ? ` – ${endTimeStr}` : ''} {zoneLabel}
           </p>
 
           {event.location_type === 'online' && event.location_online && (

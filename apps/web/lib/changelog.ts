@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-07-08',
+    title: 'Event times in your timezone',
+    items: [
+      'Event times now show in your own timezone, with the zone labeled — no more mental math.',
+      'We set your timezone automatically from your browser. You can change it anytime under Settings → Profile.',
+    ],
+  },
+  {
     date: '2026-07-07',
     title: 'Editing, a review queue, and cleaner menus',
     items: [

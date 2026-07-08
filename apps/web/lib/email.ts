@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { DEFAULT_TZ } from '@/lib/eventTime'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = 'Stoke Community <noreply@stoke.community>'
@@ -148,9 +149,10 @@ export function reviewFeaturedHtml(scopeName: string, viewPath: string) {
   `)
 }
 
-export function eventReminderHtml(eventTitle: string, communityName: string, communitySlug: string, startsAt: string) {
+export function eventReminderHtml(eventTitle: string, communityName: string, communitySlug: string, startsAt: string, tz: string = DEFAULT_TZ) {
   const time = new Date(startsAt).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    timeZone: tz, timeZoneName: 'short',
   })
   return wrap(`
     <p style="margin:0 0 6px;color:#78716c;font-size:13px;">Starting in ~30 minutes</p>

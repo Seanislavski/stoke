@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { updateProfile } from '@/app/actions/profile'
+import { COMMON_TIMEZONES } from '@/lib/eventTime'
 
 type Profile = {
   id: string
@@ -12,6 +13,7 @@ type Profile = {
   bio: string | null
   avatar_url: string | null
   show_memberships: boolean
+  timezone: string
 }
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
@@ -20,6 +22,11 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Ensure the user's current zone is selectable even if it's not in the curated list.
+  const tzOptions = COMMON_TIMEZONES.some(t => t.value === profile.timezone)
+    ? COMMON_TIMEZONES
+    : [{ value: profile.timezone, label: profile.timezone }, ...COMMON_TIMEZONES]
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -136,6 +143,25 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
           />
           <p className="mt-1 text-xs text-stone-400">Max 300 characters.</p>
+        </div>
+
+        <div>
+          <label htmlFor="timezone" className="block text-sm font-medium text-stone-700 mb-1">
+            Timezone
+          </label>
+          <select
+            id="timezone"
+            name="timezone"
+            defaultValue={profile.timezone}
+            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+          >
+            {tzOptions.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-stone-400">
+            Event times are shown in your timezone. We set this automatically from your browser — change it here if it&apos;s wrong.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">

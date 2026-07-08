@@ -52,7 +52,6 @@ export async function GET(req: NextRequest) {
       .in('status', ['going', 'maybe'])
 
     if (rsvps && rsvps.length > 0) {
-      const html = eventReminderHtml(event.title, community.name, community.slug, event.starts_at)
       const subject = `Reminder: ${event.title} starts in 30 minutes`
 
       await Promise.all(
@@ -60,6 +59,12 @@ export async function GET(req: NextRequest) {
           const { data } = await admin.auth.admin.getUserById(r.user_id)
           const email = data.user?.email
           if (email) {
+            // Format the time in each recipient's own timezone.
+            const { data: prof } = await admin
+              .from('profiles').select('timezone').eq('id', r.user_id).maybeSingle()
+            const html = eventReminderHtml(
+              event.title, community.name, community.slug, event.starts_at, prof?.timezone || undefined,
+            )
             await sendEmail(email, subject, html)
             sent++
           }

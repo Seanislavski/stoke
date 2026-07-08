@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import StokeWordmark from '@/components/StokeWordmark'
 import HomeHero from '@/components/HomeHero'
+import { formatEventDate, formatEventTime, DEFAULT_TZ } from '@/lib/eventTime'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -27,6 +28,10 @@ export default async function HomePage() {
       </>
     )
   }
+
+  const { data: viewerProfile } = await supabase
+    .from('profiles').select('timezone').eq('id', user!.id).maybeSingle()
+  const viewerTz = viewerProfile?.timezone || DEFAULT_TZ
 
   const communityIds = memberships.map(m => m.community_id)
   const modCommunityIds = memberships
@@ -160,9 +165,8 @@ export default async function HomePage() {
               <div className="space-y-2">
                 {upcomingEvents.map(event => {
                   const community = Array.isArray(event.communities) ? event.communities[0] : event.communities
-                  const date = new Date(event.starts_at)
-                  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                  const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                  const dateStr = formatEventDate(event.starts_at, viewerTz)
+                  const timeStr = formatEventTime(event.starts_at, viewerTz)
                   return (
                     <Link
                       key={event.id}

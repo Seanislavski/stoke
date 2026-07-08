@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
+import { wallTimeToUtcIso, DEFAULT_TZ } from '@/lib/eventTime'
 
 async function getMembershipOrThrow(communityId: string) {
   const supabase = await createClient()
@@ -39,13 +40,18 @@ export async function createEvent(communityId: string, formData: FormData) {
   const photosRaw = formData.get('photos') as string | null
   const photos: string[] = photosRaw ? JSON.parse(photosRaw) : []
 
+  // Interpret the entered wall-clock time in the creator's timezone.
+  const { data: creatorProfile } = await admin
+    .from('profiles').select('timezone').eq('id', user.id).maybeSingle()
+  const tz = creatorProfile?.timezone || DEFAULT_TZ
+
   const { data: inserted } = await admin.from('events').insert({
     community_id: communityId,
     created_by: user.id,
     title: formData.get('title') as string,
     description: (formData.get('description') as string) || null,
-    starts_at: new Date(startsAt).toISOString(),
-    ends_at: endsAt ? new Date(endsAt).toISOString() : null,
+    starts_at: wallTimeToUtcIso(startsAt, tz),
+    ends_at: endsAt ? wallTimeToUtcIso(endsAt, tz) : null,
     location_type: formData.get('location_type') as string,
     location_online: (formData.get('location_online') as string) || null,
     location_address: (formData.get('location_address') as string) || null,
