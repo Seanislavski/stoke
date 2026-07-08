@@ -7,6 +7,7 @@ export default function MarketingFooter() {
         <span>© {new Date().getFullYear()} Stoke Community</span>
         <div className="flex items-center gap-4">
           <Link href="/about" className="hover:text-stone-600 transition-colors">About</Link>
+          <Link href="/changelog" className="hover:text-stone-600 transition-colors">What&apos;s new</Link>
           <Link href="/privacy" className="hover:text-stone-600 transition-colors">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-stone-600 transition-colors">Terms of Service</Link>
         </div>

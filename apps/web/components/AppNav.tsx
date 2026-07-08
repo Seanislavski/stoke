@@ -152,6 +152,13 @@ export default function AppNav({
                 >
                   Share your experience
                 </Link>
+                <Link
+                  href="/changelog"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                >
+                  What&apos;s new
+                </Link>
               </div>
 
               {/* Platform team — single entry into the admin area; AdminNav takes over

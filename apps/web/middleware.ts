@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
   const isUnsubscribe = pathname.startsWith('/api/unsubscribe')
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
-  const isLegalPage = pathname === '/privacy' || pathname === '/terms' || pathname === '/about'
+  const isLegalPage = pathname === '/privacy' || pathname === '/terms' || pathname === '/about' || pathname === '/changelog'
   const isOgImage = pathname.endsWith('/opengraph-image') || pathname === '/opengraph-image'
   const isPreviewPage = pathname.startsWith('/preview/')
 
