@@ -372,12 +372,12 @@ export default async function CommunityPage({
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_18rem] gap-6 items-start">
           {/* Main column: tabs + content */}
           <div className="min-w-0">
-          <div className="flex border-b border-stone-200 mb-6">
+          <div className="flex border-b border-stone-200 mb-6 overflow-x-auto">
             {TABS.map(t => (
               <Link
                 key={t.key}
                 href={`/communities/${slug}?tab=${t.key}`}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
                   tab === t.key
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-stone-500 hover:text-stone-700'
