@@ -61,7 +61,7 @@ export async function editMessage(
   const admin = createAdminClient()
   const { data: message } = await admin
     .from('messages')
-    .select('author_id, image_url, deleted_at')
+    .select('author_id, content, image_url, deleted_at')
     .eq('id', messageId)
     .single()
 
@@ -71,6 +71,7 @@ export async function editMessage(
   if (message.author_id !== user.id) return { error: 'Not authorized' }
   // Don't allow emptying a text-only message (image-only messages may have empty text).
   if (!trimmed && !message.image_url) return { error: 'Message cannot be empty' }
+  if (trimmed === message.content) return {} // no-op
 
   await admin
     .from('messages')
@@ -83,7 +84,8 @@ export async function editMessage(
     action: 'message.edited',
     targetId: messageId,
     targetType: 'message',
-    metadata: { channel_id: channelId },
+    // Keep the before/after so the audit trail shows what actually changed.
+    metadata: { channel_id: channelId, before: message.content, after: trimmed },
   })
 
   return {}

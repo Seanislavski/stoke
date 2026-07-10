@@ -21,6 +21,11 @@ type Entry = {
   community: Community
 }
 
+function truncEdit(s: string) {
+  const t = s.replace(/\s+/g, ' ').trim()
+  return t.length > 140 ? `${t.slice(0, 140)}…` : t
+}
+
 export default function AuditLogClient({ entries }: { entries: Entry[] }) {
   const [query, setQuery] = useState('')
 
@@ -111,6 +116,13 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                     )}
                     {entry.action === 'member.role_changed' && meta && (
                       <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
+                    )}
+                    {entry.action === 'message.edited' && meta && (typeof meta.before === 'string' || typeof meta.after === 'string') && (
+                      <span className="block text-xs mt-0.5">
+                        <span className="text-stone-400 line-through">{truncEdit(String(meta.before ?? ''))}</span>
+                        <span className="text-stone-400"> → </span>
+                        <span className="text-stone-600">{truncEdit(String(meta.after ?? ''))}</span>
+                      </span>
                     )}
                     {entry.action === 'community.ownership_transferred' && typeof meta?.from_owner_name === 'string' && (
                       <span className="text-stone-400"> · from {meta.from_owner_name}</span>
