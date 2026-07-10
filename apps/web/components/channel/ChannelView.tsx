@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { deleteMessage, restoreMessage, editMessage } from '@/app/actions/messages'
+import { deleteMessage, restoreMessage, editMessage, revertMessage } from '@/app/actions/messages'
 import { processMentions } from '@/app/actions/mentions'
 import { notifyReaction } from '@/app/actions/reactions'
 import RichContent from '@/components/RichContent'
@@ -20,6 +20,7 @@ type Message = {
   image_url: string | null
   created_at: string
   edited_at: string | null
+  previous_content: string | null
   author_id: string
   deleted_at: string | null
   deleted_by: string | null
@@ -114,7 +115,7 @@ export default function ChannelView({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
+          const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; previous_content: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
 
           // fetch author profile if not cached
           let profile = profiles[row.author_id] ?? null
@@ -152,13 +153,13 @@ export default function ChannelView({
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         (payload) => {
-          const row = payload.new as { id: string; content: string; edited_at: string | null; deleted_at: string | null; deleted_by: string | null }
+          const row = payload.new as { id: string; content: string; edited_at: string | null; previous_content: string | null; deleted_at: string | null; deleted_by: string | null }
           setMessages(ms => {
             // non-mods: a deletion removes the message entirely (restore re-adds on next load)
             if (row.deleted_at && !isMod) return ms.filter(m => m.id !== row.id)
-            // otherwise sync content/edit/delete state in place (handles edits, deletes for mods, restores)
+            // otherwise sync content/edit/delete state in place (handles edits, undo, deletes for mods, restores)
             return ms.map(m => m.id === row.id
-              ? { ...m, content: row.content, edited_at: row.edited_at, deleted_at: row.deleted_at, deleted_by: row.deleted_by }
+              ? { ...m, content: row.content, edited_at: row.edited_at, previous_content: row.previous_content, deleted_at: row.deleted_at, deleted_by: row.deleted_by }
               : m)
           })
         }
@@ -256,6 +257,7 @@ export default function ChannelView({
       image_url: imageUrl,
       created_at: new Date().toISOString(),
       edited_at: null,
+      previous_content: null,
       author_id: currentUserId,
       deleted_at: null,
       deleted_by: null,
@@ -305,14 +307,31 @@ export default function ChannelView({
     if (!original || (!next && !original.image_url)) return
     if (next === original.content) { cancelEdit(); return }
 
-    // optimistic
-    setMessages(ms => ms.map(m => m.id === messageId ? { ...m, content: next, edited_at: new Date().toISOString() } : m))
+    // optimistic — stash previous_content so "Undo edit" appears immediately
+    setMessages(ms => ms.map(m => m.id === messageId ? { ...m, content: next, edited_at: new Date().toISOString(), previous_content: original.content } : m))
     cancelEdit()
 
     const result = await editMessage(messageId, channelId, communityId, next)
     if (result.error) {
       // roll back to the original content
-      setMessages(ms => ms.map(m => m.id === messageId ? { ...m, content: original.content, edited_at: original.edited_at } : m))
+      setMessages(ms => ms.map(m => m.id === messageId ? { ...m, content: original.content, edited_at: original.edited_at, previous_content: original.previous_content } : m))
+    }
+  }
+
+  async function handleRevert(messageId: string) {
+    const original = messages.find(m => m.id === messageId)
+    if (!original || original.previous_content == null) return
+
+    // optimistic — restore prior text, clear the stash (single-level undo)
+    setMessages(ms => ms.map(m => m.id === messageId
+      ? { ...m, content: original.previous_content as string, edited_at: new Date().toISOString(), previous_content: null }
+      : m))
+
+    const result = await revertMessage(messageId, channelId, communityId)
+    if (result.error) {
+      setMessages(ms => ms.map(m => m.id === messageId
+        ? { ...m, content: original.content, edited_at: original.edited_at, previous_content: original.previous_content }
+        : m))
     }
   }
 
@@ -570,6 +589,15 @@ export default function ChannelView({
                             <span>
                               <RichContent content={msg.content} />
                               {msg.edited_at && <span className="text-[11px] text-stone-400 ml-1">(edited)</span>}
+                              {msg.author_id === currentUserId && msg.previous_content != null && (
+                                <button
+                                  onClick={() => handleRevert(msg.id)}
+                                  className="text-[11px] text-stone-400 hover:text-orange-600 ml-1.5"
+                                  title="Undo your last edit"
+                                >
+                                  ↩ Undo edit
+                                </button>
+                              )}
                             </span>
                           )}
                           {msg.image_url && (

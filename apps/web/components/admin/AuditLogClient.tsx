@@ -117,7 +117,7 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                     {entry.action === 'member.role_changed' && meta && (
                       <span className="text-stone-400"> · {String(meta.from_role)} → {String(meta.to_role)}</span>
                     )}
-                    {entry.action === 'message.edited' && meta && (typeof meta.before === 'string' || typeof meta.after === 'string') && (
+                    {(entry.action === 'message.edited' || entry.action === 'message.reverted') && meta && (typeof meta.before === 'string' || typeof meta.after === 'string') && (
                       <span className="block text-xs mt-0.5">
                         <span className="text-stone-400 line-through">{truncEdit(String(meta.before ?? ''))}</span>
                         <span className="text-stone-400"> → </span>

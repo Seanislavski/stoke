@@ -15,6 +15,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Edit your channel messages',
     items: [
       'You can now edit a message after sending it in a channel — just hover (or tap) and choose the pencil. Edited messages show a small "(edited)" note.',
+      'Changed your mind? An "Undo edit" option restores your previous wording in one click.',
     ],
   },
   {

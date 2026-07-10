@@ -80,6 +80,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'message.deleted': 'Deleted message',
   'message.restored': 'Restored message',
   'message.edited': 'Edited message',
+  'message.reverted': 'Reverted message edit',
   'platform.user.banned': 'Platform banned user',
   'platform.user.unbanned': 'Platform unbanned user',
   'platform.role.assigned': 'Assigned platform role',

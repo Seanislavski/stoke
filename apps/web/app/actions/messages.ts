@@ -75,7 +75,8 @@ export async function editMessage(
 
   await admin
     .from('messages')
-    .update({ content: trimmed, edited_at: new Date().toISOString() })
+    // Stash the pre-edit text so the author can undo this one edit (single level).
+    .update({ content: trimmed, edited_at: new Date().toISOString(), previous_content: message.content })
     .eq('id', messageId)
 
   logAction({
@@ -86,6 +87,47 @@ export async function editMessage(
     targetType: 'message',
     // Keep the before/after so the audit trail shows what actually changed.
     metadata: { channel_id: channelId, before: message.content, after: trimmed },
+  })
+
+  return {}
+}
+
+export async function revertMessage(
+  messageId: string,
+  channelId: string,
+  communityId: string,
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const { data: message } = await admin
+    .from('messages')
+    .select('author_id, content, previous_content, deleted_at')
+    .eq('id', messageId)
+    .single()
+
+  if (!message) return { error: 'Message not found' }
+  if (message.deleted_at) return { error: 'Cannot revert a deleted message' }
+  // Author-only — same rule as editing.
+  if (message.author_id !== user.id) return { error: 'Not authorized' }
+  if (message.previous_content == null) return { error: 'Nothing to undo' }
+
+  await admin
+    .from('messages')
+    // Restore the prior text and clear the stash — single-level undo, so no second undo
+    // until the next edit.
+    .update({ content: message.previous_content, edited_at: new Date().toISOString(), previous_content: null })
+    .eq('id', messageId)
+
+  logAction({
+    actorId: user.id,
+    communityId,
+    action: 'message.reverted',
+    targetId: messageId,
+    targetType: 'message',
+    metadata: { channel_id: channelId, before: message.content, after: message.previous_content },
   })
 
   return {}
