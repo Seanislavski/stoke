@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { addDraft, updateDraft, deleteItem, publishItem } from '@/app/actions/qotw'
+import { addDraft, updateDraft, deleteItem, publishItem, reorderBank } from '@/app/actions/qotw'
 import { qotwLabel } from '@/lib/qotw'
 
 export type DraftItem = {
@@ -38,6 +38,14 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [copiedNum, setCopiedNum] = useState<number | null>(null)
+  const [order, setOrder] = useState<DraftItem[]>(bank)
+
+  // Keep the local queue in sync when the server data changes (after add/delete/publish).
+  useEffect(() => { setOrder(bank) }, [bank])
+
+  // The next draft the weekly auto-rotation will publish = the first UNDATED draft
+  // in queue order (dated drafts jump the line on their own day instead).
+  const nextUpId = order.find(i => !i.planned_for)?.id ?? null
 
   function run(fn: () => Promise<{ error?: string } | void>) {
     setError(null)
@@ -46,6 +54,15 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
       if (res && 'error' in res && res.error) setError(res.error)
       else router.refresh()
     })
+  }
+
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir
+    if (j < 0 || j >= order.length) return
+    const next = order.slice()
+    ;[next[i], next[j]] = [next[j], next[i]]
+    setOrder(next) // optimistic
+    run(() => reorderBank(communityId, slug, next.map(x => x.id)))
   }
 
   function copyLink(number: number) {
@@ -96,15 +113,19 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
         </form>
       </section>
 
-      {/* Bank */}
+      {/* Bank / queue */}
       <section>
-        <h2 className="text-base font-semibold text-stone-800 mb-3">Bank <span className="text-stone-400 font-normal">({bank.length})</span></h2>
-        {bank.length === 0 ? (
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Queue <span className="text-stone-400 font-normal">({order.length})</span></h2>
+        <p className="text-sm text-stone-500 mb-3">
+          Questions publish automatically <strong>top to bottom</strong> — one per week (~7 days apart). Use the arrows to
+          reorder. Give any question a date to make it jump the line and publish that day instead.
+        </p>
+        {order.length === 0 ? (
           <p className="text-sm text-stone-400">No draft questions yet.</p>
         ) : (
           <div className="space-y-3">
-            {bank.map(item => (
-              <div key={item.id} className="bg-white border border-stone-200 rounded-xl p-4">
+            {order.map((item, i) => (
+              <div key={item.id} className={`bg-white border rounded-xl p-4 ${item.id === nextUpId ? 'border-orange-300 ring-1 ring-orange-100' : 'border-stone-200'}`}>
                 {editingId === item.id ? (
                   <form
                     action={(fd) => run(() => updateDraft(item.id, communityId, slug, fd).then(r => { if (!r.error) setEditingId(null); return r }))}
@@ -122,7 +143,22 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                     </div>
                   </form>
                 ) : (
-                  <>
+                  <div className="flex gap-3">
+                    <div className="flex flex-col items-center gap-0.5 pt-0.5">
+                      <button
+                        onClick={() => move(i, -1)} disabled={pending || i === 0}
+                        title="Move up" aria-label="Move up"
+                        className="text-stone-400 hover:text-stone-700 disabled:opacity-25 leading-none text-sm">▲</button>
+                      <span className="text-[11px] text-stone-400 tabular-nums">{i + 1}</span>
+                      <button
+                        onClick={() => move(i, 1)} disabled={pending || i === order.length - 1}
+                        title="Move down" aria-label="Move down"
+                        className="text-stone-400 hover:text-stone-700 disabled:opacity-25 leading-none text-sm">▼</button>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                    {item.id === nextUpId && (
+                      <span className="inline-block text-xs font-semibold text-orange-600 bg-orange-50 rounded px-2 py-0.5 mb-1">⏭ Next up</span>
+                    )}
                     <p className="font-medium text-stone-900 text-sm">{item.title}</p>
                     {item.body && <p className="text-stone-500 text-sm mt-1 whitespace-pre-wrap">{item.body}</p>}
                     <div className="flex items-center gap-3 flex-wrap mt-3">
@@ -151,7 +187,8 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                         </button>
                       </div>
                     </div>
-                  </>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}

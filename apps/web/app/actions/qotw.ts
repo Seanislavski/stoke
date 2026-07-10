@@ -76,6 +76,28 @@ export async function updateDraft(itemId: string, communityId: string, slug: str
   return { ok: true }
 }
 
+/**
+ * Reorder the bank queue. `orderedIds` is the full ordered list of draft ids
+ * (top = next up); positions are renumbered 0..n to match. Only affects drafts
+ * (number is null) — published items are excluded by the guard.
+ */
+export async function reorderBank(communityId: string, slug: string, orderedIds: string[]) {
+  const { allowed } = await requireMod(communityId)
+  if (!allowed) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      admin.from('qotw_items').update({ position: i })
+        .eq('id', id).eq('community_id', communityId).is('number', null)
+    )
+  )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
+  revalidate(slug)
+  return { ok: true }
+}
+
 export async function deleteItem(itemId: string, communityId: string, slug: string) {
   const { user, allowed } = await requireMod(communityId)
   if (!user || !allowed) return { error: 'Not authorized' }
