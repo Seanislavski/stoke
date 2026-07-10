@@ -56,13 +56,26 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
     })
   }
 
+  function reindex(next: DraftItem[]) {
+    setOrder(next) // optimistic
+    run(() => reorderBank(communityId, slug, next.map(x => x.id)))
+  }
+
   function move(i: number, dir: -1 | 1) {
     const j = i + dir
     if (j < 0 || j >= order.length) return
     const next = order.slice()
     ;[next[i], next[j]] = [next[j], next[i]]
-    setOrder(next) // optimistic
-    run(() => reorderBank(communityId, slug, next.map(x => x.id)))
+    reindex(next)
+  }
+
+  function toEnd(i: number, where: 'top' | 'bottom') {
+    if ((where === 'top' && i === 0) || (where === 'bottom' && i === order.length - 1)) return
+    const next = order.slice()
+    const [item] = next.splice(i, 1)
+    if (where === 'top') next.unshift(item)
+    else next.push(item)
+    reindex(next)
   }
 
   function copyLink(number: number) {
@@ -146,6 +159,10 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                   <div className="flex gap-3">
                     <div className="flex flex-col items-center gap-0.5 pt-0.5">
                       <button
+                        onClick={() => toEnd(i, 'top')} disabled={pending || i === 0}
+                        title="Move to top (publish next)" aria-label="Move to top"
+                        className="text-stone-400 hover:text-orange-600 disabled:opacity-25 leading-none text-sm">⤒</button>
+                      <button
                         onClick={() => move(i, -1)} disabled={pending || i === 0}
                         title="Move up" aria-label="Move up"
                         className="text-stone-400 hover:text-stone-700 disabled:opacity-25 leading-none text-sm">▲</button>
@@ -154,6 +171,10 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                         onClick={() => move(i, 1)} disabled={pending || i === order.length - 1}
                         title="Move down" aria-label="Move down"
                         className="text-stone-400 hover:text-stone-700 disabled:opacity-25 leading-none text-sm">▼</button>
+                      <button
+                        onClick={() => toEnd(i, 'bottom')} disabled={pending || i === order.length - 1}
+                        title="Move to bottom" aria-label="Move to bottom"
+                        className="text-stone-400 hover:text-stone-700 disabled:opacity-25 leading-none text-sm">⤓</button>
                     </div>
                     <div className="min-w-0 flex-1">
                     {item.id === nextUpId && (
