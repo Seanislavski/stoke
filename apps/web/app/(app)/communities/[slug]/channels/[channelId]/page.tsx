@@ -52,7 +52,7 @@ export default async function ChannelPage({
   // load last 50 messages — mods see deleted ones too
   let messagesQuery = admin
     .from('messages')
-    .select('id, content, image_url, created_at, edited_at, previous_content, author_id, deleted_at, deleted_by, profiles!author_id(username, display_name, avatar_url)')
+    .select('id, content, image_url, created_at, edited_at, previous_content, reply_to_id, author_id, deleted_at, deleted_by, profiles!author_id(username, display_name, avatar_url)')
     .eq('channel_id', channelId)
     .order('created_at', { ascending: false })
     .limit(50)

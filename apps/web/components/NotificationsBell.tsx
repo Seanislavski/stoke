@@ -154,7 +154,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                         ) : (
                           <p className="text-sm text-stone-800">
                             <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span>
-                            {n.type === 'reaction' ? ' reacted to your message in ' : ' mentioned you in '}
+                            {n.type === 'reaction' ? ' reacted to your message in ' : n.type === 'reply' ? ' replied to you in ' : ' mentioned you in '}
                             <span className="font-medium">#{n.channel?.name ?? 'a channel'}</span>
                           </p>
                         )}

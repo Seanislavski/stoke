@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { deleteMessage, restoreMessage, editMessage, revertMessage } from '@/app/actions/messages'
 import { processMentions } from '@/app/actions/mentions'
 import { notifyReaction } from '@/app/actions/reactions'
+import { notifyReply } from '@/app/actions/replies'
 import RichContent from '@/components/RichContent'
 import ImageLightbox from '@/components/ImageLightbox'
 
@@ -21,6 +22,7 @@ type Message = {
   created_at: string
   edited_at: string | null
   previous_content: string | null
+  reply_to_id: string | null
   author_id: string
   deleted_at: string | null
   deleted_by: string | null
@@ -74,6 +76,7 @@ export default function ChannelView({
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editInput, setEditInput] = useState('')
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
   const [mentionedId, setMentionedId] = useState<string | null>(mentionMessageId ?? null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
@@ -115,7 +118,7 @@ export default function ChannelView({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; previous_content: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
+          const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; previous_content: string | null; reply_to_id: string | null; author_id: string; deleted_at: string | null; deleted_by: string | null }
 
           // fetch author profile if not cached
           let profile = profiles[row.author_id] ?? null
@@ -248,6 +251,8 @@ export default function ChannelView({
     setInput('')
     const imageUrl = pendingImageUrl
     setPendingImageUrl(null)
+    const replyTo = replyingTo
+    setReplyingTo(null)
 
     // optimistic update — show message immediately
     const optimisticId = `optimistic-${Date.now()}`
@@ -258,6 +263,7 @@ export default function ChannelView({
       created_at: new Date().toISOString(),
       edited_at: null,
       previous_content: null,
+      reply_to_id: replyTo?.id ?? null,
       author_id: currentUserId,
       deleted_at: null,
       deleted_by: null,
@@ -267,16 +273,18 @@ export default function ChannelView({
 
     const { data: inserted, error } = await supabase
       .from('messages')
-      .insert({ channel_id: channelId, author_id: currentUserId, content, image_url: imageUrl })
+      .insert({ channel_id: channelId, author_id: currentUserId, content, image_url: imageUrl, reply_to_id: replyTo?.id ?? null })
       .select('id')
       .single()
 
     if (error) {
       setInput(content)
       setPendingImageUrl(imageUrl)
+      if (replyTo) setReplyingTo(replyTo)
       setMessages(ms => ms.filter(m => m.id !== optimisticId))
-    } else if (inserted && /@\w+/.test(content)) {
-      processMentions(content, inserted.id, channelId, communityId)
+    } else if (inserted) {
+      if (/@\w+/.test(content)) processMentions(content, inserted.id, channelId, communityId)
+      if (replyTo && replyTo.author_id !== currentUserId) void notifyReply(inserted.id, replyTo.id, channelId, communityId)
     }
     setSending(false)
   }
@@ -335,6 +343,20 @@ export default function ChannelView({
     }
   }
 
+  function startReply(msg: Message) {
+    setReplyingTo(msg)
+    inputRef.current?.focus()
+  }
+
+  function scrollToMessage(id: string) {
+    const el = document.getElementById(`msg-${id}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setMentionedId(id)
+      setTimeout(() => setMentionedId(m => (m === id ? null : m)), 2000)
+    }
+  }
+
   async function handleRestoreMessage(messageId: string) {
     setMessages(ms => ms.map(m => m.id === messageId ? { ...m, deleted_at: null, deleted_by: null } : m))
     const result = await restoreMessage(messageId, channelId, communityId)
@@ -381,6 +403,7 @@ export default function ChannelView({
   }
 
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape' && replyingTo && mentionQuery === null) { setReplyingTo(null); return }
     if (mentionQuery === null || mentionSuggestions.length === 0) return
     if (e.key === 'Tab' || e.key === 'ArrowDown') {
       e.preventDefault()
@@ -419,6 +442,19 @@ export default function ChannelView({
       if (r.user_id === currentUserId) byEmoji[r.emoji].mine = true
     }
     return order.map(emoji => ({ emoji, ...byEmoji[emoji] }))
+  }
+
+  // lookup for rendering reply references (parent must be among the loaded messages)
+  const messageById = new Map(messages.map(m => [m.id, m]))
+  function replyPreviewName(m: Message) {
+    const p = m.profiles ?? profiles[m.author_id] ?? null
+    return p?.display_name ?? p?.username ?? 'Unknown'
+  }
+  function replySnippet(m: Message) {
+    if (m.deleted_at) return 'deleted message'
+    const text = m.content?.replace(/\s+/g, ' ').trim()
+    if (text) return text.length > 60 ? `${text.slice(0, 60)}…` : text
+    return m.image_url ? '📷 image' : ''
   }
 
   // group messages by date
@@ -468,6 +504,31 @@ export default function ChannelView({
 
                 const canDelete = msg.author_id === currentUserId || isMod
                 const canEdit = msg.author_id === currentUserId && !msg.deleted_at && !msg.id.startsWith('optimistic-')
+                const canReply = !msg.deleted_at && !msg.id.startsWith('optimistic-')
+                const replyIcon = (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 17 4 12 9 7" />
+                    <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+                  </svg>
+                )
+                const replyButton = canReply ? (
+                  <button
+                    onClick={() => startReply(msg)}
+                    className="hidden md:flex opacity-0 group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-orange-500 active:text-orange-500 transition-opacity touch-manipulation flex-shrink-0 items-center justify-center"
+                    title="Reply" aria-label="Reply"
+                  >
+                    {replyIcon}
+                  </button>
+                ) : null
+                const mobileReplyButton = canReply ? (
+                  <button
+                    onClick={() => startReply(msg)}
+                    className="md:hidden p-1.5 text-stone-300 active:text-orange-500 touch-manipulation flex-shrink-0"
+                    title="Reply" aria-label="Reply"
+                  >
+                    {replyIcon}
+                  </button>
+                ) : null
                 const pencilIcon = (
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 20h9" />
@@ -529,8 +590,8 @@ export default function ChannelView({
                 return (
                   <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-sm px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-50 outline outline-1 outline-blue-200 animate-pulse' : ''} ${isMentioned ? 'bg-purple-50 outline outline-1 outline-purple-200 animate-pulse' : ''}`}>
                     {sameAuthor ? (
-                      (trashButton || editButton)
-                        ? <div className="w-8 flex-shrink-0 flex flex-col items-center justify-center gap-0.5">{editButton}{trashButton}</div>
+                      (trashButton || editButton || replyButton)
+                        ? <div className="w-8 flex-shrink-0 flex flex-col items-center justify-center gap-0.5">{replyButton}{editButton}{trashButton}</div>
                         : <div className="w-8 flex-shrink-0" />
                     ) : (
                       <Link href={`/profile/${profile?.username}`}>
@@ -538,6 +599,29 @@ export default function ChannelView({
                       </Link>
                     )}
                     <div className="min-w-0 flex-1">
+                      {msg.reply_to_id && (() => {
+                        const parent = messageById.get(msg.reply_to_id)
+                        return (
+                          <button
+                            onClick={() => parent && scrollToMessage(parent.id)}
+                            className="flex items-center gap-1 max-w-full text-xs text-stone-400 hover:text-stone-600 mb-0.5 truncate"
+                            title="Go to the message this replies to"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                              <polyline points="9 17 4 12 9 7" />
+                              <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+                            </svg>
+                            {parent ? (
+                              <span className="truncate">
+                                <span className="font-medium">{replyPreviewName(parent)}</span>
+                                {replySnippet(parent) && <span className="text-stone-400"> {replySnippet(parent)}</span>}
+                              </span>
+                            ) : (
+                              <span className="italic">original message</span>
+                            )}
+                          </button>
+                        )
+                      })()}
                       {!sameAuthor && (
                         <div className="flex items-baseline gap-2 mb-0.5">
                           <Link
@@ -547,6 +631,7 @@ export default function ChannelView({
                             {profile?.display_name ?? profile?.username ?? 'Unknown'}
                           </Link>
                           <span className="text-xs text-stone-400">{formatTime(msg.created_at)}</span>
+                          {replyButton}
                           {editButton}
                           {trashButton}
                         </div>
@@ -658,8 +743,9 @@ export default function ChannelView({
                         </>
                       )}
                     </div>
-                    {(mobileEditButton || mobileTrashButton) && (
+                    {(mobileReplyButton || mobileEditButton || mobileTrashButton) && (
                       <div className="md:hidden flex flex-col items-center flex-shrink-0">
+                        {mobileReplyButton}
                         {mobileEditButton}
                         {mobileTrashButton}
                       </div>
@@ -701,6 +787,26 @@ export default function ChannelView({
               className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-stone-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-500 transition-colors leading-none"
             >×</button>
           </div>
+        </div>
+      )}
+
+      {/* Reply bar */}
+      {replyingTo && (
+        <div className="flex items-center gap-2 pt-2 flex-shrink-0 text-xs text-stone-500">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-stone-400">
+            <polyline points="9 17 4 12 9 7" />
+            <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+          </svg>
+          <span className="truncate">
+            Replying to <span className="font-medium text-stone-700">{replyPreviewName(replyingTo)}</span>
+            {replySnippet(replyingTo) && <span className="text-stone-400"> — {replySnippet(replyingTo)}</span>}
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            className="ml-auto text-stone-400 hover:text-red-500 flex-shrink-0"
+            title="Cancel reply" aria-label="Cancel reply"
+          >✕</button>
         </div>
       )}
 
