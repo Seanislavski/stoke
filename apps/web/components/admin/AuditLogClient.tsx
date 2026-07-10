@@ -87,6 +87,11 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                 if (type === 'resource' && communitySlug) return `/communities/${communitySlug}?tab=resources`
                 if (type === 'event' && communitySlug) return `/communities/${communitySlug}?tab=events`
                 if (type === 'message' && communitySlug && typeof meta?.channel_id === 'string') return `/communities/${communitySlug}/channels/${meta.channel_id}?message=${entry.target_id}`
+                // Q&A: link straight to the question (and to the exact answer via anchor).
+                // Skip deleted/rejected items — their pages no longer resolve.
+                const gone = entry.action.endsWith('.deleted') || entry.action.endsWith('.rejected')
+                if (type === 'question' && communitySlug && entry.target_id && !gone) return `/communities/${communitySlug}/questions/${entry.target_id}`
+                if (type === 'answer' && communitySlug && typeof meta?.question_id === 'string' && !gone) return `/communities/${communitySlug}/questions/${meta.question_id}#answer-${entry.target_id}`
                 if (targetUser?.username) return `/profile/${targetUser.username}`
                 return null
               })()

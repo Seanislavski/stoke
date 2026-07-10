@@ -247,7 +247,7 @@ export default async function QuestionPage({
             const author = one<Profile>(a.profiles)
             const aDate = new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             return (
-              <div key={a.id} className={`bg-white border rounded-xl p-4 ${a.is_accepted ? 'border-green-300 ring-1 ring-green-100' : 'border-stone-200'}`}>
+              <div key={a.id} id={`answer-${a.id}`} className={`scroll-mt-20 bg-white border rounded-xl p-4 ${a.is_accepted ? 'border-green-300 ring-1 ring-green-100' : 'border-stone-200'}`}>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 text-xs text-stone-400">
                     {author?.username ? (

@@ -306,8 +306,9 @@ export default async function CommunitySettingsPage({
                 const type = entry.target_type
                 if ((type === 'post') && slug) return `/communities/${slug}?tab=bulletin`
                 if ((type === 'resource') && slug) return `/communities/${slug}?tab=qa`
-                if (type === 'question' && slug && entry.target_id) return `/communities/${slug}/questions/${entry.target_id}`
-                if (type === 'answer' && slug && typeof meta?.question_id === 'string') return `/communities/${slug}/questions/${meta.question_id}`
+                const gone = entry.action.endsWith('.deleted') || entry.action.endsWith('.rejected')
+                if (type === 'question' && slug && entry.target_id && !gone) return `/communities/${slug}/questions/${entry.target_id}`
+                if (type === 'answer' && slug && typeof meta?.question_id === 'string' && !gone) return `/communities/${slug}/questions/${meta.question_id}#answer-${entry.target_id}`
                 if ((type === 'event') && slug) return `/communities/${slug}?tab=events`
                 if (type === 'message' && typeof meta?.channel_id === 'string') return `/communities/${slug}/channels/${meta.channel_id}?message=${entry.target_id}`
                 if (targetUser?.username) return `/profile/${targetUser.username}`
