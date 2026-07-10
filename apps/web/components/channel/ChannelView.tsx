@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { deleteMessage, restoreMessage } from '@/app/actions/messages'
+import { deleteMessage, restoreMessage, editMessage } from '@/app/actions/messages'
 import { processMentions } from '@/app/actions/mentions'
 import { notifyReaction } from '@/app/actions/reactions'
 import RichContent from '@/components/RichContent'
@@ -71,6 +71,8 @@ export default function ChannelView({
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editInput, setEditInput] = useState('')
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightMessageId ?? null)
   const [mentionedId, setMentionedId] = useState<string | null>(mentionMessageId ?? null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
@@ -150,15 +152,14 @@ export default function ChannelView({
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         (payload) => {
-          const row = payload.new as { id: string; deleted_at: string | null; deleted_by: string | null }
+          const row = payload.new as { id: string; content: string; edited_at: string | null; deleted_at: string | null; deleted_by: string | null }
           setMessages(ms => {
-            if (isMod) {
-              // mods see deleted placeholder — update in place
-              return ms.map(m => m.id === row.id ? { ...m, deleted_at: row.deleted_at, deleted_by: row.deleted_by } : m)
-            } else {
-              // non-mods: remove deleted messages, restore adds them back on next page load
-              return row.deleted_at ? ms.filter(m => m.id !== row.id) : ms
-            }
+            // non-mods: a deletion removes the message entirely (restore re-adds on next load)
+            if (row.deleted_at && !isMod) return ms.filter(m => m.id !== row.id)
+            // otherwise sync content/edit/delete state in place (handles edits, deletes for mods, restores)
+            return ms.map(m => m.id === row.id
+              ? { ...m, content: row.content, edited_at: row.edited_at, deleted_at: row.deleted_at, deleted_by: row.deleted_by }
+              : m)
           })
         }
       )
@@ -286,6 +287,33 @@ export default function ChannelView({
       : ms.filter(m => m.id !== messageId)
     )
     await deleteMessage(messageId, channelId, communityId)
+  }
+
+  function startEdit(msg: Message) {
+    setEditingId(msg.id)
+    setEditInput(msg.content)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditInput('')
+  }
+
+  async function handleEditSubmit(messageId: string) {
+    const original = messages.find(m => m.id === messageId)
+    const next = editInput.trim()
+    if (!original || (!next && !original.image_url)) return
+    if (next === original.content) { cancelEdit(); return }
+
+    // optimistic
+    setMessages(ms => ms.map(m => m.id === messageId ? { ...m, content: next, edited_at: new Date().toISOString() } : m))
+    cancelEdit()
+
+    const result = await editMessage(messageId, channelId, communityId, next)
+    if (result.error) {
+      // roll back to the original content
+      setMessages(ms => ms.map(m => m.id === messageId ? { ...m, content: original.content, edited_at: original.edited_at } : m))
+    }
   }
 
   async function handleRestoreMessage(messageId: string) {
@@ -420,6 +448,33 @@ export default function ChannelView({
                 const profile = msg.profiles ?? profiles[msg.author_id] ?? null
 
                 const canDelete = msg.author_id === currentUserId || isMod
+                const canEdit = msg.author_id === currentUserId && !msg.deleted_at && !msg.id.startsWith('optimistic-')
+                const pencilIcon = (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                )
+                const editButton = canEdit ? (
+                  <button
+                    onClick={() => startEdit(msg)}
+                    className="hidden md:flex opacity-0 group-hover:opacity-100 hover:opacity-100 active:opacity-100 text-stone-400 hover:text-orange-500 active:text-orange-500 transition-opacity touch-manipulation flex-shrink-0 items-center justify-center"
+                    title="Edit message"
+                    aria-label="Edit message"
+                  >
+                    {pencilIcon}
+                  </button>
+                ) : null
+                const mobileEditButton = canEdit ? (
+                  <button
+                    onClick={() => startEdit(msg)}
+                    className="md:hidden p-1.5 text-stone-300 active:text-orange-500 touch-manipulation flex-shrink-0"
+                    title="Edit message"
+                    aria-label="Edit message"
+                  >
+                    {pencilIcon}
+                  </button>
+                ) : null
                 const trashIcon = (
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6" />
@@ -455,8 +510,8 @@ export default function ChannelView({
                 return (
                   <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-sm px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-50 outline outline-1 outline-blue-200 animate-pulse' : ''} ${isMentioned ? 'bg-purple-50 outline outline-1 outline-purple-200 animate-pulse' : ''}`}>
                     {sameAuthor ? (
-                      trashButton
-                        ? <div className="w-8 flex-shrink-0 flex items-center justify-center">{trashButton}</div>
+                      (trashButton || editButton)
+                        ? <div className="w-8 flex-shrink-0 flex flex-col items-center justify-center gap-0.5">{editButton}{trashButton}</div>
                         : <div className="w-8 flex-shrink-0" />
                     ) : (
                       <Link href={`/profile/${profile?.username}`}>
@@ -473,6 +528,7 @@ export default function ChannelView({
                             {profile?.display_name ?? profile?.username ?? 'Unknown'}
                           </Link>
                           <span className="text-xs text-stone-400">{formatTime(msg.created_at)}</span>
+                          {editButton}
                           {trashButton}
                         </div>
                       )}
@@ -488,9 +544,34 @@ export default function ChannelView({
                             </button>
                           )}
                         </div>
+                      ) : editingId === msg.id ? (
+                        <form
+                          onSubmit={e => { e.preventDefault(); handleEditSubmit(msg.id) }}
+                          className="mt-0.5"
+                        >
+                          <input
+                            type="text"
+                            value={editInput}
+                            onChange={e => setEditInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Escape') cancelEdit() }}
+                            autoFocus
+                            maxLength={2000}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          />
+                          <div className="flex items-center gap-3 mt-1 text-xs">
+                            <button type="submit" className="text-orange-600 hover:text-orange-700 font-medium">Save</button>
+                            <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600">Cancel</button>
+                            <span className="text-stone-400">Enter to save · Esc to cancel</span>
+                          </div>
+                        </form>
                       ) : (
                         <>
-                          {msg.content && <RichContent content={msg.content} />}
+                          {msg.content && (
+                            <span>
+                              <RichContent content={msg.content} />
+                              {msg.edited_at && <span className="text-[11px] text-stone-400 ml-1">(edited)</span>}
+                            </span>
+                          )}
                           {msg.image_url && (
                             <button type="button" onClick={() => setLightboxSrc(msg.image_url!)} className="inline-block mt-1">
                               <img
@@ -549,7 +630,12 @@ export default function ChannelView({
                         </>
                       )}
                     </div>
-                    {mobileTrashButton}
+                    {(mobileEditButton || mobileTrashButton) && (
+                      <div className="md:hidden flex flex-col items-center flex-shrink-0">
+                        {mobileEditButton}
+                        {mobileTrashButton}
+                      </div>
+                    )}
                   </div>
                 )
               })}

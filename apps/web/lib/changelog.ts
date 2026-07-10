@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-07-10',
+    title: 'Edit your channel messages',
+    items: [
+      'You can now edit a message after sending it in a channel — just hover (or tap) and choose the pencil. Edited messages show a small "(edited)" note.',
+    ],
+  },
+  {
     date: '2026-07-08',
     title: 'Recurring events, richer community pages, and timezone-aware times',
     items: [

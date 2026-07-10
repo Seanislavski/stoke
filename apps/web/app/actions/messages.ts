@@ -46,6 +46,49 @@ export async function deleteMessage(
   return {}
 }
 
+export async function editMessage(
+  messageId: string,
+  channelId: string,
+  communityId: string,
+  content: string,
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authorized' }
+
+  const trimmed = content.trim()
+
+  const admin = createAdminClient()
+  const { data: message } = await admin
+    .from('messages')
+    .select('author_id, image_url, deleted_at')
+    .eq('id', messageId)
+    .single()
+
+  if (!message) return { error: 'Message not found' }
+  if (message.deleted_at) return { error: 'Cannot edit a deleted message' }
+  // Author-only: mods can delete a message but not reword someone else's words.
+  if (message.author_id !== user.id) return { error: 'Not authorized' }
+  // Don't allow emptying a text-only message (image-only messages may have empty text).
+  if (!trimmed && !message.image_url) return { error: 'Message cannot be empty' }
+
+  await admin
+    .from('messages')
+    .update({ content: trimmed, edited_at: new Date().toISOString() })
+    .eq('id', messageId)
+
+  logAction({
+    actorId: user.id,
+    communityId,
+    action: 'message.edited',
+    targetId: messageId,
+    targetType: 'message',
+    metadata: { channel_id: channelId },
+  })
+
+  return {}
+}
+
 export async function restoreMessage(
   messageId: string,
   channelId: string,
