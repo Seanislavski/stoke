@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 type Props = {
   slug: string
@@ -30,10 +33,26 @@ function Step({ done, label, href, description }: { done: boolean; label: string
 }
 
 export default function OnboardingChecklist({ slug, hasPost, hasChannel, hasMember, hasEvent }: Props) {
+  const storageKey = `stoke_onboarding_dismissed_${slug}`
+  const [dismissed, setDismissed] = useState(false)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    setDismissed(localStorage.getItem(storageKey) === '1')
+    setReady(true)
+  }, [storageKey])
+
   const allDone = hasPost && hasChannel && hasMember && hasEvent
   if (allDone) return null
+  // Wait until we've read localStorage so we never flash the box for someone who dismissed it.
+  if (!ready || dismissed) return null
 
   const doneCount = [hasPost, hasChannel, hasMember, hasEvent].filter(Boolean).length
+
+  const dismiss = () => {
+    localStorage.setItem(storageKey, '1')
+    setDismissed(true)
+  }
 
   return (
     <div className="bg-white rounded-xl border border-orange-200 p-5">
@@ -42,10 +61,23 @@ export default function OnboardingChecklist({ slug, hasPost, hasChannel, hasMemb
           <h2 className="text-sm font-semibold text-stone-900">Get your community started</h2>
           <p className="text-xs text-stone-400 mt-0.5">{doneCount} of 4 steps complete</p>
         </div>
-        <div className="flex gap-1">
-          {[hasPost, hasChannel, hasMember, hasEvent].map((done, i) => (
-            <div key={i} className={`w-2 h-2 rounded-full ${done ? 'bg-green-500' : 'bg-stone-200'}`} />
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1">
+            {[hasPost, hasChannel, hasMember, hasEvent].map((done, i) => (
+              <div key={i} className={`w-2 h-2 rounded-full ${done ? 'bg-green-500' : 'bg-stone-200'}`} />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss checklist"
+            title="Dismiss"
+            className="text-stone-300 hover:text-stone-500 transition-colors -mr-1 leading-none"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M5 5l10 10M15 5L5 15" />
+            </svg>
+          </button>
         </div>
       </div>
       <div className="space-y-1">
