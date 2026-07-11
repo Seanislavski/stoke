@@ -14,7 +14,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-10',
     title: 'Reply to messages, plus editing and undo',
     items: [
-      'You can now reply directly to a specific message — your reply shows a little quote of the original, and tapping it jumps you there.',
+      'You can now reply directly to a specific message — your reply shows a little quote of the original, and tapping it jumps to the original and briefly highlights it.',
       'Reply to someone and they get a notification, so it\'s easy to keep a back-and-forth going without missing it.',
       'You can now edit a message after sending it in a channel — just hover (or tap) and choose the pencil. Edited messages show a small "(edited)" note.',
       'Changed your mind? An "Undo edit" option restores your previous wording in one click.',

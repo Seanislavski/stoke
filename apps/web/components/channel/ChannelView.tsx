@@ -352,8 +352,13 @@ export default function ChannelView({
     const el = document.getElementById(`msg-${id}`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      setMentionedId(id)
-      setTimeout(() => setMentionedId(m => (m === id ? null : m)), 2000)
+      // Clear first so clicking the same reply again restarts the pulse animation
+      // (React skips the render if we set the same id twice in a row).
+      setMentionedId(null)
+      requestAnimationFrame(() => {
+        setMentionedId(id)
+        setTimeout(() => setMentionedId(m => (m === id ? null : m)), 2000)
+      })
     }
   }
 
@@ -588,7 +593,7 @@ export default function ChannelView({
                 const isHighlighted = highlightedId === msg.id
                 const isMentioned = mentionedId === msg.id
                 return (
-                  <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-sm px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-50 outline outline-1 outline-blue-200 animate-pulse' : ''} ${isMentioned ? 'bg-purple-50 outline outline-1 outline-purple-200 animate-pulse' : ''}`}>
+                  <div key={msg.id} id={`msg-${msg.id}`} className={`group flex gap-3 items-start transition-colors duration-300 rounded-md px-1 -mx-1 ${sameAuthor ? 'mt-0.5' : 'mt-3'} ${isHighlighted ? 'bg-blue-100 ring-2 ring-blue-300 animate-pulse' : ''} ${isMentioned ? 'bg-purple-100 ring-2 ring-purple-300 animate-pulse' : ''}`}>
                     {sameAuthor ? (
                       (trashButton || editButton || replyButton)
                         ? <div className="w-8 flex-shrink-0 flex flex-col items-center justify-center gap-0.5">{replyButton}{editButton}{trashButton}</div>
