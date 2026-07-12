@@ -7,7 +7,7 @@ export default async function AdminCommunitiesPage() {
 
   const { data: communities } = await admin
     .from('communities')
-    .select('id, name, slug, description, join_mode, is_listed, created_at')
+    .select('id, name, slug, description, join_mode, is_listed, created_at, owner_id')
     .order('created_at', { ascending: false })
 
   const communityIds = communities?.map(c => c.id) ?? []
@@ -23,6 +23,22 @@ export default async function AdminCommunitiesPage() {
   for (const row of memberCounts ?? []) {
     countMap[row.community_id] = (countMap[row.community_id] ?? 0) + 1
   }
+
+  // Resolve each community's owner (display name + email) for admin triage
+  const ownerIds = [...new Set((communities ?? []).map(c => c.owner_id).filter(Boolean))]
+  const { data: ownerProfiles } = ownerIds.length
+    ? await admin.from('profiles').select('id, username, display_name').in('id', ownerIds)
+    : { data: [] }
+  const profileMap: Record<string, { username: string | null; display_name: string | null }> = {}
+  for (const p of ownerProfiles ?? []) profileMap[p.id] = { username: p.username, display_name: p.display_name }
+
+  const emailMap: Record<string, string> = {}
+  await Promise.all(
+    ownerIds.map(async id => {
+      const { data } = await admin.auth.admin.getUserById(id)
+      if (data?.user?.email) emailMap[id] = data.user.email
+    })
+  )
 
   return (
     <div>
@@ -50,6 +66,25 @@ export default async function AdminCommunitiesPage() {
               <p className="text-xs text-stone-400 mt-0.5">
                 {countMap[c.id] ?? 0} members · Created {new Date(c.created_at).toLocaleDateString('en-US')}
               </p>
+              {(() => {
+                const p = c.owner_id ? profileMap[c.owner_id] : null
+                const name = p?.display_name || p?.username
+                const email = c.owner_id ? emailMap[c.owner_id] : null
+                if (!name && !email) return null
+                return (
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Owner:{' '}
+                    {p?.username ? (
+                      <Link href={`/profile/${p.username}`} className="font-medium hover:underline">
+                        {name}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{name ?? 'Unknown'}</span>
+                    )}
+                    {email && <span className="text-stone-400"> · {email}</span>}
+                  </p>
+                )
+              })()}
             </div>
             <ListedToggle communityId={c.id} isListed={c.is_listed} />
           </div>
