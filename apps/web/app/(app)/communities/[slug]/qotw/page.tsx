@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import QotwManager, { type DraftItem, type PublishedItem } from '@/components/qotw/QotwManager'
+import NextPublishPanel from '@/components/qotw/NextPublishPanel'
+import { resolveNextPublish } from '@/lib/qotw-schedule'
 
 export default async function QotwManagePage({
   params,
@@ -46,6 +48,24 @@ export default async function QotwManagePage({
     .sort((a, b) => (b.number ?? 0) - (a.number ?? 0))
     .map(r => ({ id: r.id, number: r.number as number, title: r.title, question_id: r.question_id, published_at: r.published_at }))
 
+  // Wire the countdown to the SAME logic the cron uses. Rotation anchors to the last
+  // REAL QotW (number > 0, so the QotW-t sentinel 0 never counts); the next undated
+  // draft rotates in, or the earliest dated draft jumps the line on its day.
+  const lastPublishedAt = rows
+    .filter(r => (r.number ?? 0) > 0 && r.published_at)
+    .map(r => r.published_at as string)
+    .sort()
+    .at(-1) ?? null
+  const undatedNext = bank.find(b => !b.planned_for) ?? null
+  const datedNext = bank
+    .filter(b => b.planned_for)
+    .sort((a, b) => (a.planned_for! < b.planned_for! ? -1 : 1))[0] ?? null
+  const nextPublish = resolveNextPublish({
+    lastPublishedAtISO: lastPublishedAt,
+    undatedNext: undatedNext ? { id: undatedNext.id, title: undatedNext.title } : null,
+    datedNext: datedNext ? { id: datedNext.id, title: datedNext.title, planned_for: datedNext.planned_for! } : null,
+  })
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6">
       <Link href={`/communities/${slug}?tab=qa`} className="text-sm text-stone-400 hover:text-stone-700">
@@ -58,6 +78,8 @@ export default async function QotwManagePage({
           permanent <strong>/qotw/N</strong> link and stays open to answers — no deadlines.
         </p>
       </div>
+
+      <NextPublishPanel next={nextPublish} />
 
       <QotwManager
         communityId={community.id}

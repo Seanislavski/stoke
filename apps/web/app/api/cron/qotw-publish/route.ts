@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { releaseDraft } from '@/lib/qotw-publish'
+import { isRotateGateOpen } from '@/lib/qotw-schedule'
 import { revalidatePath } from 'next/cache'
 
 // Question-of-the-Week scheduler. Protected by CRON_SECRET.
@@ -14,8 +15,10 @@ import { revalidatePath } from 'next/cache'
 //   2. Else rotate — if no dated draft is due AND it's been >= 7 days since the community's
 //      last QotW, the next undated draft (bank order) is published.
 // Idempotent: publishing assigns a number, so a draft is never picked twice.
-
-const ROTATE_GAP_MS = 7 * 24 * 60 * 60 * 1000
+//
+// The rotate gate is compared at DATE granularity (via isRotateGateOpen) rather than
+// to-the-millisecond, so this once-a-day cron reliably fires on the eligible day instead
+// of missing by minutes when the last publish happened slightly after the cron's clock time.
 
 type Draft = { id: string; community_id: string; title: string; body: string | null; planned_for: string | null; position: number }
 
@@ -56,7 +59,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => (a.planned_for! < b.planned_for! ? -1 : a.planned_for! > b.planned_for! ? 1 : a.position - b.position))
     let toRelease: Draft | null = due[0] ?? null
 
-    // 2. Else rotate: next undated draft if the weekly gap has elapsed.
+    // 2. Else rotate: next undated draft if the weekly gap has elapsed (date-level).
     if (!toRelease) {
       const { data: last } = await admin
         .from('qotw_items')
@@ -67,7 +70,7 @@ export async function GET(req: NextRequest) {
         .order('published_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      const okToRotate = !last?.published_at || (Date.now() - new Date(last.published_at).getTime()) >= ROTATE_GAP_MS
+      const okToRotate = isRotateGateOpen(last?.published_at ?? null)
       if (okToRotate) {
         toRelease = items.filter(i => !i.planned_for).sort((a, b) => a.position - b.position)[0] ?? null
       }
