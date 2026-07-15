@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { checkMemberLimit } from '@/lib/billing'
+import { sendEmail, bulkWelcomeHtml } from '@/lib/email'
 
 export type BulkRow = { username: string; email: string; password: string }
 export type BulkResultStatus = 'created' | 'added' | 'already_member' | 'error'
@@ -47,6 +48,9 @@ export async function bulkAddMembers(
   if (!caller) return { error: 'Not authorized' }
 
   const admin = createAdminClient()
+
+  const { data: community } = await admin.from('communities').select('name').eq('id', communityId).single()
+  const communityName = community?.name ?? 'the community'
 
   // Build an email -> existing-user-id map once, so we can both detect
   // duplicates and add already-registered people to the community.
@@ -159,6 +163,12 @@ export async function bulkAddMembers(
       targetUserId: userId,
       metadata: { username, email, created },
     })
+
+    // Welcome email only for freshly-created accounts — they got a temporary
+    // password they need to know. Existing accounts already have their own login.
+    if (created) {
+      void sendEmail(email, `You've been added to ${communityName} on Stoke`, bulkWelcomeHtml(communityName, slug, email, password))
+    }
 
     results.push({ email, username, ok: true, status: created ? 'created' : 'added' })
   }

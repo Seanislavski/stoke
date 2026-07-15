@@ -62,6 +62,19 @@ export function joinRejectedHtml(communityName: string) {
   `)
 }
 
+export function bulkWelcomeHtml(communityName: string, communitySlug: string, email: string, tempPassword: string) {
+  return wrap(`
+    <p style="margin:0 0 12px;">You've been added to <strong>${communityName}</strong> on Stoke Community — a place to give and get help within your community.</p>
+    <p style="margin:0 0 8px;color:#78716c;font-size:14px;">Here's how to log in:</p>
+    <div style="margin:0 0 12px;padding:12px 16px;background:#fafaf9;border:1px solid #e7e5e4;border-radius:8px;font-size:14px;">
+      <div><span style="color:#78716c;">Email:</span> <strong>${email}</strong></div>
+      <div><span style="color:#78716c;">Temporary password:</span> <strong>${tempPassword}</strong></div>
+    </div>
+    <p style="margin:0;color:#78716c;font-size:14px;">Please change your password after your first login — go to <strong>Settings</strong> once you're in.</p>
+    ${btn(`Log in to ${communityName}`, `${BASE_URL}/login?redirect=${encodeURIComponent(`/communities/${communitySlug}`)}`)}
+  `)
+}
+
 export function ownershipTransferredHtml(communityName: string, communitySlug: string, previousOwnerName: string) {
   return wrap(`
     <p style="margin:0 0 12px;">You're now the owner of <strong>${communityName}</strong>.</p>

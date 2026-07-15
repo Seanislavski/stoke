@@ -118,8 +118,8 @@ export default function BulkAddMembers({
       <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
         <label className="block text-sm font-medium text-stone-700 mb-1">Shared temporary password</label>
         <p className="text-xs text-stone-500 mb-2">
-          Fill this once and it applies to everyone. Tell members to change it under Settings after they log in.
-          You can also override any individual row.
+          Fill this once and it applies to everyone. Each new account gets a welcome email with their login details and a
+          nudge to change this password under Settings. You can also override any individual row.
         </p>
         <div className="flex flex-wrap gap-2">
           <input
