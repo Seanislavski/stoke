@@ -250,7 +250,15 @@ export default async function CommunitySettingsPage({
 
       {/* Members */}
       <section id="members" className="scroll-mt-20">
-        <h2 className="text-base font-semibold text-stone-800 mb-4">Members</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-stone-800">Members</h2>
+          <Link
+            href={`/communities/${slug}/bulk-add`}
+            className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 whitespace-nowrap"
+          >
+            + Bulk-add members
+          </Link>
+        </div>
         <MembersManager
           communityId={community.id}
           slug={slug}

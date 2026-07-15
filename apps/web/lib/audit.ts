@@ -27,6 +27,7 @@ export async function logAction(params: {
 
 export const ACTION_LABELS: Record<string, string> = {
   'member.joined': 'Joined community',
+  'member.added': 'Added a member',
   'member.requested': 'Requested to join',
   'member.approved': 'Approved join request',
   'member.rejected': 'Rejected join request',
