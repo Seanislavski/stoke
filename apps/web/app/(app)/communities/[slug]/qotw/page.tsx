@@ -5,6 +5,7 @@ import Link from 'next/link'
 import QotwManager, { type DraftItem, type PublishedItem } from '@/components/qotw/QotwManager'
 import NextPublishPanel from '@/components/qotw/NextPublishPanel'
 import { resolveNextPublish } from '@/lib/qotw-schedule'
+import { qotwLabel } from '@/lib/qotw'
 
 export default async function QotwManagePage({
   params,
@@ -66,6 +67,10 @@ export default async function QotwManagePage({
     datedNext: datedNext ? { id: datedNext.id, title: datedNext.title, planned_for: datedNext.planned_for! } : null,
   })
 
+  // The current, live Question of the Week = the newest real publish (highest number > 0,
+  // so a "QotW-t" test sentinel never shows as current). `published` is already number-desc.
+  const currentQotw = published.find(p => p.number > 0) ?? null
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6">
       <Link href={`/communities/${slug}?tab=qa`} className="text-sm text-stone-400 hover:text-stone-700">
@@ -78,6 +83,25 @@ export default async function QotwManagePage({
           permanent <strong>/qotw/N</strong> link and stays open to answers — no deadlines.
         </p>
       </div>
+
+      {currentQotw ? (
+        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            ⭐ Current Question of the Week · {qotwLabel(currentQotw.number)}
+          </div>
+          <p className="mt-1 text-base font-medium text-stone-900">{currentQotw.title}</p>
+          <Link
+            href={`/communities/${slug}/qotw/${currentQotw.number}`}
+            className="mt-2 inline-block text-sm font-medium text-orange-700 hover:text-orange-900"
+          >
+            View public page →
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-500">
+          No Question of the Week has been published yet. Publish one from your queue below.
+        </div>
+      )}
 
       <NextPublishPanel next={nextPublish} />
 
