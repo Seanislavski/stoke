@@ -68,7 +68,7 @@ export default async function QuestionPage({
 
   const { data: question } = await admin
     .from('kb_questions')
-    .select('id, title, body, status, category_id, is_public, asker_public_pref, asker_id, created_at, published_at, profiles!asker_id(username, display_name)')
+    .select('id, title, body, status, category_id, is_public, asker_public_pref, asker_id, attribution, created_at, published_at, profiles!asker_id(username, display_name)')
     .eq('id', questionId)
     .eq('community_id', community.id)
     .single()
@@ -85,7 +85,7 @@ export default async function QuestionPage({
       : Promise.resolve({ data: null }),
     admin
       .from('kb_answers')
-      .select('id, body, url, status, is_accepted, author_id, created_at, profiles!author_id(username, display_name)')
+      .select('id, body, url, status, is_accepted, author_id, attribution, created_at, profiles!author_id(username, display_name)')
       .eq('question_id', questionId)
       .in('status', isMod ? ['published', 'pending'] : ['published'])
       .order('is_accepted', { ascending: false })
@@ -161,7 +161,11 @@ export default async function QuestionPage({
           )}
           <div className="flex items-center gap-2 flex-wrap text-xs text-stone-400 mt-2">
             {category?.name && <span className="bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">{category.name}</span>}
-            {asker?.username && (
+            {question.attribution ? (
+              <span title="Archived from Discord by Silas!, with the author's permission">
+                📚 Shared by <span className="font-medium text-stone-600">{question.attribution}</span> on Discord
+              </span>
+            ) : asker?.username && (
               <Link href={`/profile/${asker.username}`} className="hover:text-orange-600">
                 {asker.display_name ?? asker.username}
               </Link>
@@ -250,7 +254,11 @@ export default async function QuestionPage({
               <div key={a.id} id={`answer-${a.id}`} className={`scroll-mt-20 bg-white border rounded-xl p-4 ${a.is_accepted ? 'border-green-300 ring-1 ring-green-100' : 'border-stone-200'}`}>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 text-xs text-stone-400">
-                    {author?.username ? (
+                    {a.attribution ? (
+                      <span title="Archived from Discord by Silas!, with the author's permission">
+                        📚 Shared by <span className="font-medium text-stone-600">{a.attribution}</span> on Discord
+                      </span>
+                    ) : author?.username ? (
                       <Link href={`/profile/${author.username}`} className="font-medium text-stone-600 hover:text-orange-600">
                         {author.display_name ?? author.username}
                       </Link>

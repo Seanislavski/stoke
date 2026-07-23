@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-07-23',
+    title: 'Great Discord advice can now live on in the library',
+    items: [
+      'Moderators can now archive a standout Discord post into the community\'s Q&A library — but only after the original author says yes. Silas the librarian asks them directly, and their choice (credited, anonymous, or no) is always recorded and respected.',
+      'Archived posts show a "Shared by … on Discord" credit. If the author later joins Stoke, a personal claim link puts the post under their own profile — even months later.',
+    ],
+  },
+  {
     date: '2026-07-10',
     title: 'Reply to messages, plus editing and undo',
     items: [

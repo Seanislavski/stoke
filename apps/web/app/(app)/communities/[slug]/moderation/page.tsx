@@ -8,6 +8,7 @@ import ModActions from '@/components/bulletin/ModActions'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import AnswerModActions from '@/components/knowledge/AnswerModActions'
 import QueueActions from '@/components/community/QueueActions'
+import CaptureActions from '@/components/community/CaptureActions'
 import { approveRequest, rejectRequest } from '@/app/actions/community'
 import { approveReview, rejectReview } from '@/app/actions/reviews'
 
@@ -75,6 +76,24 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
       .then(r => r.data ?? []),
   ])
 
+  // Discord captures with consent granted but not yet filed into the KB
+  // (fail-safe: a missing discord_captures table just yields an empty inbox),
+  // plus the published questions the filing picker offers.
+  const [captureRows, publishedQuestions] = await Promise.all([
+    admin.from('discord_captures')
+      .select('id, content, discord_author_name, discord_message_url, consent_status, consent_answered_at')
+      .eq('community_id', community.id)
+      .in('consent_status', ['granted_credited', 'granted_anon'])
+      .is('question_id', null).is('answer_id', null)
+      .order('consent_answered_at', { ascending: true })
+      .then(r => r.data ?? []),
+    admin.from('kb_questions')
+      .select('id, title')
+      .eq('community_id', community.id).eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .then(r => r.data ?? []),
+  ])
+
   // Question titles for the pending answers (so a mod sees which question each is on).
   const qIds = [...new Set(answerRows.map((a: { question_id: string }) => a.question_id))]
   const { data: qTitles } = qIds.length
@@ -82,7 +101,7 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
     : { data: [] as { id: string; title: string }[] }
   const titleById = new Map((qTitles ?? []).map(q => [q.id, q.title]))
 
-  const total = reqRows.length + postRows.length + questionRows.length + answerRows.length + reviewRows.length
+  const total = reqRows.length + postRows.length + questionRows.length + answerRows.length + reviewRows.length + captureRows.length
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6 px-4">
@@ -166,6 +185,34 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
                   <RichContent content={a.body} className="text-stone-600 text-sm mt-1 whitespace-pre-wrap" embeds={false} />
                   {a.url && <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline break-all mt-1 block">{a.url}</a>}
                   <AnswerModActions answerId={a.id} communityId={community.id} slug={slug} />
+                </Card>
+              ))}
+            </Section>
+          )}
+
+          {/* Discord captures — consent granted, waiting to be filed into the library */}
+          {captureRows.length > 0 && (
+            <Section title="Discord captures" count={captureRows.length}>
+              {captureRows.map((c: { id: string; content: string; discord_author_name: string; discord_message_url: string; consent_status: string; consent_answered_at: string | null }) => (
+                <Card key={c.id}>
+                  <p className="text-xs text-stone-400">
+                    <span className="font-medium text-stone-600">
+                      {c.consent_status === 'granted_credited' ? c.discord_author_name : 'Anonymous (by request)'}
+                    </span>
+                    {' '}· shared on Discord
+                    {c.consent_answered_at && <> · consented {when(c.consent_answered_at)}</>}
+                    {' · '}
+                    <a href={c.discord_message_url} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">
+                      original ↗
+                    </a>
+                  </p>
+                  <RichContent content={c.content} className="text-stone-600 text-sm mt-2 whitespace-pre-wrap" embeds={false} />
+                  <CaptureActions
+                    captureId={c.id}
+                    communityId={community.id}
+                    slug={slug}
+                    questions={publishedQuestions}
+                  />
                 </Card>
               ))}
             </Section>

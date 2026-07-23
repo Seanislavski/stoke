@@ -74,6 +74,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(target, request.url))
   }
 
+  // A Discord-capture claim link (sent to the author's DM). Logged-out visitors go to
+  // signup with the claim path preserved so the token survives auth — this is the
+  // capture pipeline's signup funnel.
+  if (!user && pathname.startsWith('/claim/')) {
+    return NextResponse.redirect(new URL(`/signup?redirect=${encodeURIComponent(pathname)}`, request.url))
+  }
+
   if (!user && !isAuthRoute && !isAuthCallback && !isInvitePage && !isCronRoute && !isStripeWebhook && !isLandingPage && !isPricingPage && !isUnsubscribe && !isLegalPage && !isOgImage && !isPreviewPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

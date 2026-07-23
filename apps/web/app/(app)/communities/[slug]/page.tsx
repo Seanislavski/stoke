@@ -77,6 +77,7 @@ export default async function CommunityPage({
     { count: pendingPostsCount },
     { count: pendingQuestionsCount },
     { count: pendingAnswersCount },
+    { count: pendingCapturesCount },
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
@@ -121,10 +122,17 @@ export default async function CommunityPage({
           .eq('community_id', community.id)
           .eq('status', 'pending')
       : Promise.resolve({ count: 0 }),
+    isMod
+      ? admin.from('discord_captures')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .in('consent_status', ['granted_credited', 'granted_anon'])
+          .is('question_id', null).is('answer_id', null)
+      : Promise.resolve({ count: 0 }),
   ])
 
   // Total items waiting on a mod — drives the gear badge + review-queue link.
-  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0)
+  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0) + (pendingCapturesCount ?? 0)
 
   // Onboarding checklist data (organizers only)
   const [onboardingPostCount, onboardingChannelCount, onboardingEventCount] = isMod
