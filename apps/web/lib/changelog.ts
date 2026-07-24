@@ -12,9 +12,10 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-07-24',
-    title: 'Captured Discord posts keep their pictures',
+    title: 'Captured Discord posts keep their pictures, and a new Photos tab',
     items: [
       'When a great Discord post with a photo is archived into the Q&A library, the image now comes along — so screenshots, diagrams, and photos are preserved with the advice, not left behind.',
+      'Communities now have a Photos tab, giving the community gallery its own home.',
     ],
   },
   {

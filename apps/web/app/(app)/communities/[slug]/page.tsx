@@ -13,6 +13,7 @@ import EventDeleteControl from '@/components/events/EventDeleteControl'
 import DeleteItemButton from '@/components/DeleteItemButton'
 import RichContent from '@/components/RichContent'
 import PhotoGallery from '@/components/PhotoGallery'
+import CommunityPhotoWall from '@/components/community/CommunityPhotoWall'
 import { deletePost } from '@/app/actions/bulletin'
 import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
 import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
@@ -299,6 +300,39 @@ export default async function CommunityPage({
     }
   }
 
+  // Photos tab — organizer/moderator aggregate of every inline image across the
+  // community (bulletin, events, Q&A + captured Discord photos, channel chats).
+  // Mod-only because some sources (role-gated channel chats) aren't visible to
+  // every member; regular members only ever see the curated gallery.
+  type WallPhoto = { url: string; href: string; source: string; at: string }
+  let photoWall: WallPhoto[] = []
+  if (tab === 'photos' && isMod) {
+    const communityChannels = await admin.from('channels').select('id').eq('community_id', community.id).then(r => r.data ?? [])
+    const channelIds = communityChannels.map((c: { id: string }) => c.id)
+    const [bposts, evs, kbq, kba, msgs] = await Promise.all([
+      admin.from('bulletin_posts').select('id, photos, created_at').eq('community_id', community.id).eq('status', 'published').then(r => r.data ?? []),
+      admin.from('events').select('id, photos, starts_at').eq('community_id', community.id).then(r => r.data ?? []),
+      admin.from('kb_questions').select('id, photos, published_at, created_at').eq('community_id', community.id).eq('status', 'published').then(r => r.data ?? []),
+      admin.from('kb_answers').select('id, question_id, photos, published_at, created_at').eq('community_id', community.id).eq('status', 'published').then(r => r.data ?? []),
+      channelIds.length
+        ? admin.from('messages').select('id, image_url, photos, channel_id, created_at').in('channel_id', channelIds).is('deleted_at', null).or('image_url.not.is.null,photos.neq.{}').then(r => r.data ?? [])
+        : Promise.resolve([]),
+    ])
+    const push = (photos: string[] | null, href: string, source: string, at: string) => {
+      for (const url of photos ?? []) if (url) photoWall.push({ url, href, source, at })
+    }
+    for (const p of bposts) push(p.photos, `/communities/${slug}?tab=bulletin`, 'Bulletin', p.created_at)
+    for (const e of evs) push(e.photos, `/communities/${slug}?tab=events`, 'Event', e.starts_at)
+    for (const q of kbq) push(q.photos, `/communities/${slug}/questions/${q.id}`, 'Q&A', q.published_at ?? q.created_at)
+    for (const a of kba) push(a.photos, `/communities/${slug}/questions/${a.question_id}#answer-${a.id}`, 'Q&A answer', a.published_at ?? a.created_at)
+    // Chat: read both the legacy single image_url and the future photos[] array.
+    for (const m of msgs) {
+      const urls = [...(m.image_url ? [m.image_url] : []), ...(m.photos ?? [])]
+      for (const url of urls) photoWall.push({ url, href: `/communities/${slug}/channels/${m.channel_id}?message=${m.id}`, source: 'Chat', at: m.created_at })
+    }
+    photoWall.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime())
+  }
+
   const joinModeLabel: Record<string, string> = {
     open: 'Open',
     request: 'Request to join',
@@ -311,6 +345,9 @@ export default async function CommunityPage({
     { key: 'qa', label: 'Q&A' },
     { key: 'channels', label: 'Channels' },
     { key: 'reviews', label: 'Reviews' },
+    // Photos: always for mods (they get the full aggregate); for members only
+    // once there's a curated gallery to show, so the tab is never empty for them.
+    ...(isMod || (community.photos?.length ?? 0) > 0 ? [{ key: 'photos', label: 'Photos' }] : []),
   ]
 
   const now = new Date()
@@ -376,14 +413,6 @@ export default async function CommunityPage({
         <div className="bg-white rounded-xl border border-stone-200 p-6">
           <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">About</h2>
           <RichContent content={community.about} className="text-stone-700 leading-relaxed break-words whitespace-pre-wrap" />
-        </div>
-      )}
-
-      {/* Photo gallery */}
-      {community.photos && community.photos.length > 0 && (
-        <div className="bg-white rounded-xl border border-stone-200 p-6">
-          <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-1">Photos</h2>
-          <PhotoGallery photos={community.photos} />
         </div>
       )}
 
@@ -660,6 +689,38 @@ export default async function CommunityPage({
                   scopeLabel={community.name}
                   existing={myReview}
                 />
+              )}
+            </div>
+          )}
+
+          {/* Photos tab — curated gallery for everyone; a full aggregate for mods */}
+          {tab === 'photos' && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-2">Community gallery</h2>
+                {community.photos && community.photos.length > 0 ? (
+                  <PhotoGallery photos={community.photos} />
+                ) : (
+                  <p className="text-sm text-stone-400">
+                    No gallery photos yet.{isMod ? ' Add some in community settings → General.' : ''}
+                  </p>
+                )}
+              </div>
+
+              {isMod && (
+                <div>
+                  <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-1">
+                    All photos{photoWall.length > 0 && <span className="text-stone-400 font-normal normal-case"> · {photoWall.length}</span>}
+                  </h2>
+                  <p className="text-xs text-stone-400 mb-3">
+                    Every image shared in posts, events, Q&amp;A, and chats. Only organizers and moderators see this.
+                  </p>
+                  {photoWall.length > 0 ? (
+                    <CommunityPhotoWall photos={photoWall} />
+                  ) : (
+                    <p className="text-sm text-stone-400">No photos have been shared in posts, events, Q&amp;A, or chats yet.</p>
+                  )}
+                </div>
               )}
             </div>
           )}
