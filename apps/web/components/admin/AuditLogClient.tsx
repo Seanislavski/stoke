@@ -104,6 +104,7 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                   if (src === 'gallery') return `/communities/${communitySlug}?tab=photos`
                   if (src === 'bulletin') return `/communities/${communitySlug}?tab=bulletin`
                   if (src === 'event') return `/communities/${communitySlug}?tab=events`
+                  if (src === 'chat' && typeof meta?.channel_id === 'string' && pid) return `/communities/${communitySlug}/channels/${meta.channel_id}?message=${pid}`
                   // qa_question removed → the question is gone; skip. Otherwise link to it.
                   if ((src === 'qa_question' || src === 'qa_answer') && pid && !(src === 'qa_question' && entry.action === 'photo.removed'))
                     return `/communities/${communitySlug}/questions/${pid}`

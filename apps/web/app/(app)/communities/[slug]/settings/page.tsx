@@ -330,6 +330,7 @@ export default async function CommunitySettingsPage({
                   if (src === 'gallery') return `/communities/${slug}?tab=photos`
                   if (src === 'bulletin') return `/communities/${slug}?tab=bulletin`
                   if (src === 'event') return `/communities/${slug}?tab=events`
+                  if (src === 'chat' && typeof meta?.channel_id === 'string' && pid) return `/communities/${slug}/channels/${meta.channel_id}?message=${pid}`
                   if ((src === 'qa_question' || src === 'qa_answer') && pid && !(src === 'qa_question' && entry.action === 'photo.removed'))
                     return `/communities/${slug}/questions/${pid}`
                 }

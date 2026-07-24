@@ -56,6 +56,7 @@ export const PHOTO_SOURCE_LABELS: Record<string, string> = {
   event: 'event',
   qa_question: 'Q&A question',
   qa_answer: 'Q&A answer',
+  chat: 'chat message',
 }
 
 export const ACTION_LABELS: Record<string, string> = {
