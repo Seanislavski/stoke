@@ -151,6 +151,7 @@ export default async function QuestionPage({
                 <DeleteItemButton
                   action={deleteQuestion.bind(null, question.id, community.id, slug)}
                   confirm="Delete this question and its answers?"
+                  redirectTo={`/communities/${slug}?tab=qa`}
                 />
               )
             )}

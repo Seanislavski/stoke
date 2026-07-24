@@ -8,11 +8,15 @@ export default function DeleteItemButton({
   confirm: confirmMsg = 'Are you sure you want to delete this?',
   label = 'Delete',
   className,
+  redirectTo,
 }: {
   action: () => Promise<{ error?: string }>
   confirm?: string
   label?: string
   className?: string
+  // When the deleted item IS the current page (e.g. a question on its own detail
+  // page), refreshing in place would 404 — navigate away instead.
+  redirectTo?: string
 }) {
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
@@ -25,6 +29,8 @@ export default function DeleteItemButton({
       const result = await action()
       if (result.error) {
         setError(result.error)
+      } else if (redirectTo) {
+        router.push(redirectTo)
       } else {
         router.refresh()
       }
