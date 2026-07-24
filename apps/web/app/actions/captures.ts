@@ -34,7 +34,7 @@ async function loadFilableCapture(captureId: string, communityId: string) {
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, content, consent_status, discord_author_name, question_id, answer_id, claimed_by')
+    .select('id, content, photos, consent_status, discord_author_name, question_id, answer_id, claimed_by')
     .eq('id', captureId)
     .eq('community_id', communityId)
     .single()
@@ -77,6 +77,7 @@ export async function publishCaptureAsAnswer(
     community_id: communityId,
     author_id: capture.claimed_by ?? SILAS_USER_ID,
     body: capture.content,
+    photos: capture.photos ?? [],
     status: 'published',
     approved_by: user.id,
     published_at: new Date().toISOString(),
@@ -118,6 +119,7 @@ export async function publishCaptureAsQuestion(
     asker_id: capture.claimed_by ?? SILAS_USER_ID,
     title: trimmed,
     body: capture.content,
+    photos: capture.photos ?? [],
     status: 'published',
     approved_by: user.id,
     published_at: new Date().toISOString(),

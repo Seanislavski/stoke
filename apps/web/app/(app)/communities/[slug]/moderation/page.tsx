@@ -81,7 +81,7 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
   // plus the published questions the filing picker offers.
   const [captureRows, publishedQuestions] = await Promise.all([
     admin.from('discord_captures')
-      .select('id, content, discord_author_name, discord_message_url, consent_status, consent_answered_at')
+      .select('id, content, photos, discord_author_name, discord_message_url, consent_status, consent_answered_at')
       .eq('community_id', community.id)
       .in('consent_status', ['granted_credited', 'granted_anon'])
       .is('question_id', null).is('answer_id', null)
@@ -193,7 +193,7 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
           {/* Discord captures — consent granted, waiting to be filed into the library */}
           {captureRows.length > 0 && (
             <Section title="Discord captures" count={captureRows.length}>
-              {captureRows.map((c: { id: string; content: string; discord_author_name: string; discord_message_url: string; consent_status: string; consent_answered_at: string | null }) => (
+              {captureRows.map((c: { id: string; content: string; photos: string[] | null; discord_author_name: string; discord_message_url: string; consent_status: string; consent_answered_at: string | null }) => (
                 <Card key={c.id}>
                   <p className="text-xs text-stone-400">
                     <span className="font-medium text-stone-600">
@@ -206,7 +206,8 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
                       original ↗
                     </a>
                   </p>
-                  <RichContent content={c.content} className="text-stone-600 text-sm mt-2 whitespace-pre-wrap" embeds={false} />
+                  {c.content && <RichContent content={c.content} className="text-stone-600 text-sm mt-2 whitespace-pre-wrap" embeds={false} />}
+                  {c.photos && c.photos.length > 0 && <div className="mt-2"><PhotoGallery photos={c.photos} /></div>}
                   <CaptureActions
                     captureId={c.id}
                     communityId={community.id}

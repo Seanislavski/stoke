@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import RichContent from '@/components/RichContent'
+import PhotoGallery from '@/components/PhotoGallery'
 import LinkPreview from '@/components/LinkPreview'
 import DeleteItemButton from '@/components/DeleteItemButton'
 import AnswerForm from '@/components/knowledge/AnswerForm'
@@ -68,7 +69,7 @@ export default async function QuestionPage({
 
   const { data: question } = await admin
     .from('kb_questions')
-    .select('id, title, body, status, category_id, is_public, asker_public_pref, asker_id, attribution, created_at, published_at, profiles!asker_id(username, display_name)')
+    .select('id, title, body, photos, status, category_id, is_public, asker_public_pref, asker_id, attribution, created_at, published_at, profiles!asker_id(username, display_name)')
     .eq('id', questionId)
     .eq('community_id', community.id)
     .single()
@@ -85,7 +86,7 @@ export default async function QuestionPage({
       : Promise.resolve({ data: null }),
     admin
       .from('kb_answers')
-      .select('id, body, url, status, is_accepted, author_id, attribution, created_at, profiles!author_id(username, display_name)')
+      .select('id, body, url, photos, status, is_accepted, author_id, attribution, created_at, profiles!author_id(username, display_name)')
       .eq('question_id', questionId)
       .in('status', isMod ? ['published', 'pending'] : ['published'])
       .order('is_accepted', { ascending: false })
@@ -174,6 +175,8 @@ export default async function QuestionPage({
           </div>
           {question.body && <RichContent content={question.body} className="text-stone-600 text-sm mt-3 whitespace-pre-wrap" />}
         </EditQuestion>
+
+        {question.photos && question.photos.length > 0 && <div className="mt-3"><PhotoGallery photos={question.photos} /></div>}
 
         {question.status === 'pending' && isMod && (
           <QuestionModActions questionId={question.id} communityId={community.id} slug={slug} categories={categories ?? []} />
@@ -312,6 +315,7 @@ export default async function QuestionPage({
                     )
                   )}
                 </EditAnswer>
+                {a.photos && a.photos.length > 0 && <div className="mt-2"><PhotoGallery photos={a.photos} /></div>}
               </div>
             )
           })
