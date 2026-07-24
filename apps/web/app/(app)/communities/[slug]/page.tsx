@@ -128,7 +128,7 @@ export default async function CommunityPage({
           .select('*', { count: 'exact', head: true })
           .eq('community_id', community.id)
           .in('consent_status', ['granted_credited', 'granted_anon'])
-          .is('question_id', null).is('answer_id', null)
+          .is('question_id', null).is('answer_id', null).is('dismissed_at', null)
       : Promise.resolve({ count: 0 }),
   ])
 

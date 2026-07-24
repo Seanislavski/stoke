@@ -197,6 +197,10 @@ export async function deleteQuestion(questionId: string, communityId: string, sl
   // question alone would leave that row orphaned with a dead /qotw/N link). Remove it too
   // so the two delete paths stay consistent with the QotW manager's own deleteItem.
   await admin.from('qotw_items').delete().eq('community_id', communityId).eq('question_id', questionId)
+  // If this question came from a Discord capture, dismiss that capture (keep its
+  // consent record, but don't let the FK SET NULL bounce it back into the queue).
+  await admin.from('discord_captures').update({ dismissed_at: new Date().toISOString() })
+    .eq('community_id', communityId).eq('question_id', questionId)
   await admin.from('kb_questions').delete().eq('id', questionId)
   logAction({ actorId: user.id, communityId, action: 'question.deleted', targetId: questionId, targetType: 'question' })
   revalidatePath(`/communities/${slug}`)
@@ -346,6 +350,10 @@ export async function deleteAnswer(answerId: string, communityId: string, slug: 
 
   const admin = createAdminClient()
   const { data: a } = await admin.from('kb_answers').select('question_id').eq('id', answerId).single()
+  // If this answer came from a Discord capture, dismiss that capture (keep its
+  // consent record, but don't let the FK SET NULL bounce it back into the queue).
+  await admin.from('discord_captures').update({ dismissed_at: new Date().toISOString() })
+    .eq('community_id', communityId).eq('answer_id', answerId)
   await admin.from('kb_answers').delete().eq('id', answerId)
   logAction({ actorId: user.id, communityId, action: 'answer.deleted', targetId: answerId, targetType: 'answer' })
   if (a) revalidatePath(`/communities/${slug}/questions/${a.question_id}`)
