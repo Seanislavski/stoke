@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { ACTION_LABELS } from '@/lib/audit'
+import { ACTION_LABELS, PHOTO_SOURCE_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
 
 type Profile = { username: string; display_name: string | null } | null
@@ -97,6 +97,17 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                 const gone = entry.action.endsWith('.deleted') || entry.action.endsWith('.rejected')
                 if (type === 'question' && communitySlug && entry.target_id && !gone) return `/communities/${communitySlug}/questions/${entry.target_id}`
                 if (type === 'answer' && communitySlug && typeof meta?.question_id === 'string' && !gone) return `/communities/${communitySlug}/questions/${meta.question_id}#answer-${entry.target_id}`
+                // Photos: link back to where the photo lives (source in metadata).
+                if (type === 'photo' && communitySlug) {
+                  const src = typeof meta?.source === 'string' ? meta.source : ''
+                  const pid = typeof meta?.parent_id === 'string' ? meta.parent_id : null
+                  if (src === 'gallery') return `/communities/${communitySlug}?tab=photos`
+                  if (src === 'bulletin') return `/communities/${communitySlug}?tab=bulletin`
+                  if (src === 'event') return `/communities/${communitySlug}?tab=events`
+                  // qa_question removed → the question is gone; skip. Otherwise link to it.
+                  if ((src === 'qa_question' || src === 'qa_answer') && pid && !(src === 'qa_question' && entry.action === 'photo.removed'))
+                    return `/communities/${communitySlug}/questions/${pid}`
+                }
                 if (targetUser?.username) return `/profile/${targetUser.username}`
                 return null
               })()
@@ -150,6 +161,14 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                     )}
                     {entry.action === 'email.blast' && typeof meta?.subject === 'string' && (
                       <span className="text-stone-400"> · &ldquo;{meta.subject}&rdquo;{typeof meta.recipient_count === 'number' ? ` · ${meta.recipient_count} recipients` : ''}</span>
+                    )}
+                    {entry.action.startsWith('photo.') && typeof meta?.source === 'string' && (
+                      <span className="text-stone-400"> · {PHOTO_SOURCE_LABELS[meta.source] ?? meta.source}</span>
+                    )}
+                    {entry.action.startsWith('photo.') && typeof meta?.url === 'string' && (
+                      <a href={meta.url} target="_blank" rel="noopener noreferrer" className="block mt-1 w-fit">
+                        <img src={meta.url} alt="" className="h-12 w-12 object-cover rounded border border-stone-200 photo-pop" />
+                      </a>
                     )}
                     {community && (
                       <span className="ml-2 text-xs text-stone-300">in {community.name}</span>

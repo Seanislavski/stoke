@@ -25,6 +25,39 @@ export async function logAction(params: {
   }
 }
 
+// Log photo add/remove as itemized audit events. `source` names where the photo
+// lives ('gallery' | 'bulletin' | 'event' | 'qa_question' | 'qa_answer'); the
+// thumbnail URL + a link back to the parent ride in metadata for the renderers.
+export function logPhotos(params: {
+  actorId: string
+  communityId?: string | null
+  added?: string[]
+  removed?: string[]
+  source: string
+  parentId?: string | null
+}) {
+  const emit = (action: 'photo.added' | 'photo.removed', url: string) =>
+    logAction({
+      actorId: params.actorId,
+      communityId: params.communityId,
+      action,
+      targetId: params.parentId ?? null,
+      targetType: 'photo',
+      metadata: { source: params.source, url, parent_id: params.parentId ?? null },
+    })
+  for (const url of params.added ?? []) if (url) emit('photo.added', url)
+  for (const url of params.removed ?? []) if (url) emit('photo.removed', url)
+}
+
+// Friendly names for a photo audit event's `metadata.source`.
+export const PHOTO_SOURCE_LABELS: Record<string, string> = {
+  gallery: 'community gallery',
+  bulletin: 'bulletin post',
+  event: 'event',
+  qa_question: 'Q&A question',
+  qa_answer: 'Q&A answer',
+}
+
 export const ACTION_LABELS: Record<string, string> = {
   'member.joined': 'Joined community',
   'member.added': 'Added a member',
@@ -48,6 +81,8 @@ export const ACTION_LABELS: Record<string, string> = {
   'capture.published': 'Published a Discord capture',
   'capture.discarded': 'Discarded a Discord capture',
   'capture.claimed': 'Claimed a Discord capture',
+  'photo.added': 'Added a photo',
+  'photo.removed': 'Removed a photo',
   'question.created': 'Added a question',
   'question.submitted': 'Submitted a question for review',
   'question.approved': 'Approved a question',

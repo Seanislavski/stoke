@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { logAction } from '@/lib/audit'
+import { logAction, logPhotos } from '@/lib/audit'
 import { sendEmail, kbQuestionSubmittedHtml, kbQuestionApprovedHtml, kbAnswerSubmittedHtml, kbAnswerApprovedHtml } from '@/lib/email'
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
@@ -201,8 +201,10 @@ export async function deleteQuestion(questionId: string, communityId: string, sl
   // consent record, but don't let the FK SET NULL bounce it back into the queue).
   await admin.from('discord_captures').update({ dismissed_at: new Date().toISOString() })
     .eq('community_id', communityId).eq('question_id', questionId)
+  const { data: delQ } = await admin.from('kb_questions').select('photos').eq('id', questionId).single()
   await admin.from('kb_questions').delete().eq('id', questionId)
   logAction({ actorId: user.id, communityId, action: 'question.deleted', targetId: questionId, targetType: 'question' })
+  if (delQ?.photos?.length) logPhotos({ actorId: user.id, communityId, removed: delQ.photos, source: 'qa_question', parentId: questionId })
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/qotw`)
   return {}
@@ -349,13 +351,14 @@ export async function deleteAnswer(answerId: string, communityId: string, slug: 
   if (!allowed) return { error: 'Not authorized' }
 
   const admin = createAdminClient()
-  const { data: a } = await admin.from('kb_answers').select('question_id').eq('id', answerId).single()
+  const { data: a } = await admin.from('kb_answers').select('question_id, photos').eq('id', answerId).single()
   // If this answer came from a Discord capture, dismiss that capture (keep its
   // consent record, but don't let the FK SET NULL bounce it back into the queue).
   await admin.from('discord_captures').update({ dismissed_at: new Date().toISOString() })
     .eq('community_id', communityId).eq('answer_id', answerId)
   await admin.from('kb_answers').delete().eq('id', answerId)
   logAction({ actorId: user.id, communityId, action: 'answer.deleted', targetId: answerId, targetType: 'answer' })
+  if (a?.photos?.length) logPhotos({ actorId: user.id, communityId, removed: a.photos, source: 'qa_answer', parentId: a.question_id })
   if (a) revalidatePath(`/communities/${slug}/questions/${a.question_id}`)
   return {}
 }

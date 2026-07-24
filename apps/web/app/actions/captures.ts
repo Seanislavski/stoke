@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { logAction } from '@/lib/audit'
+import { logAction, logPhotos } from '@/lib/audit'
 
 // The Silas! system user — captured Discord content is authored by the resident
 // librarian, with an `attribution` line crediting the original Discord author
@@ -93,6 +93,7 @@ export async function publishCaptureAsAnswer(
     actorId: user.id, communityId, action: 'capture.published',
     targetId: answer.id, targetType: 'answer', metadata: { question_id: questionId, capture_id: captureId },
   })
+  if (capture.photos?.length) logPhotos({ actorId: user.id, communityId, added: capture.photos, source: 'qa_answer', parentId: questionId })
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/questions/${questionId}`)
   revalidatePath(`/communities/${slug}/moderation`)
@@ -135,6 +136,7 @@ export async function publishCaptureAsQuestion(
     actorId: user.id, communityId, action: 'capture.published',
     targetId: question.id, targetType: 'question', metadata: { capture_id: captureId },
   })
+  if (capture.photos?.length) logPhotos({ actorId: user.id, communityId, added: capture.photos, source: 'qa_question', parentId: question.id })
   revalidatePath(`/communities/${slug}`)
   revalidatePath(`/communities/${slug}/moderation`)
   return {}

@@ -11,7 +11,7 @@ import InviteManager from '@/components/community/settings/InviteManager'
 import CategoryManager from '@/components/knowledge/CategoryManager'
 import ReviewsManager from '@/components/reviews/ReviewsManager'
 import { REVIEW_COLS, mapReview, type RawReview } from '@/lib/reviews'
-import { ACTION_LABELS } from '@/lib/audit'
+import { ACTION_LABELS, PHOTO_SOURCE_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
 import EmailBlastForm from '@/components/community/settings/EmailBlastForm'
 
@@ -324,6 +324,15 @@ export default async function CommunitySettingsPage({
                 if (type === 'answer' && slug && typeof meta?.question_id === 'string' && !gone) return `/communities/${slug}/questions/${meta.question_id}#answer-${entry.target_id}`
                 if ((type === 'event') && slug) return `/communities/${slug}?tab=events`
                 if (type === 'message' && typeof meta?.channel_id === 'string') return `/communities/${slug}/channels/${meta.channel_id}?message=${entry.target_id}`
+                if (type === 'photo' && slug) {
+                  const src = typeof meta?.source === 'string' ? meta.source : ''
+                  const pid = typeof meta?.parent_id === 'string' ? meta.parent_id : null
+                  if (src === 'gallery') return `/communities/${slug}?tab=photos`
+                  if (src === 'bulletin') return `/communities/${slug}?tab=bulletin`
+                  if (src === 'event') return `/communities/${slug}?tab=events`
+                  if ((src === 'qa_question' || src === 'qa_answer') && pid && !(src === 'qa_question' && entry.action === 'photo.removed'))
+                    return `/communities/${slug}/questions/${pid}`
+                }
                 if (targetUser?.username) return `/profile/${targetUser.username}`
                 return null
               })()
@@ -356,6 +365,14 @@ export default async function CommunitySettingsPage({
                     )}
                     {entry.action === 'email.blast' && meta && (
                       <span className="text-stone-400"> · "{String(meta.subject)}" · {String(meta.recipient_count)} recipients</span>
+                    )}
+                    {entry.action.startsWith('photo.') && typeof meta?.source === 'string' && (
+                      <span className="text-stone-400"> · {PHOTO_SOURCE_LABELS[meta.source] ?? meta.source}</span>
+                    )}
+                    {entry.action.startsWith('photo.') && typeof meta?.url === 'string' && (
+                      <a href={meta.url as string} target="_blank" rel="noopener noreferrer" className="block mt-1 w-fit">
+                        <img src={meta.url as string} alt="" className="h-12 w-12 object-cover rounded border border-stone-200 photo-pop" />
+                      </a>
                     )}
                     {targetLink && (
                       <Link href={targetLink} className="ml-2 text-xs text-orange-500 hover:text-orange-700 hover:underline shrink-0">

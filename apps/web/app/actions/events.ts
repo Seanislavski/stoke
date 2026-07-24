@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { logAction } from '@/lib/audit'
+import { logAction, logPhotos } from '@/lib/audit'
 import { wallTimeToUtcIso, DEFAULT_TZ } from '@/lib/eventTime'
 import { generateForSeries, type Frequency, type EndType, type SeriesRow } from '@/lib/eventSeries'
 
@@ -73,6 +73,7 @@ export async function createEvent(communityId: string, formData: FormData) {
 
     if (inserted) {
       logAction({ actorId: user.id, communityId, action: 'event.created', targetId: inserted.id, targetType: 'event' })
+      if (photos.length) logPhotos({ actorId: user.id, communityId, added: photos, source: 'event', parentId: inserted.id })
     }
   } else {
     // Recurring: create the series (rule + template) then materialize occurrences.
@@ -108,6 +109,7 @@ export async function createEvent(communityId: string, formData: FormData) {
     if (series) {
       await generateForSeries(admin, series as SeriesRow)
       logAction({ actorId: user.id, communityId, action: 'event.created', targetId: series.id, targetType: 'event', metadata: { series: true, frequency: repeat } })
+      if (photos.length) logPhotos({ actorId: user.id, communityId, added: photos, source: 'event', parentId: series.id })
     }
   }
 
@@ -141,6 +143,15 @@ export async function deleteEvent(
 
   const seriesId = event.series_id as string | null
 
+  // Collect the photos on the event(s) about to be deleted, deduped across
+  // occurrences (a series shares one photo set), so the removal can be audited.
+  let affectedQuery = admin.from('events').select('photos')
+  if (seriesId && scope === 'series') affectedQuery = affectedQuery.eq('series_id', seriesId)
+  else if (seriesId && scope === 'future') affectedQuery = affectedQuery.eq('series_id', seriesId).gte('starts_at', event.starts_at)
+  else affectedQuery = affectedQuery.eq('id', eventId)
+  const { data: affectedRows } = await affectedQuery
+  const removedPhotos = [...new Set((affectedRows ?? []).flatMap((r: { photos: string[] | null }) => r.photos ?? []))]
+
   if (seriesId && scope === 'series') {
     await admin.from('events').delete().eq('series_id', seriesId)
     await admin.from('event_series').delete().eq('id', seriesId)
@@ -153,6 +164,7 @@ export async function deleteEvent(
   }
 
   logAction({ actorId: user.id, communityId, action: 'event.deleted', targetId: eventId, targetType: 'event', metadata: { self: isCreator, scope: seriesId ? scope : 'one' } })
+  if (removedPhotos.length) logPhotos({ actorId: user.id, communityId, removed: removedPhotos, source: 'event', parentId: eventId })
 
   revalidatePath(`/communities/${communityRow?.slug}`)
   return {}

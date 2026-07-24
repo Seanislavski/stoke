@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { logAction } from '@/lib/audit'
+import { logAction, logPhotos } from '@/lib/audit'
 
 async function getUserMembership(communityId: string) {
   const supabase = await createClient()
@@ -45,6 +45,7 @@ export async function submitPost(communityId: string, slug: string, formData: Fo
   if (error) return { error: 'Could not submit post.' }
 
   logAction({ actorId: user.id, communityId, action: isMod ? 'post.created' : 'post.submitted', targetId: inserted.id, targetType: 'post' })
+  if (photos.length) logPhotos({ actorId: user.id, communityId, added: photos, source: 'bulletin', parentId: inserted.id })
   revalidatePath(`/communities/${slug}`)
   return { ok: true, status }
 }
@@ -108,7 +109,7 @@ export async function deletePost(postId: string, communityId: string, slug: stri
 
   const admin = createAdminClient()
   const [{ data: post }, { data: community }, { data: membership }, { data: platformRole }] = await Promise.all([
-    admin.from('bulletin_posts').select('author_id').eq('id', postId).single(),
+    admin.from('bulletin_posts').select('author_id, photos').eq('id', postId).single(),
     admin.from('communities').select('owner_id').eq('id', communityId).single(),
     admin.from('community_members').select('role').eq('community_id', communityId).eq('user_id', user.id).maybeSingle(),
     admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
@@ -125,6 +126,7 @@ export async function deletePost(postId: string, communityId: string, slug: stri
 
   await admin.from('bulletin_posts').delete().eq('id', postId)
   logAction({ actorId: user.id, communityId, action: 'post.deleted', targetId: postId, targetType: 'post', metadata: { self: isAuthor } })
+  if (post.photos?.length) logPhotos({ actorId: user.id, communityId, removed: post.photos, source: 'bulletin', parentId: postId })
   revalidatePath(`/communities/${slug}`)
   return {}
 }

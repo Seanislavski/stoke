@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { logAction } from '@/lib/audit'
+import { logAction, logPhotos } from '@/lib/audit'
 import { sendEmail, joinApprovedHtml, joinRejectedHtml, ownershipTransferredHtml } from '@/lib/email'
 import { checkMemberLimit, checkCommunityLimit } from '@/lib/billing'
 
@@ -60,6 +60,10 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
   }
 
   const supabase = await createClient()
+  // Snapshot the gallery before the update so we can audit which photos changed.
+  const { data: prev } = await supabase.from('communities').select('photos').eq('id', communityId).single()
+  const oldPhotos: string[] = prev?.photos ?? []
+
   const { error } = await supabase
     .from('communities')
     .update({
@@ -75,6 +79,13 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
 
   if (error) return { error: error.message }
 
+  logPhotos({
+    actorId: caller.userId,
+    communityId,
+    added: photos.filter(u => !oldPhotos.includes(u)),
+    removed: oldPhotos.filter(u => !photos.includes(u)),
+    source: 'gallery',
+  })
   logAction({
     actorId: caller.userId,
     communityId,
