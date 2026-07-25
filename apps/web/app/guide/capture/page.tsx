@@ -301,6 +301,7 @@ export default async function CaptureGuidePage() {
                   librarian’s ask is written to be warm and pressure-free, and it does the work for you.
                 </p>
                 <Shot
+                  src="/guide/capture/shots/03-confirm.png"
                   alt="An ephemeral “Only you can see this” reply from Silas confirming the capture"
                   caption="“📚 Captured. I’ve asked [name] for permission (via DM) — once they answer, it appears in the Stoke captures inbox.”"
                 />
@@ -315,6 +316,7 @@ export default async function CaptureGuidePage() {
                   answer.”</em>
                 </p>
                 <Shot
+                  src="/guide/capture/shots/04-consent-dm.png"
                   alt="The full consent DM from Silas — orange embed, the quoted post, and three buttons"
                   caption="The consent card, with ✅ Yes, with credit · 👤 Yes, anonymously · ❌ No thanks."
                 />
@@ -357,6 +359,7 @@ export default async function CaptureGuidePage() {
                   double-asked, and only the original author can answer — even if the ask had to happen in the channel.
                 </p>
                 <Shot
+                  src="/guide/capture/shots/05-answered.png"
                   alt="The answered consent card with buttons gone, plus the claim-link follow-up"
                   caption="“✅ Wonderful — I’ll shelve it with your name on it.” — followed by the private claim link."
                 />
@@ -376,6 +379,7 @@ export default async function CaptureGuidePage() {
                   Pending and declined captures never appear here — this list is consent-granted only.
                 </p>
                 <Shot
+                  src="/guide/capture/shots/06-gear-menu.png"
                   alt="The community header gear menu open, showing Review queue with its pending count badge"
                   caption="The gear menu — the badge tells you something’s waiting."
                 />
@@ -423,8 +427,9 @@ export default async function CaptureGuidePage() {
                   for anonymous ones. Any photos appear right below. It’s searchable, linkable, and permanent.
                 </p>
                 <Shot
-                  alt="The published answer on its Q&A question page, showing the attribution line and photo"
-                  caption="The payoff: the advice in its new, findable home."
+                  src="/guide/capture/shots/09-published.png"
+                  alt="The published question on its Q&A page, showing the “Shared by … on Discord” attribution line"
+                  caption="The payoff: the advice in its new, findable home, credited back to whoever wrote it."
                 />
               </Step>
 
@@ -444,6 +449,7 @@ export default async function CaptureGuidePage() {
                   “join a platform.”
                 </p>
                 <Shot
+                  src="/guide/capture/shots/10-claim.png"
                   alt="The claim page on Stoke, showing the captured post and the claim button"
                   caption="The claim page — one click and it’s theirs."
                 />
