@@ -123,13 +123,22 @@ export default function AppNav({
                   My communities
                 </Link>
                 {isCommunityStaff && (
-                  <Link
-                    href="/guide"
-                    onClick={() => setOpen(false)}
-                    className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                  >
-                    Organizer guide
-                  </Link>
+                  <>
+                    <Link
+                      href="/guide"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Organizer guide
+                    </Link>
+                    <Link
+                      href="/guide/capture"
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Capturing Discord posts
+                    </Link>
+                  </>
                 )}
                 <Link
                   href="/settings/billing"

@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // The capture-guide screenshots live outside public/ (they're staff-only, served
+  // by app/guide/capture/shots/[name]) — standalone won't trace files it can't see
+  // being imported, so include them explicitly or they vanish on Railway.
+  outputFileTracingIncludes: {
+    '/guide/capture/shots/[name]': ['./guide-shots/**'],
+  },
   images: {
     remotePatterns: [
       {
