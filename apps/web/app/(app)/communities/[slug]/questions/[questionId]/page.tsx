@@ -15,6 +15,7 @@ import PublishAsQotwButton from '@/components/qotw/PublishAsQotwButton'
 import AcceptAnswerButton from '@/components/knowledge/AcceptAnswerButton'
 import EditQuestion from '@/components/knowledge/EditQuestion'
 import EditAnswer from '@/components/knowledge/EditAnswer'
+import QuestionJoinGate from '@/components/knowledge/QuestionJoinGate'
 import { deleteQuestion, deleteAnswer } from '@/app/actions/knowledge'
 import { getYouTubeId } from '@/lib/embeds'
 import { qotwLabel } from '@/lib/qotw'
@@ -37,7 +38,7 @@ export default async function QuestionPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, owner_id')
+    .select('id, name, slug, owner_id, is_listed, join_mode')
     .eq('slug', slug)
     .single()
 
@@ -65,8 +66,6 @@ export default async function QuestionPage({
   const isMod = !!platformRole || isOwner || ['organizer', 'moderator'].includes(myMembership?.role ?? '')
   const canSee = isMember || isMod
 
-  if (!canSee) notFound()
-
   const { data: question } = await admin
     .from('kb_questions')
     .select('id, title, body, photos, status, category_id, is_public, asker_public_pref, asker_id, attribution, created_at, published_at, profiles!asker_id(username, display_name)')
@@ -75,6 +74,86 @@ export default async function QuestionPage({
     .single()
 
   if (!question) notFound()
+
+  // A signed-in non-member used to hit a bare 404 here, which is the worst screen to give
+  // someone who has already signed up and followed a link in. They now get the question plus
+  // a way in — but only for content already surfaced beyond the membership boundary (a
+  // published question in a listed community, or one explicitly made public). Anything else
+  // stays a 404, so an unlisted community's Q&A is never exposed by URL guessing.
+  // A numbered QotW is already readable logged-out via its public /qotw/N link, so it must be
+  // readable here too — otherwise signing up would show a signed-in visitor LESS than a
+  // stranger sees, which is the same inversion this whole fix is about.
+  const isNumberedQotw =
+    !canSee && question.status === 'published'
+      ? (
+          await admin
+            .from('qotw_items')
+            .select('number')
+            .eq('community_id', community.id)
+            .eq('question_id', questionId)
+            .maybeSingle()
+        ).data?.number != null
+      : false
+
+  const canPreview =
+    !canSee &&
+    question.status === 'published' &&
+    (community.is_listed || question.is_public || isNumberedQotw)
+
+  if (!canSee && !canPreview) notFound()
+
+  if (!canSee) {
+    const { count: answerCount } = await admin
+      .from('kb_answers')
+      .select('id', { count: 'exact', head: true })
+      .eq('question_id', questionId)
+      .eq('status', 'published')
+
+    const previewAsker = one<Profile>(question.profiles)
+    const previewDate = new Date(question.published_at ?? question.created_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+
+    return (
+      <div className="max-w-3xl mx-auto py-8 space-y-6">
+        <Link href={`/communities/${slug}`} className="text-sm text-stone-400 hover:text-stone-700">
+          ← {community.name}
+        </Link>
+
+        <div className="bg-white border border-stone-200 rounded-xl p-6">
+          <h1 className="text-2xl font-bold text-stone-900">{question.title}</h1>
+          <p className="mt-1 text-sm text-stone-400">
+            Asked by {previewAsker?.display_name || previewAsker?.username || 'a member'} · {previewDate}
+          </p>
+          {question.body && (
+            <div className="mt-4">
+              <RichContent content={question.body} />
+            </div>
+          )}
+          {question.photos?.length > 0 && (
+            <div className="mt-4">
+              <PhotoGallery photos={question.photos} />
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide">
+            {answerCount ?? 0} {answerCount === 1 ? 'Answer' : 'Answers'}
+          </h2>
+          <QuestionJoinGate
+            communityId={community.id}
+            communityName={community.name}
+            slug={slug}
+            joinMode={community.join_mode}
+            answerCount={answerCount ?? 0}
+          />
+        </div>
+      </div>
+    )
+  }
 
   const isAsker = question.asker_id === user!.id
   // Pending/rejected questions are only visible to mods and the asker.

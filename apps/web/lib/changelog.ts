@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-07-26',
+    title: 'Question links now work for people who haven\'t joined yet',
+    items: [
+      'Following a link to a community question no longer shows "not found" if you haven\'t joined that community. You can read the question, see how many answers it has, and join right there to read them.',
+    ],
+  },
+  {
     date: '2026-07-24',
     title: 'Captured Discord posts keep their pictures, and a new Photos tab',
     items: [
