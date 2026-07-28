@@ -7,6 +7,7 @@ import { logAction } from '@/lib/audit'
 import { qotwLabel, QOTW_TEST_NUMBER } from '@/lib/qotw'
 import { ensureQotwCategory } from '@/lib/qotw-publish'
 import { sendEmail, qotwChosenHtml } from '@/lib/email'
+import { enqueueDiscordDm, APP_URL } from '@/lib/discord-outbox'
 
 async function requireMod(communityId: string) {
   const supabase = await createClient()
@@ -171,8 +172,45 @@ export async function publishExistingQuestion(questionId: string, communityId: s
   })
   if (insErr) return { error: insErr.message }
 
-  // Congratulate the asker (unless they promoted their own question) — bell + email.
-  if (question.asker_id && question.asker_id !== user.id) {
+  // Who actually hears about this? A question filed from an UNCLAIMED Discord
+  // capture is authored by the Silas system user, so `asker_id` is a bot mailbox —
+  // congratulating it would send the best moment in the funnel to nobody while the
+  // human who wrote it hears nothing. Those go to the original Discord author via
+  // the outbox Silas drains, which doubles as a nudge to claim the post. Once a
+  // capture IS claimed, asker_id is the claimer's real profile and the normal
+  // in-app path below is correct.
+  const { data: capture } = await admin
+    .from('discord_captures')
+    .select('id, discord_author_id, consent_status, claim_token, claimed_by')
+    .eq('question_id', questionId).eq('community_id', communityId).maybeSingle()
+
+  if (capture && !capture.claimed_by) {
+    const { data: c } = await admin.from('communities').select('name, slug').eq('id', communityId).single()
+    if (c) {
+      await enqueueDiscordDm({
+        communityId,
+        kind: 'qotw_chosen',
+        discordUserId: capture.discord_author_id,
+        captureId: capture.id,
+        payload: {
+          community_name: c.name,
+          question_title: question.title,
+          qotw_label: qotwLabel(nextNumber),
+          // The NUMBERED link, not the question link: the recipient is very
+          // likely logged out, and middleware rewrites /qotw/N to the public
+          // preview. /questions/{id} would gate them instead.
+          qotw_url: `${APP_URL}/communities/${c.slug}/qotw/${nextNumber}`,
+          // An anonymous consent gets the congratulations but no claim link —
+          // claiming would put their name on it, which is the opposite of what
+          // they asked for.
+          claim_url: capture.consent_status === 'granted_credited' && capture.claim_token
+            ? `${APP_URL}/claim/${capture.claim_token}`
+            : null,
+        },
+      })
+    }
+  } else if (question.asker_id && question.asker_id !== user.id) {
+    // Congratulate the asker (unless they promoted their own question) — bell + email.
     const askerId = question.asker_id
     await admin.from('notifications').insert({
       user_id: askerId,
