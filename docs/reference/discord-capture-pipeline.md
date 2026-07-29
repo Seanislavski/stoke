@@ -58,7 +58,16 @@
 - **A notes-vs-DB "discrepancy" is usually neither a bug nor a bad note** — the note was true when written and reality moved on. **Check `audit_log` FIRST:** it outlives the rows it describes and reconstructs the whole timeline.
 - **Read-only Supabase probes with ZERO deps:** a scratchpad `.mjs` can't `import '@supabase/supabase-js'` (resolves from the script dir, not cwd) → plain `fetch` on `${SUPABASE_URL}/rest/v1/…` with `apikey` + Bearer headers. Exact counts via `Prefer: count=exact` + `Range: 0-0`, then read `content-range`.
 
+### `/library` — retrieval, the funnel in reverse (07/28/2026 — ✅ LIVE, Stoke `ba162a1` + Silas `289c39b`, command registered)
+`/library <search> [share]` searches the Stoke KB from Discord and returns up to 5 questions (snippet + answer count + link). **Ephemeral by default**; `share:true` posts to the channel for when you're answering someone else. Open to everyone — retrieval is the point. Implementation: `src/library.js` in the Silas repo (`searchLibrary`, `resultsEmbed`, `sanitize` all exported so they can be tested with **no Discord connection**).
+- **⚠️ IT REQUIRED A STOKE GATE CHANGE FIRST.** The logged-out preview exposed a question only if it was a QotW or `is_public`, while the signed-in non-member gate also allowed any published question in a **listed** community — so a logged-out Discord member could reach only the QotW questions and every other link dead-ended at `/login`. `preview/[slug]/questions/[questionId]/page.tsx` now uses **`published AND (is_listed || is_public || isQotw)`**, identical to `QuestionJoinGate`. **Keep the two rules identical** — a narrower logged-out rule means a signed-in visitor sees LESS than a stranger.
+- **Answers are still never public** — searched never, quoted never, count only. Searching answer bodies would be a soft leak of gated content; the count is the hook that sells joining.
+- **⚠️ No dead links, computed from LIVE state:** results are filtered by `community.is_listed || q.is_public || hasQotwNumber` read from the community row (cached per process). **This is the "join mode is part of its design" warning turned into code** — unlisting the community narrows results automatically instead of producing a wall of login redirects.
+- **⚠️ PostgREST injection guard:** `or=(...)` is comma/paren delimited and `*`/`%` are wildcards, so `sanitize()` strips `[,()*%\]` from user input before it reaches the query.
+- Ranking: title hit > body hit, then more answers, then recency. QotW hits use the numbered `/qotw/N` URL + a ⭐ label. The empty state is a funnel step ("a question nobody has asked is a gap in the shelves"), not an apology.
+- **Registration is separate from the push** — `railway run npm run deploy` from the Silas repo; guild commands appear instantly. No new env vars (reuses the four Stoke vars).
+- **⏳ The real limit is CONTENT, not code:** 12 published questions at launch, so `/library` will miss more often than it hits until the library is seeded.
+
 ### Parked
-- **`/library` retrieval slash command** in Discord (Silas searches the Stoke KB, returns links = the funnel in reverse). **⚠️ Join mode is part of its design, not a separate setting** — switching Body Doubling back to closed would turn every `/library` link into an approval wall or a dead end.
 - Silas features INSIDE Stoke (pomodoro/chimes) = NO, voice is out of v1 scope.
 - Pending-capture auto-expiry (mods re-nudge manually) and consent revocation (honored manually via ticket/DM) — both deliberate v1 defaults.
