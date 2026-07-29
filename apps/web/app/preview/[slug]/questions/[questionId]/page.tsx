@@ -14,18 +14,29 @@ function one<T>(v: T | T[] | null | undefined): T | null {
 }
 
 /**
- * Public read-only view of a single question. A question is exposed here only if it is
- * published AND either (a) filed into the community's "Question of the Week" category, or
- * (b) explicitly flipped public by a mod (`is_public`). Everything else in the Q&A stays
- * private. Reached via a middleware rewrite of the canonical
- * /communities/{slug}/questions/{id} URL for logged-out visitors, so shared links stay clean.
+ * Public read-only view of a single question. A question is exposed here if it is
+ * published AND any of: (a) its community is LISTED (a listed community's Q&A is its
+ * public shop window), (b) it is filed into the "Question of the Week" category, or
+ * (c) a mod explicitly flipped it public (`is_public`). Everything else in the Q&A —
+ * and every question in an UNLISTED community — stays private.
+ *
+ * ⚠️ This is deliberately the SAME rule as the signed-in non-member gate in
+ * components/knowledge/QuestionJoinGate.tsx. Keep them identical: if the logged-out
+ * rule is narrower, a signed-in visitor sees LESS than a stranger, which is the
+ * inversion that bug class keeps producing.
+ *
+ * ANSWERS ARE NEVER PUBLIC — only the count is surfaced, so joining is what buys the
+ * substance. Reached via a middleware rewrite of the canonical
+ * /communities/{slug}/questions/{id} URL for logged-out visitors, so shared links stay
+ * clean — which is also what makes Silas's Discord `/library` results land on real
+ * content instead of a login wall.
  */
 async function loadPublicQuestion(slug: string, questionId: string) {
   const admin = createAdminClient()
 
   const { data: community } = await admin
     .from('communities')
-    .select('id, name, slug')
+    .select('id, name, slug, is_listed')
     .eq('slug', slug)
     .single()
   if (!community) return null
@@ -45,9 +56,10 @@ async function loadPublicQuestion(slug: string, questionId: string) {
 
   const isQotw = !!qotwCategoryId && question?.category_id === qotwCategoryId
   const isPublic = question?.is_public === true
+  const isListed = community.is_listed === true
 
-  // Only a published question that is the QOTW or explicitly made public is exposed.
-  if (!question || question.status !== 'published' || (!isQotw && !isPublic)) {
+  // Published, and public by at least one of the three routes above.
+  if (!question || question.status !== 'published' || (!isListed && !isQotw && !isPublic)) {
     return { community, question: null as null }
   }
 

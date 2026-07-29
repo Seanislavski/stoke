@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-07-28',
+    title: 'A listed community\'s questions are now readable by anyone',
+    items: [
+      'Questions in a listed community can now be read by anyone with the link, even without an account — so a question you share somewhere else actually opens instead of asking for a login. Answers still require joining.',
+    ],
+  },
+  {
     date: '2026-07-26',
     title: 'Question links now work for people who haven\'t joined yet',
     items: [
