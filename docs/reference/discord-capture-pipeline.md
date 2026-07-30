@@ -68,6 +68,13 @@
 - **Registration is separate from the push** — `railway run npm run deploy` from the Silas repo; guild commands appear instantly. No new env vars (reuses the four Stoke vars).
 - **⏳ The real limit is CONTENT, not code:** 12 published questions at launch, so `/library` will miss more often than it hits until the library is seeded.
 
+#### Post-launch verification (07/30/2026 — read-only, no code changed)
+- **Links: 12/12 healthy.** Every published BodyDoubling.com question that passes the `/library` filter returns **200 with the question rendered to a logged-out fetch** — no `/login` redirects, no dead ends. Live state at the time: `is_listed: true`, `join_mode: 'open'`. The `ba162a1` gate change is confirmed working end to end.
+- **Search: 13/24 hit rate** running the real `searchLibrary` against live data with plausible member terms. **Gaps (nothing on the shelves):** procrastination, motivation, medication, sleep, reward, burnout, accountability, hyperfocus, planner, anxiety, exercise. Treat that list as a **capture watchlist** — those are things people search for that the library can't answer.
+- 19 published answers over 12 questions, but **3 questions have 0 answers**, and ranking puts a title hit above answer count — so `timer` leads with an unanswered question. Design working as written, but a first `/library` use can surface a gap rather than an answer.
+- **⚠️ THE NON-OBVIOUS FINDING — the QotW bank will NOT fix coverage.** 21 unpublished drafts sit in the bank, so "publish more" looks like the lever. It isn't: the drafts are conversational prompts (*"What's fueling your focus today — coffee, tea, water, chaos?"*), and only 2 of the 11 gap terms appear in the bank at all. **The bank and the library are different content types** — QotW drives weekly engagement, `/library` needs durable how-to questions. Publishing the bank on schedule grows the question count without moving the hit rate. **The lever for `/library` coverage is the capture pipeline, not the bank.**
+- **Method note:** a title-substring check against fetched HTML **false-positives on any title containing `"` or `'`** (they escape to `&quot;`/`&#x27;`) — QotW-2 was flagged as a login wall and was fine. Match on the escaped form, or read `<title>`, before believing a failure.
+
 ### Parked
 - Silas features INSIDE Stoke (pomodoro/chimes) = NO, voice is out of v1 scope.
 - Pending-capture auto-expiry (mods re-nudge manually) and consent revocation (honored manually via ticket/DM) — both deliberate v1 defaults.
