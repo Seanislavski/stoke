@@ -23,6 +23,8 @@ import ReviewForm from '@/components/reviews/ReviewForm'
 import ReviewList from '@/components/reviews/ReviewList'
 import { REVIEW_COLS, mapReview, type RawReview } from '@/lib/reviews'
 import OnboardingChecklist from '@/components/community/OnboardingChecklist'
+import LocalDate from '@/components/LocalDate'
+import { CONTEST_STATUS_LABELS, type ContestStatus } from '@/lib/contests'
 import { formatEventDate, formatEventTime, tzAbbrev, DEFAULT_TZ } from '@/lib/eventTime'
 
 export default async function CommunityPage({
@@ -40,7 +42,7 @@ export default async function CommunityPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos')
+    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos, has_contests')
     .eq('slug', slug)
     .single()
 
@@ -333,6 +335,16 @@ export default async function CommunityPage({
     photoWall.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime())
   }
 
+  // Contests tab data — mods also see drafts, which members shouldn't know exist.
+  const contests = (tab === 'contests' && canSee && community.has_contests)
+    ? await admin
+        .from('contests')
+        .select('id, title, description, status, submissions_close_at, winner_entry_id, created_at')
+        .eq('community_id', community.id)
+        .order('created_at', { ascending: false })
+        .then(r => (r.data ?? []).filter(c => isMod || c.status !== 'draft'))
+    : []
+
   const joinModeLabel: Record<string, string> = {
     open: 'Open',
     request: 'Request to join',
@@ -345,6 +357,7 @@ export default async function CommunityPage({
     { key: 'qa', label: 'Q&A' },
     { key: 'channels', label: 'Channels' },
     { key: 'reviews', label: 'Reviews' },
+    ...(community.has_contests ? [{ key: 'contests', label: 'Contests' }] : []),
     // Photos: always for mods (they get the full aggregate); for members only
     // once there's a curated gallery to show, so the tab is never empty for them.
     ...(isMod || (community.photos?.length ?? 0) > 0 ? [{ key: 'photos', label: 'Photos' }] : []),
@@ -689,6 +702,54 @@ export default async function CommunityPage({
                   scopeLabel={community.name}
                   existing={myReview}
                 />
+              )}
+            </div>
+          )}
+
+          {/* Contests tab */}
+          {tab === 'contests' && (
+            <div className="space-y-4">
+              {isMod && (
+                <p className="text-xs text-stone-400">
+                  Create and run contests from{' '}
+                  <Link href={`/communities/${slug}/settings#contests`} className="text-orange-600 hover:underline">community settings</Link>.
+                </p>
+              )}
+
+              {contests.length === 0 ? (
+                <div className="bg-white rounded-xl border border-stone-200 p-6 text-center text-stone-400 text-sm">
+                  No contests yet.{isMod ? ' Start one in community settings.' : ''}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {contests.map(c => (
+                    <Link
+                      key={c.id}
+                      href={`/communities/${slug}/contests/${c.id}`}
+                      className="block bg-white rounded-xl border border-stone-200 p-5 hover:border-orange-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <h3 className="text-base font-semibold text-stone-900">{c.title}</h3>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${
+                          c.status === 'voting' ? 'bg-orange-100 text-orange-700'
+                            : c.status === 'submissions' ? 'bg-green-100 text-green-700'
+                            : c.status === 'closed' ? 'bg-stone-100 text-stone-500'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {CONTEST_STATUS_LABELS[c.status as ContestStatus]}
+                        </span>
+                      </div>
+                      {c.description && (
+                        <p className="text-sm text-stone-500 mt-1.5 line-clamp-2">{c.description}</p>
+                      )}
+                      {c.status === 'submissions' && c.submissions_close_at && (
+                        <p className="text-xs text-stone-400 mt-2">
+                          Entries close <LocalDate ts={c.submissions_close_at} />
+                        </p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
           )}

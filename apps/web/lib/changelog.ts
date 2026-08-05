@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-08-05',
+    title: 'Run a design contest in your community',
+    items: [
+      'Organizers can now run design contests — members submit entries with images, organizers pick the finalists, and the whole community votes on the winner.',
+      'Your entry stays private until voting opens, so nobody can see what you made before the deadline, and you can keep editing it right up until entries close.',
+      'Every entry records that you agreed to the contest terms, so it\'s always clear what you did and didn\'t give permission for.',
+      'Turn contests on for your community under Settings → Contests.',
+    ],
+  },
+  {
     date: '2026-07-28',
     title: 'A listed community\'s questions are now readable by anyone',
     items: [
