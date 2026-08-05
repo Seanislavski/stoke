@@ -128,7 +128,8 @@ export default function ContestManager({ communityId, slug, enabled, contests }:
               </div>
               <p className="text-xs text-stone-400">
                 The contest starts as a draft — members won&apos;t see it until you open it for entries.
-                You can edit the entry terms on the contest page.
+                Entrants agree to a standard licence granting the community permission to reproduce
+                and sell the winning design, with credit.
               </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">

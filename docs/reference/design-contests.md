@@ -2,7 +2,8 @@
 
 > Reference, not an archive — current, and new detail about contests belongs
 > here rather than in the project `CLAUDE.md`.
-> Started 08/05/2026. **Backend shipped (`d55b6d8`); UI not built yet.**
+> Started 08/05/2026. **LIVE** — backend `d55b6d8`, UI `bead219`, migration
+> applied and verified 08/05. A contest can run end to end.
 
 ## Why it exists
 
@@ -123,9 +124,27 @@ Vote counts stay hidden until `closed` so early votes don't snowball.
 - `lib/email.ts` — `contestEntrySubmittedHtml`, `contestWinnerHtml`
 - `lib/audit.ts` — `contest.*` / `entry.*` labels; photo source `contest`
 
-**Not built yet:** the contests tab, `communities/[slug]/contests/[contestId]`,
-all `components/contests/`, the settings toggle UI, the moderation-queue section,
-audit `View →` for `target_type: 'entry'`, and the changelog entry.
+**UI (`bead219`):**
+- `app/(app)/communities/[slug]/contests/[contestId]/page.tsx` — the detail page
+- `components/contests/` — `SubmitEntryForm` (doubles as the edit form),
+  `EntryModActions`, `VoteButton`, `ContestPhaseControls`, `ContestManager`
+- Contests tab on `communities/[slug]/page.tsx`, gated on `has_contests`
+- `#contests` section + quick-nav anchor in community settings
+
+### ⭐ Two privacy properties built on purpose
+
+1. **Vote counts are only *queried* when `countsVisible()` is true** — not
+   fetched and then hidden in the markup. A hidden tally still ships in the RSC
+   payload, where a curious member can read it mid-vote. Same reasoning as the
+   Q&A non-member path using `count`/`head: true` so answer bodies never reach
+   memory.
+2. **Draft contests 404 for non-mods** rather than rendering an empty shell.
+
+**Still to build:** moderation-queue "Contest entries" section; audit `View →`
+for `target_type: 'entry'`; **editing an existing contest** — `updateContest`
+exists in the actions file but nothing calls it yet, so title/brief/rules/terms
+are fixed once created. (The settings copy promising terms-editing was corrected
+rather than left as a false promise.)
 
 ## ⚠️ Traps
 
