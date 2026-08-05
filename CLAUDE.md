@@ -35,6 +35,8 @@ A platform for building reciprocal communities — anyone can create and organiz
 - Always run `npx tsc --noEmit` from `apps/web` before pushing to catch TS errors locally
 - `startTransition` callbacks must return `void` — use `void` operator before async server action calls: `startTransition(() => void myAction())`
 - Always paste SQL migration contents directly in chat — never just reference the file path
+- **⚠️ `42P01: relation "public.<core table>" does not exist` when running a migration = WRONG SUPABASE PROJECT, not broken SQL.** Sean has three (Stoke `gzssbicdblkmllutegju`, Plish `uvwhwparyzipondpoenz`, Momentum `baneqcnqodkrphhhyaye`) and the dashboard opens whichever tab was last used. A table the live site queries constantly cannot be missing from the right database — **verify before rewriting anything**. Deep link that can't be gotten wrong: `https://supabase.com/dashboard/project/gzssbicdblkmllutegju/sql/new`. (08/05/2026, contests migration.)
+- **Read-only DB probe without a script:** `curl -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "<url>/rest/v1/<table>?select=<col>&limit=1"` with the service-role key from `apps/web/.env.local`. Sidesteps the throwaway-`.mjs` ESM-resolution trap entirely and leaves nothing to clean up. Missing column → `42703`; missing table → `PGRST205`. Running the probe **before** a migration gives you the before-picture, so the same two queries afterwards are the verification. (Trap: `-o /dev/null` together with `-I` yields `status=000` / exit 43 — just read the body.)
 - `favicon.ico` in `app/` always overrides `icon.svg` — delete `favicon.ico` when adding SVG favicon
 
 ## Railway Patterns
