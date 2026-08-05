@@ -17,6 +17,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Organizers can now run design contests — members submit entries with images, organizers pick the finalists, and the whole community votes on the winner.',
       'Your entry stays private until voting opens, so nobody can see what you made before the deadline, and you can keep editing it right up until entries close.',
       'Every entry records that you agreed to the contest terms, so it\'s always clear what you did and didn\'t give permission for.',
+      'Contest links now open for everyone. Share one anywhere and people can read the brief, the rules and the deadline before deciding to join — no more login wall.',
       'Turn contests on for your community under Settings → Contests.',
     ],
   },

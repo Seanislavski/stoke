@@ -9,6 +9,7 @@ import SubmitEntryForm from '@/components/contests/SubmitEntryForm'
 import EntryModActions from '@/components/contests/EntryModActions'
 import VoteButton from '@/components/contests/VoteButton'
 import ContestPhaseControls from '@/components/contests/ContestPhaseControls'
+import ContestJoinGate from '@/components/contests/ContestJoinGate'
 import {
   CONTEST_STATUS_LABELS, canSeeEntry, countsVisible, phaseHint,
   submissionsOpen, votingOpen, type ContestStatus,
@@ -36,7 +37,7 @@ export default async function ContestPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, owner_id, has_contests')
+    .select('id, name, slug, owner_id, has_contests, is_listed, join_mode')
     .eq('slug', slug)
     .single()
   if (!community) notFound()
@@ -49,8 +50,9 @@ export default async function ContestPage({
 
   const isMember = myMembership?.status === 'active'
   const isMod = !!platformRole || user.id === community.owner_id || ['organizer', 'moderator'].includes(myMembership?.role ?? '')
-  if (!isMember && !isMod) notFound()
 
+  // Fetched BEFORE the access gate — a non-member has to be shown the brief to
+  // have any reason to join.
   const { data: contest } = await admin
     .from('contests')
     .select('id, title, description, rules, terms, status, submissions_close_at, voting_close_at, max_entries_per_member, winner_entry_id, created_at')
@@ -59,9 +61,63 @@ export default async function ContestPage({
     .single()
   if (!contest) notFound()
 
-  // A draft is still being written; members shouldn't stumble into it by URL.
+  // A draft is still being written; nobody but a mod should stumble into it.
   const status = contest.status as ContestStatus
   if (status === 'draft' && !isMod) notFound()
+
+  // ⚠️ This must stay IDENTICAL to the logged-out rule in
+  // app/preview/[slug]/contests/[contestId]/page.tsx. If the authenticated path
+  // is narrower, a signed-in visitor sees LESS than a stranger — the inversion
+  // this whole gate exists to kill.
+  if (!isMember && !isMod) {
+    if (!community.is_listed) notFound()
+
+    // Count only — entry titles and images never reach a non-member's page.
+    const { count: entryCount } = await admin
+      .from('contest_entries')
+      .select('id', { count: 'exact', head: true })
+      .eq('contest_id', contestId).eq('status', 'approved')
+
+    return (
+      <div className="max-w-3xl mx-auto py-8 space-y-6">
+        <Link href={`/communities/${slug}`} className="text-sm text-stone-500 hover:text-stone-700">
+          ← {community.name}
+        </Link>
+
+        <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
+            {community.name} · Contest
+          </p>
+          <h1 className="text-2xl font-bold text-stone-900">{contest.title}</h1>
+          <p className="text-sm text-stone-500">{phaseHint(contest)}</p>
+
+          {contest.description && (
+            <div className="text-stone-700 text-sm"><RichContent content={contest.description} /></div>
+          )}
+          {contest.rules && (
+            <div className="bg-stone-50 border border-stone-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Rules</p>
+              <div className="text-sm text-stone-600"><RichContent content={contest.rules} /></div>
+            </div>
+          )}
+          {contest.submissions_close_at && (
+            <p className="text-xs text-stone-400">
+              Entries close <LocalDate ts={contest.submissions_close_at} />
+            </p>
+          )}
+        </div>
+
+        <ContestJoinGate
+          communityId={community.id}
+          communityName={community.name}
+          slug={slug}
+          joinMode={community.join_mode}
+          entryCount={entryCount ?? 0}
+          acceptingEntries={submissionsOpen(contest)}
+        />
+      </div>
+    )
+  }
 
   // ⚠️ contest_entries has two FKs to profiles (author_id, approved_by), so the
   // join needs the !author_id hint or PostgREST silently returns null.

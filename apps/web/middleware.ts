@@ -68,6 +68,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/preview/${qSlug}/qotw/${qNum}`, request.url))
   }
 
+  // A contest URL, e.g. /communities/{slug}/contests/{id} — logged-out visitors get
+  // the public read-only view so a contest link shared to Discord opens instead of
+  // hitting the login wall. The preview page enforces that only a non-draft contest
+  // in a LISTED community is actually exposed; entries are never public.
+  const communityContestMatch = pathname.match(/^\/communities\/([^/]+)\/contests\/([^/]+)\/?$/)
+  if (!user && communityContestMatch) {
+    const [, cSlug, cId] = communityContestMatch
+    return NextResponse.rewrite(new URL(`/preview/${cSlug}/contests/${cId}`, request.url))
+  }
+
   // Logged-in users shouldn't see the public preview — send them to the full page
   if (user && isPreviewPage) {
     const target = pathname.replace(/^\/preview\//, '/communities/').replace(/\/$/, '')

@@ -38,7 +38,15 @@ export default function ContestManager({ communityId, slug, enabled, contests }:
     e.preventDefault()
     setLoading(true)
     setError('')
-    const result = await createContest(communityId, slug, new FormData(e.currentTarget))
+    const formData = new FormData(e.currentTarget)
+    // ⚠️ A datetime-local input yields a NAIVE string ("2026-09-01T00:00") with no
+    // zone, which Postgres timestamptz then reads as UTC — so an organizer in ET
+    // asking for midnight gets 8pm the previous evening. Convert through Date,
+    // which interprets the naive string in the BROWSER's zone, to a real instant.
+    // Matters especially here: submissions_close_at is enforced, not just displayed.
+    const close = formData.get('submissions_close_at') as string
+    if (close) formData.set('submissions_close_at', new Date(close).toISOString())
+    const result = await createContest(communityId, slug, formData)
     setLoading(false)
     if (result.error) {
       setError(result.error)
