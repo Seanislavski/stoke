@@ -75,6 +75,7 @@ A platform for building reciprocal communities — anyone can create and organiz
 - **`docs/reference/community-lifecycle.md`** — Community profile (about/cover/gallery), Bulk-Add Members, ownership transfer, public preview, member-facing landing, Reviews/testimonials, Organizer Guide. ⚠️ The privacy boundary: **branding (avatar, banner) shows on public preview; content (About, gallery, bulletin teaser) is listed-only.**
 - **`docs/reference/billing-tickets-invites.md`** — Stripe billing (plans, webhooks, Dahlia API), support tickets, invite links. ⚠️ **Plan caps come from `apps/web/lib/billing.ts`, never from memory.**
 - **`docs/reference/ui-and-media.md`** — Photos & media components + upload paths, link embeds, HomeHero scroll, profile back navigation, the legacy Resources tab. ⚠️ New storage upload paths need a matching storage policy.
+- **`docs/reference/design-contests.md`** — design competitions (member entries → mod shortlist → member vote → winner); `contests`/`contest_entries`/`contest_votes` schemas; phase lifecycle. ⚠️ The competition is deliberately **NOT** the merch storefront — Stripe here is single-merchant with no Connect, so "communities can sell" is a months-long project while "Body Doubling sells" is a week; contest voting is a **decided exception** to the no-upvotes/karma rule, not a precedent for Q&A; `terms_agreed_at` is NOT NULL because it's the licence grant that makes printing a winner legal.
 - **`docs/reference/ops-and-launch.md`** — hosted static assets, launch history + funnel diagnosis, seed/cleanup scripts. ⚠️ **The middleware `config.matcher` must exclude EVERY hosted static file extension** (`pdf|html|ico|txt|xml|webmanifest`) — a new public file type that isn't listed gets auth-gated and redirects logged-out visitors to `/login`. Always test hosted assets **while logged out**, checking content markers (`%PDF-`) not just status codes.
 
 ## Monorepo Structure
@@ -204,6 +205,10 @@ Root npm workspaces. Run `npm run dev:web` / `npm run dev:server` from root.
 
 ## Next.js Patterns
 - Server actions passed as props to client components MUST use `.bind(null, ...args)` — arrow functions `() => serverAction(args)` are plain closures, not serializable across the server→client boundary, and cause runtime crashes (Next.js error digest). Example: `deletePost.bind(null, post.id, communityId, slug)` not `() => deletePost(post.id, communityId, slug)`
+
+## In-App Notifications (bell)
+- **`notifications` columns are `user_id, type, actor_id, community_id, message_id`** — there is **no `body` and no `link`**. Copy text is not stored; the bell renders it from `type`. `message_id` doubles as the **generic target id** for non-message types (the `qotw` notification stores a *question* id in it; `contest_winner` stores a *contest* id).
+- **⚠️ ADDING A NOTIFICATION TYPE IS ALWAYS TWO EDITS — the insert AND `components/NotificationsBell.tsx`.** The bell's render is an if/else chain whose final branch is a **default, not a case**: an unhandled type silently renders *"Someone mentioned you in #a channel"*, and `handleNotificationClick` does nothing. Both the text branch and the click-routing branch need the new type. (Caught pre-push 08/05/2026 adding `contest_winner`.)
 
 ## Email Notifications
 - Email provider: **Resend** (`resend` npm package in `apps/web`)
