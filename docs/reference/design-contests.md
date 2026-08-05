@@ -140,18 +140,41 @@ Vote counts stay hidden until `closed` so early votes don't snowball.
    memory.
 2. **Draft contests 404 for non-mods** rather than rendering an empty shell.
 
-### 🐞 Two live bugs found 08/05 on the first real contest
+## Public access — ✅ FIXED 08/05 (`e4e078b`)
 
-1. **No join gate.** `contests/[contestId]/page.tsx` does
-   `if (!isMember && !isMod) notFound()` and there is no preview route, so a
-   logged-out visitor **307s to `/login`** and a signed-in non-member 404s.
-   Blocks announcing a contest to Discord. Fix = a gate in the shape of
-   `QuestionJoinGate` (brief + rules + deadline + Join; entries and voting stay
-   members-only).
-2. **`submissions_close_at` is stored as UTC from a naive `datetime-local`.**
-   The first real contest was set to "Sept 1 00:00" and stored
-   `2026-09-01T00:00:00+00:00` = **Aug 31, 8:00 PM ET**. Enforced server-side, so
-   this silently shortens the contest.
+Contests originally shipped members-only with no preview: logged-out visitors
+**307'd to `/login`**, signed-in non-members got a bare 404. That blocked
+announcing a contest anywhere. Now:
+
+- **Logged out** → `app/preview/[slug]/contests/[contestId]/page.tsx`, reached by
+  a `middleware.ts` rewrite of the canonical URL so a shared link stays clean.
+- **Signed in, not a member** → `components/contests/ContestJoinGate.tsx` in
+  place of the entries. ⚠️ It calls `router.refresh()` after an open join because
+  `joinCommunity` only revalidates `/communities/{slug}`.
+- The contest is now fetched **before** the access gate — a non-member has to be
+  shown the brief to have any reason to join.
+
+### ⚠️ Keep the two rules identical
+
+Both paths expose a contest when it is **non-draft AND the community is listed**.
+There's a warning comment in each file. If the logged-out rule is ever made
+narrower, a signed-in visitor sees *less* than a stranger — the inversion this
+bug class keeps producing (twice in Q&A, once here).
+
+### ⭐ Entries are never public — not even the count
+
+Deliberately different from Q&A, which *does* surface an answer count. A contest
+still collecting entries shouldn't advertise "0 so far" to strangers. Same
+privacy instinct, opposite conclusion, because the context differs.
+
+### ✅ Timezone bug fixed at the source
+
+`submissions_close_at` was stored from a naive `datetime-local` and read as UTC:
+the first real contest was set to "Sept 1 00:00" and stored
+`2026-09-01T00:00:00Z` = **Aug 31, 8:00 PM ET**, silently four hours short of a
+deadline that is *enforced*. `ContestManager` now converts through `Date` in the
+browser's zone before submitting. The affected row was corrected by hand to
+`2026-09-01T04:00:00Z`.
 
 **Still to build:** moderation-queue "Contest entries" section; audit `View →`
 for `target_type: 'entry'`; **editing an existing contest** — `updateContest`
