@@ -140,6 +140,19 @@ Vote counts stay hidden until `closed` so early votes don't snowball.
    memory.
 2. **Draft contests 404 for non-mods** rather than rendering an empty shell.
 
+### 🐞 Two live bugs found 08/05 on the first real contest
+
+1. **No join gate.** `contests/[contestId]/page.tsx` does
+   `if (!isMember && !isMod) notFound()` and there is no preview route, so a
+   logged-out visitor **307s to `/login`** and a signed-in non-member 404s.
+   Blocks announcing a contest to Discord. Fix = a gate in the shape of
+   `QuestionJoinGate` (brief + rules + deadline + Join; entries and voting stay
+   members-only).
+2. **`submissions_close_at` is stored as UTC from a naive `datetime-local`.**
+   The first real contest was set to "Sept 1 00:00" and stored
+   `2026-09-01T00:00:00+00:00` = **Aug 31, 8:00 PM ET**. Enforced server-side, so
+   this silently shortens the contest.
+
 **Still to build:** moderation-queue "Contest entries" section; audit `View →`
 for `target_type: 'entry'`; **editing an existing contest** — `updateContest`
 exists in the actions file but nothing calls it yet, so title/brief/rules/terms
