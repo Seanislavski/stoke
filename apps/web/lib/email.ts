@@ -162,6 +162,22 @@ export function reviewFeaturedHtml(scopeName: string, viewPath: string) {
   `)
 }
 
+export function contestEntrySubmittedHtml(communityName: string, communitySlug: string, contestTitle: string, entryTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 12px;">A new entry, <strong>${entryTitle}</strong>, was submitted to <strong>${contestTitle}</strong> in ${communityName}.</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">Entries stay hidden from other members until you approve them and open voting.</p>
+    ${btn('Review entries', `${BASE_URL}/communities/${communitySlug}/moderation`)}
+  `)
+}
+
+export function contestWinnerHtml(communityName: string, communitySlug: string, contestId: string, contestTitle: string, entryTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 12px;">Your entry <strong>${entryTitle}</strong> won <strong>${contestTitle}</strong> in ${communityName}. Congratulations!</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">The community voted for your design. An organizer will be in touch about what happens next.</p>
+    ${btn('See the results', `${BASE_URL}/communities/${communitySlug}/contests/${contestId}`)}
+  `)
+}
+
 export function eventReminderHtml(eventTitle: string, communityName: string, communitySlug: string, startsAt: string, tz: string = DEFAULT_TZ) {
   const time = new Date(startsAt).toLocaleString('en-US', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',

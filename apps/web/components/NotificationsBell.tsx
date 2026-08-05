@@ -82,6 +82,8 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     setOpen(false)
     if (n.type === 'qotw' && n.community && n.message_id) {
       router.push(`/communities/${n.community.slug}/questions/${n.message_id}`)
+    } else if (n.type === 'contest_winner' && n.community && n.message_id) {
+      router.push(`/communities/${n.community.slug}/contests/${n.message_id}`)
     } else if (n.community && n.channel_id && n.message_id) {
       router.push(`/communities/${n.community.slug}/channels/${n.channel_id}?mention=${n.message_id}`)
     }
@@ -150,6 +152,10 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                         {n.type === 'qotw' ? (
                           <p className="text-sm text-stone-800">
                             ⭐ <span className="font-medium">Your question was chosen as Question of the Week!</span>
+                          </p>
+                        ) : n.type === 'contest_winner' ? (
+                          <p className="text-sm text-stone-800">
+                            🏆 <span className="font-medium">Your entry won the contest!</span>
                           </p>
                         ) : (
                           <p className="text-sm text-stone-800">

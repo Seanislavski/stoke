@@ -57,6 +57,7 @@ export const PHOTO_SOURCE_LABELS: Record<string, string> = {
   qa_question: 'Q&A question',
   qa_answer: 'Q&A answer',
   chat: 'chat message',
+  contest: 'contest entry',
 }
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -79,6 +80,17 @@ export const ACTION_LABELS: Record<string, string> = {
   'resource.approved': 'Approved resource',
   'resource.rejected': 'Rejected resource',
   'resource.deleted': 'Deleted resource',
+  'contest.created': 'Created a contest',
+  'contest.edited': 'Edited a contest',
+  'contest.status_changed': 'Changed a contest phase',
+  'contest.winner_set': 'Set a contest winner',
+  'contest.deleted': 'Deleted a contest',
+  'entry.submitted': 'Submitted a contest entry',
+  'entry.edited': 'Edited a contest entry',
+  'entry.approved': 'Approved a contest entry',
+  'entry.rejected': 'Rejected a contest entry',
+  'entry.finalist_changed': 'Changed a contest finalist',
+  'entry.deleted': 'Deleted a contest entry',
   'capture.published': 'Published a Discord capture',
   'capture.discarded': 'Discarded a Discord capture',
   'capture.claimed': 'Claimed a Discord capture',
