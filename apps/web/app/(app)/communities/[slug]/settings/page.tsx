@@ -16,6 +16,7 @@ import LocalDate from '@/components/LocalDate'
 import EmailBlastForm from '@/components/community/settings/EmailBlastForm'
 import ContestManager from '@/components/contests/ContestManager'
 import DiscordHandlesToggle from '@/components/community/DiscordHandlesToggle'
+import ScrollToHash from '@/components/ScrollToHash'
 import { type ContestStatus } from '@/lib/contests'
 
 function truncEdit(s: string) {
@@ -137,6 +138,9 @@ export default async function CommunitySettingsPage({
 
   return (
     <div className="max-w-2xl mx-auto py-8 space-y-10">
+      {/* Anchors like /settings#audit-log don't scroll on their own — see component. */}
+      <ScrollToHash />
+
       <div className="flex items-center gap-3">
         <Link href={`/communities/${slug}`} className="text-sm text-stone-400 hover:text-stone-700">
           ← {community.name}
