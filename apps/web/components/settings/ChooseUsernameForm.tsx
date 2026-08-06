@@ -44,17 +44,17 @@ export default function ChooseUsernameForm({ suggested, next }: Props) {
             required
             minLength={3}
             maxLength={30}
-            pattern="[a-zA-Z0-9_]+"
-            title="Letters, numbers, and underscores only"
+            pattern="[a-z0-9_]+"
+            title="Lowercase letters, numbers, and underscores only"
             autoComplete="username"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={e => setUsername(e.target.value.toLowerCase())}
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
           />
         </div>
         <p className="mt-1 text-xs text-stone-400">
-          Letters, numbers and underscores. This one sticks — you can change your display name
-          later, but not your username.
+          Lowercase letters, numbers and underscores. This one sticks — you can change your
+          display name later, but not your username.
         </p>
       </div>
 

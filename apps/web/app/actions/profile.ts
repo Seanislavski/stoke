@@ -85,8 +85,10 @@ export async function chooseUsername(username: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const candidate = username.trim()
-  if (!/^[a-zA-Z0-9_]{3,30}$/.test(candidate)) {
+  // Usernames are lowercase from here on. Existing mixed-case members keep
+  // their spelling; only new ones are normalized.
+  const candidate = username.trim().toLowerCase()
+  if (!/^[a-z0-9_]{3,30}$/.test(candidate)) {
     return { error: 'Use 3–30 letters, numbers or underscores.' }
   }
 
@@ -96,9 +98,11 @@ export async function chooseUsername(username: string) {
   if (!profile) return { error: 'Profile not found' }
   if (profile.username_chosen) return { error: 'Your username has already been set.' }
 
-  // Case-insensitive check: "Sean" and "sean" must not both be takeable.
+  // Match on the generated lowercase column, not ilike: '_' is a LIKE wildcard
+  // and usernames may contain one, so ilike('avi_rose') would also match
+  // "AviXRose" and wrongly report it taken.
   const { data: taken } = await admin
-    .from('profiles').select('id').ilike('username', candidate).neq('id', user.id).maybeSingle()
+    .from('profiles').select('id').eq('username_lower', candidate).neq('id', user.id).maybeSingle()
   if (taken) return { error: 'That username is taken.' }
 
   const { error } = await admin

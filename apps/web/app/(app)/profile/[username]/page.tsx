@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import BackButton from '@/components/BackButton'
@@ -13,13 +13,19 @@ export default async function ProfilePage({
   const { username } = await params
   const admin = createAdminClient()
 
+  // Look up case-insensitively via the generated column — 43 of 82 members have
+  // capitals, so /profile/sean must find "Sean" rather than 404 on a link
+  // someone retyped or a phone auto-capitalised.
   const { data: profile } = await admin
     .from('profiles')
     .select('id, username, display_name, bio, avatar_url, show_memberships, created_at, discord_username, show_discord')
-    .eq('username', username)
-    .single()
+    .eq('username_lower', username.toLowerCase())
+    .maybeSingle()
 
   if (!profile) notFound()
+
+  // Send everyone to the one true spelling, so a profile has a single address.
+  if (profile.username !== username) redirect(`/profile/${profile.username}`)
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

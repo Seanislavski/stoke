@@ -101,12 +101,17 @@ function SignupForm() {
             required
             minLength={3}
             maxLength={30}
-            pattern="[a-zA-Z0-9_]+"
-            title="Letters, numbers, and underscores only"
+            pattern="[a-z0-9_]+"
+            title="Lowercase letters, numbers, and underscores only"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            // Lowercased as you type rather than silently on save, so what you
+            // see in the box is what you get.
+            onChange={e => setUsername(e.target.value.toLowerCase())}
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
           />
+          <p className="mt-1 text-xs text-stone-400">
+            Lowercase letters, numbers and underscores.
+          </p>
         </div>
 
         <div>
