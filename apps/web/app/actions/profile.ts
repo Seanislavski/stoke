@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { normalizeDiscordUsername } from '@/lib/discord-handle'
 
@@ -52,6 +53,41 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath('/settings/profile')
   revalidatePath(`/profile`)
+  return { success: true }
+}
+
+// One-time username pick for members whose username was DERIVED for them (OAuth
+// signups). Refuses once username_chosen is true, so this can never become a
+// general rename — usernames stay stable, which is what the profile page
+// promises everyone else.
+export async function chooseUsername(username: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const candidate = username.trim()
+  if (!/^[a-zA-Z0-9_]{3,30}$/.test(candidate)) {
+    return { error: 'Use 3–30 letters, numbers or underscores.' }
+  }
+
+  const admin = createAdminClient()
+  const { data: profile } = await admin
+    .from('profiles').select('username, username_chosen').eq('id', user.id).maybeSingle()
+  if (!profile) return { error: 'Profile not found' }
+  if (profile.username_chosen) return { error: 'Your username has already been set.' }
+
+  // Case-insensitive check: "Sean" and "sean" must not both be takeable.
+  const { data: taken } = await admin
+    .from('profiles').select('id').ilike('username', candidate).neq('id', user.id).maybeSingle()
+  if (taken) return { error: 'That username is taken.' }
+
+  const { error } = await admin
+    .from('profiles')
+    .update({ username: candidate, username_chosen: true })
+    .eq('id', user.id)
+  if (error) return { error: 'That username is taken.' }
+
+  revalidatePath('/settings/profile')
   return { success: true }
 }
 

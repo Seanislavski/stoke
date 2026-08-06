@@ -1,4 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { claimCapturesForDiscordUser } from '@/app/actions/captures'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -19,6 +21,8 @@ export async function GET(request: NextRequest) {
     ? `${forwardedProto}://${forwardedHost}`
     : new URL(request.url).origin
 
+  let destination = next
+
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -35,8 +39,54 @@ export async function GET(request: NextRequest) {
         },
       }
     )
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data } = await supabase.auth.exchangeCodeForSession(code)
+    const user = data?.user
+
+    if (user) {
+      const admin = createAdminClient()
+
+      // The identity is authoritative — richer and more reliable than the
+      // metadata snapshot the signup trigger sees. Runs on every sign-in, so a
+      // member who linked Discord later is picked up without a special path.
+      const discord = user.identities?.find(i => i.provider === 'discord')
+      if (discord?.id) {
+        const handle = typeof discord.identity_data?.preferred_username === 'string'
+          ? discord.identity_data.preferred_username.toLowerCase()
+          : null
+
+        // discord_user_id is UNIQUE: if this Discord account is already linked
+        // to a different Stoke profile the write fails, and that must not break
+        // the sign-in — they are simply signed in as this account.
+        const { error: linkError } = await admin
+          .from('profiles')
+          .update({
+            discord_user_id: discord.id,
+            ...(handle ? { discord_username: handle } : {}),
+          })
+          .eq('id', user.id)
+
+        if (!linkError) {
+          // Never let a claiming failure block someone from getting in.
+          try {
+            await claimCapturesForDiscordUser(user.id, discord.id)
+          } catch {
+            // Non-fatal: their posts stay claimable by token.
+          }
+        }
+      }
+
+      // Send auto-derived usernames through the pick-one step, once.
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('username_chosen')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (profile && !profile.username_chosen) {
+        destination = `/welcome/username?next=${encodeURIComponent(next)}`
+      }
+    }
   }
 
-  return NextResponse.redirect(`${base}${next}`)
+  return NextResponse.redirect(`${base}${destination}`)
 }

@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import DiscordSignIn from '@/components/auth/DiscordSignIn'
 
 function SignupForm() {
   const router = useRouter()
@@ -85,6 +86,8 @@ function SignupForm() {
         <h1 className="text-2xl font-semibold text-stone-900">Create your account</h1>
         <p className="mt-1 text-stone-500 text-sm">Join Stoke and find your community</p>
       </div>
+
+      <DiscordSignIn redirectTo={redirectTo} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

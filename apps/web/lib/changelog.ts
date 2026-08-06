@@ -17,6 +17,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       'You can now add your Discord username under Settings → Profile, so people who know you from a community\'s Discord can recognise you here.',
       'It stays hidden until you choose to show it, and you can remove it at any time.',
       'Organizers of communities that also use Discord can switch on Settings → Discord to show members\' usernames beside their names in the member list.',
+      'You can now sign in with Discord — one button, no password to remember.',
+      'If you signed in with Discord and something you wrote there was archived in a community library, it\'s automatically credited to you. No claim link needed.',
     ],
   },
   {

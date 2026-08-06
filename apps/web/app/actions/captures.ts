@@ -173,6 +173,68 @@ export async function discardCapture(
 // content to the claimer's real Stoke profile (or pre-registers them as the
 // author if the capture hasn't been filed yet).
 
+// Signing in with Discord proves the same thing the claim token proved — that
+// you are the Discord account that wrote the message — except it proves it by
+// identity rather than by possession of a link, so it needs no delivery and
+// covers everything at once. Runs on sign-in; safe to call repeatedly.
+export async function claimCapturesForDiscordUser(
+  userId: string,
+  discordUserId: string,
+): Promise<{ claimed: number }> {
+  if (!discordUserId) return { claimed: 0 }
+  const admin = createAdminClient()
+
+  const { data: captures } = await admin
+    .from('discord_captures')
+    .select('id, community_id, question_id, answer_id')
+    .eq('discord_author_id', discordUserId)
+    .is('claimed_by', null)
+    // Declined captures were never published and must stay unclaimable; pending
+    // ones have not been consented to yet, so neither becomes theirs here.
+    .in('consent_status', ['granted_credited', 'granted_anon'])
+
+  if (!captures?.length) return { claimed: 0 }
+
+  const now = new Date().toISOString()
+  const slugs = new Set<string>()
+
+  for (const capture of captures) {
+    await admin.from('discord_captures')
+      .update({ claimed_by: userId, claimed_at: now })
+      .eq('id', capture.id)
+      // Guard against two concurrent sign-ins racing for the same row.
+      .is('claimed_by', null)
+
+    // Same re-attribution as the token path: the member's own name replaces the
+    // "shared on Discord" credit.
+    if (capture.answer_id) {
+      await admin.from('kb_answers')
+        .update({ author_id: userId, attribution: null })
+        .eq('id', capture.answer_id)
+    } else if (capture.question_id) {
+      await admin.from('kb_questions')
+        .update({ asker_id: userId, attribution: null })
+        .eq('id', capture.question_id)
+    }
+
+    logAction({
+      actorId: userId,
+      communityId: capture.community_id,
+      action: 'capture.claimed',
+      targetId: capture.id,
+      targetType: 'capture',
+      metadata: { via: 'discord-sign-in' },
+    })
+
+    const { data: community } = await admin
+      .from('communities').select('slug').eq('id', capture.community_id).maybeSingle()
+    if (community?.slug) slugs.add(community.slug)
+  }
+
+  for (const slug of slugs) revalidatePath(`/communities/${slug}`)
+  return { claimed: captures.length }
+}
+
 export async function claimCapture(token: string): Promise<{ error?: string; slug?: string; questionId?: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

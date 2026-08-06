@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import DiscordSignIn from '@/components/auth/DiscordSignIn'
 
 function LoginForm() {
   const router = useRouter()
@@ -33,6 +34,8 @@ function LoginForm() {
   }
 
   return (
+    <>
+    <DiscordSignIn redirectTo={redirectTo} />
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
@@ -76,6 +79,7 @@ function LoginForm() {
         {loading ? 'Signing in…' : 'Sign in'}
       </button>
     </form>
+    </>
   )
 }
 
