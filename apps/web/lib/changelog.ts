@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-08-06',
+    title: 'Add your Discord username to your profile',
+    items: [
+      'You can now add your Discord username under Settings → Profile, so people who know you from a community\'s Discord can recognise you here.',
+      'It stays hidden until you choose to show it, and you can remove it at any time.',
+      'Organizers of communities that also use Discord can switch on Settings → Discord to show members\' usernames beside their names in the member list.',
+    ],
+  },
+  {
     date: '2026-08-05',
     title: 'Run a design contest in your community',
     items: [

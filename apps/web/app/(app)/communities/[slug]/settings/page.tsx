@@ -15,6 +15,7 @@ import { ACTION_LABELS, PHOTO_SOURCE_LABELS } from '@/lib/audit'
 import LocalDate from '@/components/LocalDate'
 import EmailBlastForm from '@/components/community/settings/EmailBlastForm'
 import ContestManager from '@/components/contests/ContestManager'
+import DiscordHandlesToggle from '@/components/community/DiscordHandlesToggle'
 import { type ContestStatus } from '@/lib/contests'
 
 function truncEdit(s: string) {
@@ -34,7 +35,7 @@ export default async function CommunitySettingsPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, about, join_mode, is_listed, category_id, owner_id, image_url, banner_url, photos, has_contests')
+    .select('id, name, slug, description, about, join_mode, is_listed, category_id, owner_id, image_url, banner_url, photos, has_contests, show_discord_handles')
     .eq('slug', slug)
     .single()
 
@@ -156,6 +157,7 @@ export default async function CommunitySettingsPage({
             { href: '#qa-categories', label: 'Q&A' },
             { href: '#qotw', label: 'QotW' },
             { href: '#contests', label: 'Contests' },
+            { href: '#discord', label: 'Discord' },
             { href: '#reviews', label: 'Reviews' },
             { href: '#invites', label: 'Invites' },
             { href: '#members', label: 'Members' },
@@ -240,6 +242,19 @@ export default async function CommunitySettingsPage({
           slug={slug}
           enabled={!!community.has_contests}
           contests={contestItems}
+        />
+      </section>
+
+      <hr className="border-stone-200" />
+
+      {/* Discord */}
+      <section id="discord" className="scroll-mt-20">
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Discord</h2>
+        <p className="text-sm text-stone-500 mb-4">If your community also gathers on Discord, members can show their Discord username here so people can find each other in both places.</p>
+        <DiscordHandlesToggle
+          communityId={community.id}
+          slug={slug}
+          enabled={!!community.show_discord_handles}
         />
       </section>
 

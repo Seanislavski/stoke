@@ -15,7 +15,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('id, username, display_name, bio, avatar_url, show_memberships, created_at')
+    .select('id, username, display_name, bio, avatar_url, show_memberships, created_at, discord_username, show_discord')
     .eq('username', username)
     .single()
 
@@ -107,6 +107,16 @@ export default async function ProfilePage({
       {/* Bio */}
       {profile.bio && (
         <p className="text-stone-700 text-sm mb-6 whitespace-pre-wrap">{profile.bio}</p>
+      )}
+
+      {/* Discord — shown only when the member has opted in. */}
+      {profile.show_discord && profile.discord_username && (
+        <p className="mb-6 flex items-center gap-2 text-sm text-stone-600">
+          <span className="text-stone-400">Discord</span>
+          <span className="rounded-md bg-stone-100 px-2 py-1 font-mono text-xs text-stone-700">
+            {profile.discord_username}
+          </span>
+        </p>
       )}
 
       {/* Communities */}

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { normalizeDiscordUsername } from '@/lib/discord-handle'
 
 // Basic sanity check that a string is a real IANA zone the runtime knows.
 function isValidTimeZone(tz: string): boolean {
@@ -22,8 +23,20 @@ export async function updateProfile(formData: FormData) {
   const bio = formData.get('bio') as string
   const show_memberships = formData.get('show_memberships') === 'on'
   const timezoneRaw = formData.get('timezone') as string | null
+  const discordRaw = formData.get('discord_username') as string | null
 
-  const update: Record<string, unknown> = { display_name, bio, show_memberships }
+  const discord = normalizeDiscordUsername(discordRaw)
+  if (discord.error) return { error: discord.error }
+
+  const update: Record<string, unknown> = {
+    display_name,
+    bio,
+    show_memberships,
+    discord_username: discord.value,
+    // Clearing the handle also clears the opt-in, so a re-added handle is never
+    // silently published on the strength of a checkbox ticked months earlier.
+    show_discord: discord.value ? formData.get('show_discord') === 'on' : false,
+  }
   // Setting a timezone explicitly counts as detected so auto-detection stops.
   if (timezoneRaw && isValidTimeZone(timezoneRaw)) {
     update.timezone = timezoneRaw

@@ -14,6 +14,8 @@ type Profile = {
   avatar_url: string | null
   show_memberships: boolean
   timezone: string
+  discord_username: string | null
+  show_discord: boolean
 }
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
@@ -21,6 +23,9 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  // Tracked in state so the visibility checkbox can disable itself while the
+  // handle is empty — an opt-in to show nothing is a confusing control.
+  const [discord, setDiscord] = useState(profile.discord_username ?? '')
   const fileRef = useRef<HTMLInputElement>(null)
 
   // Ensure the user's current zone is selectable even if it's not in the curated list.
@@ -143,6 +148,46 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
           />
           <p className="mt-1 text-xs text-stone-400">Max 300 characters.</p>
+        </div>
+
+        <div>
+          <label htmlFor="discord_username" className="block text-sm font-medium text-stone-700 mb-1">
+            Discord username
+          </label>
+          <input
+            id="discord_username"
+            name="discord_username"
+            type="text"
+            value={discord}
+            onChange={e => setDiscord(e.target.value)}
+            placeholder="sean.baldwin"
+            maxLength={37}
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+          />
+          <p className="mt-1 text-xs text-stone-400">
+            Optional. Just the username — no @ and no link.
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              id="show_discord"
+              name="show_discord"
+              type="checkbox"
+              defaultChecked={profile.show_discord}
+              disabled={!discord.trim()}
+              className="w-4 h-4 rounded border-stone-300 text-orange-500 focus:ring-orange-400 disabled:opacity-40"
+            />
+            <label
+              htmlFor="show_discord"
+              className={`text-sm ${discord.trim() ? 'text-stone-700' : 'text-stone-400'}`}
+            >
+              Show my Discord username on my profile
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-stone-400">
+            Off by default. Communities that use Discord can also show it beside your name in their
+            member list.
+          </p>
         </div>
 
         <div>

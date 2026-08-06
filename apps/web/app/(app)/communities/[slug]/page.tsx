@@ -42,7 +42,7 @@ export default async function CommunityPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos, has_contests')
+    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos, has_contests, show_discord_handles')
     .eq('slug', slug)
     .single()
 
@@ -71,6 +71,12 @@ export default async function CommunityPage({
   const isMod = isPlatformStaff || isOwner || ['organizer', 'moderator'].includes(myMembership?.role ?? '')
   const canSee = isMember || isMod
 
+  // Handles are only QUERIED when this community shows them — the same rule as
+  // contest vote counts. Fetching then hiding would still put them in reach.
+  const memberSelect = community.show_discord_handles
+    ? 'user_id, role, profiles(username, display_name, avatar_url, discord_username, show_discord)'
+    : 'user_id, role, profiles(username, display_name, avatar_url)'
+
   // Always fetch: members (for count + list), pending/banned counts for gear
   const [
     { data: members },
@@ -84,7 +90,7 @@ export default async function CommunityPage({
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
-          .select('user_id, role, profiles(username, display_name, avatar_url)')
+          .select(memberSelect)
           .eq('community_id', community.id)
           .eq('status', 'active')
           .order('role')
@@ -795,14 +801,22 @@ export default async function CommunityPage({
               </h2>
               <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
                 {members.map((m) => {
-                  const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                  const profile = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as MemberProfile | undefined
                   if (!profile) return null
+                  const discord = profile.show_discord ? profile.discord_username : null
                   return (
-                    <div key={m.user_id} className="flex items-center justify-between px-4 py-3">
-                      <Link href={`/profile/${profile.username}`} className="text-sm font-medium text-stone-800 hover:text-orange-600">
-                        {profile.display_name ?? profile.username}
-                      </Link>
-                      <span className="text-xs text-stone-400 capitalize">{m.role}</span>
+                    <div key={m.user_id} className="flex items-center justify-between gap-2 px-4 py-3">
+                      <div className="min-w-0">
+                        <Link href={`/profile/${profile.username}`} className="block text-sm font-medium text-stone-800 hover:text-orange-600 truncate">
+                          {profile.display_name ?? profile.username}
+                        </Link>
+                        {discord && (
+                          <span className="block text-xs text-stone-400 truncate" title={`Discord: ${discord}`}>
+                            {discord}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-stone-400 capitalize shrink-0">{m.role}</span>
                     </div>
                   )
                 })}
@@ -813,6 +827,16 @@ export default async function CommunityPage({
       )}
     </div>
   )
+}
+
+// The member-list join. discord_username/show_discord are only present when the
+// community has handles enabled, hence optional.
+type MemberProfile = {
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  discord_username?: string | null
+  show_discord?: boolean | null
 }
 
 type Event = {

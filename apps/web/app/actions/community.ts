@@ -102,6 +102,32 @@ export async function updateCommunityInfo(communityId: string, slug: string, for
   return { success: true }
 }
 
+// Whether this community shows member Discord handles in its member list. The
+// handle itself lives on the profile and is opt-in there — this only decides
+// whether a community that actually uses Discord surfaces it.
+export async function setDiscordHandlesEnabled(communityId: string, slug: string, enabled: boolean) {
+  const caller = await getCallerRole(communityId)
+  if (!caller) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('communities')
+    .update({ show_discord_handles: enabled })
+    .eq('id', communityId)
+
+  if (error) return { error: 'Could not update the setting.' }
+
+  logAction({
+    actorId: caller.userId,
+    communityId,
+    action: 'community.settings_updated',
+    metadata: { show_discord_handles: enabled },
+  })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/settings`)
+  return { success: true }
+}
+
 export async function updateMemberRole(communityId: string, slug: string, userId: string, role: string) {
   const caller = await getCallerRole(communityId)
   if (!caller || !['owner', 'organizer'].includes(caller.role)) return { error: 'Not authorized' }
