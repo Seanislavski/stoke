@@ -2,6 +2,26 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Community slugs are stored lowercase and looked up with .eq(), so a single
+  // capital letter in a shared link 404s. Redirect to the canonical form before
+  // doing any auth work — one rule covering every /communities and /preview
+  // route, instead of case-insensitive lookups at ~14 call sites.
+  //
+  // Deliberately NOT applied to /profile/{username}: usernames are genuinely
+  // mixed-case ("Sinaratheus"), so lowercasing those would break working links.
+  const canonical = request.nextUrl.pathname.match(/^\/(communities|preview)\/([^/]+)(\/.*)?$/)
+  if (canonical) {
+    const [, base, slug, rest] = canonical
+    const lower = slug.toLowerCase()
+    if (lower !== slug) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/${base}/${lower}${rest ?? ''}`
+      // 308 keeps the method and tells clients this is the real address.
+      // The browser carries any #hash across on its own.
+      return NextResponse.redirect(url, 308)
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
