@@ -152,7 +152,10 @@ export default async function CommunitySettingsPage({
         <p className="mt-1 text-sm text-stone-500 capitalize">Your role: {callerRole}</p>
       </div>
 
-      {/* Section quick-nav — jumps down the long settings page */}
+      {/* Section quick-nav — jumps down the long settings page.
+          Note: this sits at top-14 beneath the 56px AppNav, so ~96px of chrome
+          covers the top of the page. Section scroll-mt-28 (112px) clears both —
+          keep them in step if either bar changes height. */}
       <nav className="sticky top-14 z-[5] py-2 bg-stone-50/95 backdrop-blur border-b border-stone-200 overflow-x-auto">
         <div className="flex gap-1 whitespace-nowrap text-sm">
           {[
@@ -188,7 +191,7 @@ export default async function CommunitySettingsPage({
       </Link>
 
       {/* General info */}
-      <section id="general" className="scroll-mt-20">
+      <section id="general" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-4">General</h2>
         <CommunityInfoForm
           community={community}
@@ -199,7 +202,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Channels */}
-      <section id="channels" className="scroll-mt-20">
+      <section id="channels" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-4">Gathering Spaces</h2>
         <ChannelManager
           communityId={community.id}
@@ -211,7 +214,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Q&A categories */}
-      <section id="qa-categories" className="scroll-mt-20">
+      <section id="qa-categories" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Q&amp;A categories</h2>
         <p className="text-sm text-stone-500 mb-4">Topics members can browse and filter approved questions by. You assign a category when you approve a question.</p>
         <CategoryManager
@@ -224,7 +227,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Question of the Week */}
-      <section id="qotw" className="scroll-mt-20">
+      <section id="qotw" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Question of the Week</h2>
         <p className="text-sm text-stone-500 mb-4">Stockpile questions ahead of time and publish one whenever you&apos;re ready. Each gets a permanent, deadline-free link to share.</p>
         <Link
@@ -238,7 +241,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Contests */}
-      <section id="contests" className="scroll-mt-20">
+      <section id="contests" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Contests</h2>
         <p className="text-sm text-stone-500 mb-4">Run a design competition: members submit entries, you shortlist the finalists, and the community votes on the winner.</p>
         <ContestManager
@@ -252,7 +255,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Discord */}
-      <section id="discord" className="scroll-mt-20">
+      <section id="discord" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Discord</h2>
         <p className="text-sm text-stone-500 mb-4">If your community also gathers on Discord, members can show their Discord username here so people can find each other in both places.</p>
         <DiscordHandlesToggle
@@ -265,7 +268,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Reviews */}
-      <section id="reviews" className="scroll-mt-20">
+      <section id="reviews" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Reviews</h2>
         <p className="text-sm text-stone-500 mb-4">Approve member reviews, reply to them, and feature up to 6 as public testimonials on your community&apos;s preview page.</p>
         <ReviewsManager
@@ -278,7 +281,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Invites */}
-      <section id="invites" className="scroll-mt-20">
+      <section id="invites" className="scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Invite links</h2>
         <p className="text-sm text-stone-500 mb-4">Share a link to bring people to this community. They'll join the approval queue even if the community is invite-only.</p>
         <InviteManager
@@ -292,7 +295,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Members */}
-      <section id="members" className="scroll-mt-20">
+      <section id="members" className="scroll-mt-28">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-stone-800">Members</h2>
           <Link
@@ -316,7 +319,7 @@ export default async function CommunitySettingsPage({
 
       {/* Email blast — organizers only */}
       {(callerRole === 'organizer' || callerRole === 'owner') && (
-        <section id="email" className="scroll-mt-20">
+        <section id="email" className="scroll-mt-28">
           <h2 className="text-base font-semibold text-stone-800">Email members</h2>
           <EmailBlastForm
             communityId={community.id}
@@ -330,7 +333,7 @@ export default async function CommunitySettingsPage({
       {isOwner && (
         <>
           <hr className="border-stone-200" />
-          <section id="danger" className="scroll-mt-20">
+          <section id="danger" className="scroll-mt-28">
             <h2 className="text-base font-semibold text-stone-800 mb-4">Danger zone</h2>
             <TransferOwnershipSection
               communityId={community.id}
@@ -345,7 +348,7 @@ export default async function CommunitySettingsPage({
       <hr className="border-stone-200" />
 
       {/* Audit log */}
-      <section id="audit-log" className="pb-8 scroll-mt-20">
+      <section id="audit-log" className="pb-8 scroll-mt-28">
         <h2 className="text-base font-semibold text-stone-800 mb-1">Audit log</h2>
         <p className="text-sm text-stone-500 mb-4">Recent moderation actions in this community.</p>
         {!auditLog || auditLog.length === 0 ? (
