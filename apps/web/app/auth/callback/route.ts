@@ -50,9 +50,16 @@ export async function GET(request: NextRequest) {
       // member who linked Discord later is picked up without a special path.
       const discord = user.identities?.find(i => i.provider === 'discord')
       if (discord?.id) {
-        const handle = typeof discord.identity_data?.preferred_username === 'string'
-          ? discord.identity_data.preferred_username.toLowerCase()
-          : null
+        // Discord sends the handle as full_name ("junejuno85"); `name` is the
+        // legacy "username#0" form and custom_claims.global_name is the display
+        // name. preferred_username is a GitHub/Keycloak key Discord never sets.
+        const d = discord.identity_data ?? {}
+        const raw =
+          (typeof d.full_name === 'string' && d.full_name) ||
+          (typeof d.name === 'string' && d.name.split('#')[0]) ||
+          (typeof d.preferred_username === 'string' && d.preferred_username) ||
+          null
+        const handle = raw ? raw.toLowerCase() : null
 
         // discord_user_id is UNIQUE: if this Discord account is already linked
         // to a different Stoke profile the write fails, and that must not break
