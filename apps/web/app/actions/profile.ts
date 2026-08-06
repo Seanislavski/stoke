@@ -56,6 +56,26 @@ export async function updateProfile(formData: FormData) {
   return { success: true }
 }
 
+// Called after the Discord identity is unlinked in the browser. Clears the id
+// and hides the handle, but deliberately leaves claimed captures alone —
+// disconnecting a sign-in method is not the same as disowning what you wrote.
+export async function clearDiscordLink() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('profiles')
+    .update({ discord_user_id: null, show_discord: false })
+    .eq('id', user.id)
+  if (error) return { error: 'Could not disconnect Discord.' }
+
+  revalidatePath('/settings/profile')
+  revalidatePath('/profile')
+  return { success: true }
+}
+
 // One-time username pick for members whose username was DERIVED for them (OAuth
 // signups). Refuses once username_chosen is true, so this can never become a
 // general rename — usernames stay stable, which is what the profile page

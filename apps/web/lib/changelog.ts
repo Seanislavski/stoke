@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'It stays hidden until you choose to show it, and you can remove it at any time.',
       'Organizers of communities that also use Discord can switch on Settings → Discord to show members\' usernames beside their names in the member list.',
       'You can now sign in with Discord — one button, no password to remember.',
+      'Already have an account? Connect Discord to it from Settings → Profile, and disconnect again whenever you like.',
       'If you signed in with Discord and something you wrote there was archived in a community library, it\'s automatically credited to you. No claim link needed.',
     ],
   },
