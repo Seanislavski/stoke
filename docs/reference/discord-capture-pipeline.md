@@ -88,6 +88,16 @@
   - **⚠️ The coverage numbers on the page are DATED on purpose** ("a coverage check on 07/30/2026") with a note to re-run rather than quote. In chat "I checked today" is self-evidently point-in-time; on a page that sits for months, a bare "13 of 24" silently becomes a false claim.
   - **The PDF is now the third copy and is deliberately NOT being regenerated.** `docs/moderator-guide-silas-stoke.pdf` (07/25) went stale in five days and is silent on `/library` + the DM outbox. Recommendation on record: let the page be canonical and retire the PDF — its only justification was being attachable in Discord because the web guide is gated, but **every BD mod is Stoke staff and can just open the link.**
 
+### ⛔ Do NOT seed the library to fill coverage gaps (Sean, 08/07/2026 — SETTLED)
+- **"I want things to come from the community."** Seeding written-by-us questions for the 11 empty topics (procrastination, motivation, medication, sleep, rewards, burnout, accountability, hyperfocus, planners, anxiety, exercise) had been offered as the "supply-side" fix for slow capture adoption on 07/30, 08/02 and again 08/07. **It is declined on principle, not on effort.** The library's value is that it holds what 13,000 real people actually said; manufactured entries would inflate the counts and hollow out the thing that makes it worth searching.
+- **Consequence to accept, not to route around:** coverage grows only as fast as mods capture. A thin library is the honest state of a young library. **Stop proposing seeding as the answer to a low number** — the levers are adoption (mods capturing) and retrieval (`/library` making it visible), not supply.
+- Distinct from the historical `seed-bodydoubling-qa.mjs` / `seed-bodydoubling-qotw-bank.mjs` scripts, which loaded Sean's own prior QotW material — not invented Q&A.
+
+### Adoption measurement (08/07/2026, service-role probe)
+- **5 captures total, all `granted_*`, 0 pending, 0 declined — and all five were captured by Sean** (`captured_by_discord_id` 557015620496130049). Newest is 07/30, the day of the mod-chat post. **Adoption by other mods since the ask: zero.**
+- Follow-up posted 08/07 as a **reply in the same thread**, leading with what changed (the guide is a permanent page; Discord auto-claim removed the claim-link friction the original post itself named) rather than repeating the ask.
+- Two captures with `question_id` null are **dismissed** (`dismissed_at` set 07/24 + 07/26), not neglected — the queue filters `.is('dismissed_at', null)`, so they correctly do not appear. ⚠️ `question_id is null` alone does **not** mean "awaiting filing"; check `dismissed_at` before calling anything a backlog.
+
 ### Parked
 - Silas features INSIDE Stoke (pomodoro/chimes) = NO, voice is out of v1 scope.
 - Pending-capture auto-expiry (mods re-nudge manually) and consent revocation (honored manually via ticket/DM) — both deliberate v1 defaults.
