@@ -79,10 +79,13 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
   // Discord captures with consent granted but not yet filed into the KB
   // (fail-safe: a missing discord_captures table just yields an empty inbox),
   // plus the published questions the filing picker offers.
+  // ⚠️ `kind` filters testimonials out to their own page — it also means this
+  // query needs the 20260808000000 migration, or the inbox reads empty.
   const [captureRows, publishedQuestions] = await Promise.all([
     admin.from('discord_captures')
       .select('id, content, photos, discord_author_name, discord_message_url, consent_status, consent_answered_at')
       .eq('community_id', community.id)
+      .eq('kind', 'qa')
       .in('consent_status', ['granted_credited', 'granted_anon'])
       .is('question_id', null).is('answer_id', null).is('dismissed_at', null)
       .order('consent_answered_at', { ascending: true })

@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-08-08',
+    title: 'Testimonials, in one place',
+    items: [
+      'Organizers and moderators have a new Testimonials page — find it under the community gear menu — with everything members have said about the community, and the controls to reply and feature the best ones.',
+      'Kind words said in a community\'s Discord can now be saved here too. A moderator captures the message, and the bot asks the author for permission first — credited, anonymous, or no thanks.',
+      'Nothing is ever published without that permission, and a captured testimonial always shows where it came from.',
+      'If you later sign in with Discord, testimonials you agreed to be credited for are linked to your profile automatically.',
+    ],
+  },
+  {
     date: '2026-08-06',
     title: 'Discord comes to Stoke',
     items: [

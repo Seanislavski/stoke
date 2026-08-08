@@ -141,7 +141,7 @@ export default function ReviewsManager({ communityId, slug, initialReviews }: Pr
       ) : (
         <div className="space-y-3">
           {visible.map((r, index) => {
-            const name = r.author_name ?? r.author_username ?? 'Member'
+            const name = r.attribution ?? r.author_name ?? r.author_username ?? 'Member'
             const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             const atFeatureCap = featuredCount >= MAX_FEATURED && !r.is_featured
             return (
@@ -156,6 +156,7 @@ export default function ReviewsManager({ communityId, slug, initialReviews }: Pr
                         {r.author_username ? (
                           <Link href={`/profile/${r.author_username}`} className="text-sm font-medium text-stone-900 hover:text-orange-600">{name}</Link>
                         ) : <span className="text-sm font-medium text-stone-900">{name}</span>}
+                        {r.attribution && <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">via Discord</span>}
                         {r.is_featured && <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Featured</span>}
                         {r.status === 'pending' && <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">Pending</span>}
                         {r.status === 'rejected' && <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">Rejected</span>}

@@ -34,7 +34,7 @@ async function loadFilableCapture(captureId: string, communityId: string) {
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, content, photos, consent_status, discord_author_name, question_id, answer_id, claimed_by')
+    .select('id, content, photos, consent_status, discord_author_name, question_id, answer_id, review_id, claimed_by')
     .eq('id', captureId)
     .eq('community_id', communityId)
     .single()
@@ -42,7 +42,7 @@ async function loadFilableCapture(captureId: string, communityId: string) {
   if (!['granted_credited', 'granted_anon'].includes(capture.consent_status)) {
     return { capture: null, error: 'The author has not granted permission for this capture' }
   }
-  if (capture.question_id || capture.answer_id) {
+  if (capture.question_id || capture.answer_id || capture.review_id) {
     return { capture: null, error: 'This capture has already been published' }
   }
   return { capture, error: null }
@@ -142,6 +142,76 @@ export async function publishCaptureAsQuestion(
   return {}
 }
 
+// ─── testimonials ──────────────────────────────────────────────────────────────
+// Same funnel as the Q&A captures, landing in `reviews` instead. Scope is the
+// mod's call: a testimonial about THIS community (community_id set, surfaces on
+// the community preview) or about Stoke itself (community_id null, surfaces on
+// the homepage once featured). Most Discord praise is about the community —
+// filing it as a platform review claims something the author never said.
+export async function publishCaptureAsTestimonial(
+  captureId: string,
+  communityId: string,
+  slug: string,
+  scope: 'community' | 'platform',
+  rating: number | null,
+): Promise<{ error?: string }> {
+  const { user, allowed } = await requireMod(communityId)
+  if (!user || !allowed) return { error: 'Not authorized' }
+  if (scope !== 'community' && scope !== 'platform') return { error: 'Pick a scope' }
+  if (rating !== null && (rating < 1 || rating > 5)) return { error: 'Rating must be 1–5' }
+
+  const { capture, error } = await loadFilableCapture(captureId, communityId)
+  if (!capture) return { error: error! }
+
+  const admin = createAdminClient()
+  const scopeId = scope === 'platform' ? null : communityId
+
+  // A claimed capture publishes under the member's own profile. That drops the
+  // attribution, which puts the row back under the one-review-per-author-per-scope
+  // unique index — so check for an existing one rather than surfacing a raw 23505.
+  if (capture.claimed_by) {
+    const q = admin.from('reviews').select('id').eq('author_id', capture.claimed_by).is('attribution', null)
+    const { data: clash } = await (scopeId ? q.eq('community_id', scopeId) : q.is('community_id', null)).limit(1)
+    if (clash?.length) {
+      return { error: 'This author already has a testimonial in that scope — only one per person is allowed.' }
+    }
+  }
+
+  // Mod-captured = pre-approved (the mod curated it by capturing it), but never
+  // auto-featured: featuring is a separate deliberate act with a cap of 6.
+  const { data: review, error: rErr } = await admin.from('reviews').insert({
+    community_id: scopeId,
+    author_id: capture.claimed_by ?? SILAS_USER_ID,
+    body: capture.content,
+    rating,
+    status: 'published',
+    is_featured: false,
+    approved_by: user.id,
+    published_at: new Date().toISOString(),
+    attribution: capture.claimed_by ? null : attributionFor(capture),
+    discord_capture_id: captureId,
+  }).select('id').single()
+  if (rErr) return { error: rErr.message }
+
+  await admin.from('discord_captures')
+    .update({ review_id: review.id, review_scope: scope })
+    .eq('id', captureId)
+
+  logAction({
+    actorId: user.id, communityId, action: 'capture.published',
+    targetId: review.id, targetType: 'review', metadata: { capture_id: captureId, scope },
+  })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/testimonials`)
+  revalidatePath(`/communities/${slug}/moderation`)
+  revalidatePath(`/preview/${slug}`)
+  if (scope === 'platform') {
+    revalidatePath('/admin/reviews')
+    revalidatePath('/')
+  }
+  return {}
+}
+
 // Removes an unfiled capture from the inbox. The consent record travels with the
 // row, so this is only offered before publishing — published captures keep their
 // row (and its consent trail) permanently.
@@ -156,14 +226,15 @@ export async function discardCapture(
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, question_id, answer_id')
+    .select('id, question_id, answer_id, review_id')
     .eq('id', captureId).eq('community_id', communityId).single()
   if (!capture) return { error: 'Capture not found' }
-  if (capture.question_id || capture.answer_id) return { error: 'Already published — delete the content itself instead' }
+  if (capture.question_id || capture.answer_id || capture.review_id) return { error: 'Already published — delete the content itself instead' }
 
   await admin.from('discord_captures').delete().eq('id', captureId)
   logAction({ actorId: user.id, communityId, action: 'capture.discarded', targetId: captureId, targetType: 'capture' })
   revalidatePath(`/communities/${slug}/moderation`)
+  revalidatePath(`/communities/${slug}/testimonials`)
   return {}
 }
 
@@ -172,6 +243,33 @@ export async function discardCapture(
 // so possession of it is the identity proof. Claiming re-attributes published
 // content to the claimer's real Stoke profile (or pre-registers them as the
 // author if the capture hasn't been filed yet).
+
+// Re-attributing a claimed testimonial is not symmetrical with a question or an
+// answer. Captured reviews are exempt from the one-review-per-author-per-scope
+// unique index only because they carry an `attribution`; clearing it on claim
+// puts the row back under that rule, so a claimer who already reviewed this
+// scope would hit a 23505. This path runs inside the Discord sign-in callback,
+// where a throw would break authentication — so a clash is a no-op instead: the
+// testimonial keeps its "Shared by X on Discord" credit and stays published.
+async function reattributeReview(
+  admin: ReturnType<typeof createAdminClient>,
+  reviewId: string,
+  userId: string,
+): Promise<boolean> {
+  const { data: review } = await admin
+    .from('reviews').select('id, community_id').eq('id', reviewId).maybeSingle()
+  if (!review) return false
+
+  const q = admin.from('reviews').select('id').eq('author_id', userId).is('attribution', null).neq('id', reviewId)
+  const { data: clash } = await (review.community_id
+    ? q.eq('community_id', review.community_id)
+    : q.is('community_id', null)).limit(1)
+  if (clash?.length) return false
+
+  const { error } = await admin.from('reviews')
+    .update({ author_id: userId, attribution: null }).eq('id', reviewId)
+  return !error
+}
 
 // Signing in with Discord proves the same thing the claim token proved — that
 // you are the Discord account that wrote the message — except it proves it by
@@ -186,7 +284,7 @@ export async function claimCapturesForDiscordUser(
 
   const { data: captures } = await admin
     .from('discord_captures')
-    .select('id, community_id, question_id, answer_id')
+    .select('id, community_id, question_id, answer_id, review_id')
     .eq('discord_author_id', discordUserId)
     .is('claimed_by', null)
     // Declined captures were never published and must stay unclaimable; pending
@@ -215,6 +313,8 @@ export async function claimCapturesForDiscordUser(
       await admin.from('kb_questions')
         .update({ asker_id: userId, attribution: null })
         .eq('id', capture.question_id)
+    } else if (capture.review_id) {
+      await reattributeReview(admin, capture.review_id, userId)
     }
 
     logAction({
@@ -243,7 +343,7 @@ export async function claimCapture(token: string): Promise<{ error?: string; slu
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, community_id, consent_status, claimed_by, question_id, answer_id')
+    .select('id, community_id, consent_status, claimed_by, question_id, answer_id, review_id')
     .eq('claim_token', token)
     .maybeSingle()
   if (!capture) return { error: 'This claim link isn’t valid.' }
@@ -270,6 +370,8 @@ export async function claimCapture(token: string): Promise<{ error?: string; slu
     await admin.from('kb_questions')
       .update({ asker_id: user.id, attribution: null })
       .eq('id', capture.question_id)
+  } else if (capture.review_id) {
+    await reattributeReview(admin, capture.review_id, user.id)
   }
 
   logAction({

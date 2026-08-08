@@ -10,6 +10,9 @@ export type ReviewItem = {
   author_username: string | null
   author_name: string | null
   author_avatar: string | null
+  // Set on testimonials captured from Discord ('Alex' / 'a community member').
+  // When present it replaces the author entirely — see mapReview.
+  attribution?: string | null
   reply_body: string | null
   reply_is_public: boolean
   reply_at: string | null
@@ -58,7 +61,7 @@ export default function ReviewList({ reviews, viewerIsStaff = false, viewerUsern
   return (
     <div className="space-y-3">
       {reviews.map(r => {
-        const name = r.author_name ?? r.author_username ?? 'Member'
+        const name = r.attribution ?? r.author_name ?? r.author_username ?? 'Member'
         const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         return (
           <div key={r.id} className="bg-white border border-stone-200 rounded-xl p-4">
@@ -76,6 +79,11 @@ export default function ReviewList({ reviews, viewerIsStaff = false, viewerUsern
                     </Link>
                   ) : (
                     <span className="text-sm font-medium text-stone-900">{name}</span>
+                  )}
+                  {r.attribution && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
+                      via Discord
+                    </span>
                   )}
                   {r.is_featured && (
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">

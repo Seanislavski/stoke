@@ -65,7 +65,7 @@ export default async function CommunityPreviewPage({
   // show regardless of listing status (the organizer chose to feature each one).
   const { data: featuredReviewsRaw } = await admin
     .from('reviews')
-    .select('id, body, rating, reply_body, reply_is_public, profiles!author_id(username, display_name, avatar_url)')
+    .select('id, body, rating, attribution, reply_body, reply_is_public, profiles!author_id(username, display_name, avatar_url)')
     .eq('community_id', community.id)
     .eq('status', 'published')
     .eq('is_featured', true)
@@ -74,14 +74,17 @@ export default async function CommunityPreviewPage({
     .limit(6)
 
   type RawReview = {
-    id: string; body: string; rating: number | null; reply_body: string | null; reply_is_public: boolean
+    id: string; body: string; rating: number | null; attribution: string | null; reply_body: string | null; reply_is_public: boolean
     profiles: { username: string; display_name: string | null; avatar_url: string | null } | { username: string; display_name: string | null; avatar_url: string | null }[] | null
   }
   const featuredReviews = ((featuredReviewsRaw ?? []) as RawReview[]).map(r => {
     const a = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+    // Captured testimonials are authored by the Silas system user — the
+    // attribution line replaces the author name and avatar entirely.
     return {
       id: r.id, body: r.body, rating: r.rating,
-      name: a?.display_name ?? a?.username ?? 'Member', avatar: a?.avatar_url ?? null,
+      name: r.attribution ?? a?.display_name ?? a?.username ?? 'Member',
+      avatar: r.attribution ? null : a?.avatar_url ?? null,
       reply: r.reply_is_public ? r.reply_body : null,
     }
   })
