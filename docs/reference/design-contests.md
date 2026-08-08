@@ -182,6 +182,59 @@ exists in the actions file but nothing calls it yet, so title/brief/rules/terms
 are fixed once created. (The settings copy promising terms-editing was corrected
 rather than left as a false promise.)
 
+## ⏸️ PAUSED 08/07/2026 — resumes Tuesday 08/11 (Sean in Denmark)
+
+**Live state at pause:** the Body Doubling Design Contest
+(`cf1a3cb4-323e-4404-a17d-5c38625b0b7f`) was moved **`submissions` → `draft`**
+by Sean via the UI, so it 404s for non-mods. **0 entries, 0 votes** — nothing was
+lost by reverting. `submissions_close_at` still `2026-09-01T04:00:00Z`
+(Sept 1, 12:00 AM ET) = **21 days from the resume date**, and it is
+*server-enforced*, so re-check it before reopening.
+
+### Decided (Sean, 08/07)
+- **No cash prizes.** Rationale is selection, not budget: a cash prize attracts
+  design-contest hunters who have never body doubled, and the brief explicitly
+  asks for something representing *"the kind of community and help that is
+  received while using the server"* — which an outsider cannot answer honestly.
+  **Prizes should be valuable to an insider and near-worthless to a stranger.**
+- **Multiple categories**, not a single winner.
+
+### ⭐ Multiple categories = multiple CONTESTS, not a category column
+Settled by the schema, not by preference:
+- The Contests tab already maps over many contests (`communities/[slug]/page.tsx`),
+  so N contests render with **zero code**.
+- **`contest_votes` PK is `(contest_id, voter_id)`** → one vote per contest, so
+  separate contests give one vote *per category* for free. Categories *inside*
+  one contest would give a member one vote **total** across all categories and
+  would require changing the primary key.
+- `max_entries_per_member` is per contest, so it scopes per category too.
+
+### Proposed, NOT yet decided — do not treat as settled
+- **Three categories chosen by required SKILL, not product type:** (1) Wearable
+  design (flagship illustration); (2) Sticker (small format, low barrier);
+  (3) **Words** — a slogan, *no drawing at all*. The third is the inclusion
+  lever: "I can't draw" is the main reason people skip design contests, and far
+  more of 13k members can write one true line than can illustrate one.
+- **Package per winner:** design produced + credit on the listing + physical item
+  free + custom Discord role + a year of a Plish supporter tier (costs nothing
+  real; worthless to an outsider = the selection filter).
+  **Finalists:** design printed as a sticker. **Everyone who enters:** a
+  "Contributed a design" Discord role — so entering isn't a gamble.
+- Rationale for spreading rewards: winner-take-all is the exact shape that stops
+  this audience starting. Same instinct as no-deadline QotW.
+
+### ⚠️ Don't promise selling
+The storefront **does not exist** (see the split above). Promise what's certain —
+the design gets **produced** and the winner gets a physical item (print-on-demand
+handles one-offs with no store) — and phrase selling as intent. A contest promise
+that slips is highly visible.
+
+### First thing on resume
+**The existing contest's brief is frozen** — `updateContest` exists but nothing
+calls it. It must become category 1 (Wearable), which needs either the edit form
+built (small: the action exists, it needs a form) or a one-off DB update. The two
+new contests can be created fresh in settings with correct briefs.
+
 ## ⚠️ Traps
 
 - **`contest_entries` has TWO FKs to `profiles`** (`author_id`, `approved_by`) →
