@@ -230,8 +230,10 @@ handles one-offs with no store) — and phrase selling as intent. A contest prom
 that slips is highly visible.
 
 ### ⏱️ Timezones: the DISPLAY side is already solved; only the INPUT side isn't
-Sean's Denmark trip is **08/10 – 11/03/2026 (85 days, Aalborg)** — travels the
-10th, arrives the 11th, works throughout. The Sept 1 deadline plus voting and the
+Sean is in Aalborg, Denmark **08/11 – 11/03/2026 = 85 days in country** (flies
+Monday the 10th, arrives Tuesday morning the 11th, home Nov 3), working
+throughout. The "85 days" counts days *in Denmark*, not from departure — don't
+recompute it from the 10th and "correct" it to 86. The Sept 1 deadline plus voting and the
 winner **all** happen while he is on Copenhagen time, so the entire contest runs
 from abroad.
 
