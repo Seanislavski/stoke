@@ -229,6 +229,23 @@ the design gets **produced** and the winner gets a physical item (print-on-deman
 handles one-offs with no store) — and phrase selling as intent. A contest promise
 that slips is highly visible.
 
+### ⚠️⚠️ THE WHOLE CONTEST RUNS FROM DENMARK — the timezone fix now cuts the other way
+Sean is in Denmark **08/11 – 11/04/2026 (85 days)**, working throughout. The
+Sept 1 deadline is **day 22 of the trip**, so deadline, voting and winner all
+happen while he is on **CEST (UTC+2)** and the members are mostly US.
+
+- `ContestManager` converts `datetime-local` through **the browser's zone**. That
+  fix is correct — it's what stopped the original deadline being four hours
+  short — but it assumed *the organizer shares the members' timezone*. From
+  Denmark, typing "Sept 15, 11:59 PM" stores `21:59Z` = **5:59 PM ET**, and US
+  members silently lose most of the final day.
+- **Any deadline set from Denmark needs roughly +6h** over what feels right, or
+  set it in ET deliberately and verify the stored UTC value by probe.
+- **⚠️ The EXISTING deadline is already correct** (`2026-09-01T04:00:00Z`,
+  hand-corrected). It merely *displays* as 6:00 AM Sept 1 in Denmark instead of
+  midnight ET. **Do not "fix" it because it looks wrong** — that would recreate
+  the original bug.
+
 ### First thing on resume
 **The existing contest's brief is frozen** — `updateContest` exists but nothing
 calls it. It must become category 1 (Wearable), which needs either the edit form
