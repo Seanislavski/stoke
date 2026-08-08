@@ -230,9 +230,15 @@ handles one-offs with no store) — and phrase selling as intent. A contest prom
 that slips is highly visible.
 
 ### ⏱️ Timezones: the DISPLAY side is already solved; only the INPUT side isn't
-Sean is in Denmark **08/11 – 11/04/2026 (85 days)**, working throughout, so the
-Sept 1 deadline (**day 22**) plus voting and the winner all happen while he is on
-**CEST (UTC+2)**.
+Sean's Denmark trip is **08/10 – 11/03/2026 (85 days, Aalborg)** — travels the
+10th, arrives the 11th, works throughout. The Sept 1 deadline plus voting and the
+winner **all** happen while he is on Copenhagen time, so the entire contest runs
+from abroad.
+
+**⚠️ The offset is not constant — it changes twice mid-contest.** Denmark falls
+back **Oct 25**, the US **Nov 1**, so the gap to ET is **6h → 5h for one week →
+6h**. Any deadline arithmetic done in October must check which side of those
+dates it lands on.
 
 **The membership is global** — Sean: *"there is likely a person from most
 countries on the planet, so having a time offset is not a problem."* No single
