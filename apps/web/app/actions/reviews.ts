@@ -307,12 +307,22 @@ export async function deleteReview(reviewId: string, communityId: string | null,
   if (!user) return { error: 'Not logged in' }
 
   const admin = createAdminClient()
-  const { data: r } = await admin.from('reviews').select('author_id').eq('id', reviewId).single()
+  const { data: r } = await admin.from('reviews').select('author_id, discord_capture_id').eq('id', reviewId).single()
   if (!r) return { error: 'Review not found' }
 
   const isAuthor = r.author_id === user.id
   const isMod = await requireMod(communityId, user.id)
   if (!isAuthor && !isMod) return { error: 'Not authorized' }
+
+  // ⚠️ Delete ≠ discard, same rule as the Q&A captures. `discord_captures.review_id`
+  // is ON DELETE SET NULL, so deleting a captured testimonial would drop it straight
+  // back into the testimonials queue as if it had never been filed. Mark the capture
+  // dismissed FIRST — the consent record survives, the queue stops offering it.
+  if (r.discord_capture_id) {
+    await admin.from('discord_captures')
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq('id', r.discord_capture_id)
+  }
 
   await admin.from('reviews').delete().eq('id', reviewId)
   logAction({ actorId: user.id, communityId, action: 'review.deleted', targetId: reviewId, targetType: 'review' })

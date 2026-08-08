@@ -16,12 +16,19 @@ function GearIcon() {
 // (review queue, QotW, settings, audit) instead of dumping the mod into the long settings
 // scroll. The pending badge lives here alone (the old standalone "N to review" pill was
 // removed to avoid a duplicate count next to this one).
+// ⚠️ `pendingCount` is the OUTER badge (everything waiting anywhere). The
+// per-item badges must each match the query on the page they link to — a count
+// that includes items the destination filters out sends a mod to an empty list.
 export default function CommunityGear({
   slug,
   pendingCount,
+  reviewQueueCount,
+  testimonialCount = 0,
 }: {
   slug: string
   pendingCount: number
+  reviewQueueCount?: number
+  testimonialCount?: number
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -35,9 +42,9 @@ export default function CommunityGear({
   }, [])
 
   const items: { href: string; label: string; badge?: number }[] = [
-    { href: `/communities/${slug}/moderation`, label: 'Review queue', badge: pendingCount },
+    { href: `/communities/${slug}/moderation`, label: 'Review queue', badge: reviewQueueCount ?? pendingCount },
     { href: `/communities/${slug}/qotw`, label: 'Question of the Week' },
-    { href: `/communities/${slug}/testimonials`, label: 'Testimonials' },
+    { href: `/communities/${slug}/testimonials`, label: 'Testimonials', badge: testimonialCount },
     { href: `/communities/${slug}/settings`, label: 'Settings' },
     { href: `/communities/${slug}/settings#audit-log`, label: 'Audit log' },
   ]

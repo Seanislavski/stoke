@@ -87,6 +87,7 @@ export default async function CommunityPage({
     { count: pendingQuestionsCount },
     { count: pendingAnswersCount },
     { count: pendingCapturesCount },
+    { count: pendingTestimonialsCount },
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
@@ -131,17 +132,32 @@ export default async function CommunityPage({
           .eq('community_id', community.id)
           .eq('status', 'pending')
       : Promise.resolve({ count: 0 }),
+    // ⚠️ These two counts must mirror the queries on the pages they link to,
+    // or the badge points somewhere empty. `kind` splits them: 'qa' captures go
+    // to the review queue, 'testimonial' ones to the testimonials page.
     isMod
       ? admin.from('discord_captures')
           .select('*', { count: 'exact', head: true })
           .eq('community_id', community.id)
+          .eq('kind', 'qa')
           .in('consent_status', ['granted_credited', 'granted_anon'])
           .is('question_id', null).is('answer_id', null).is('dismissed_at', null)
       : Promise.resolve({ count: 0 }),
+    isMod
+      ? admin.from('discord_captures')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('kind', 'testimonial')
+          .in('consent_status', ['granted_credited', 'granted_anon'])
+          .is('review_id', null).is('dismissed_at', null)
+      : Promise.resolve({ count: 0 }),
   ])
 
-  // Total items waiting on a mod — drives the gear badge + review-queue link.
+  // Total items waiting on a mod — drives the gear badge. Each contributing
+  // count belongs to exactly one destination in the gear menu.
   const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0) + (pendingCapturesCount ?? 0)
+  const reviewQueueCount = totalPending
+  const gearBadgeCount = totalPending + (pendingTestimonialsCount ?? 0)
 
   // Onboarding checklist data (organizers only)
   const [onboardingPostCount, onboardingChannelCount, onboardingEventCount] = isMod
@@ -420,7 +436,9 @@ export default async function CommunityPage({
             {isMod && (
               <CommunityGear
                 slug={slug}
-                pendingCount={totalPending}
+                pendingCount={gearBadgeCount}
+                reviewQueueCount={reviewQueueCount}
+                testimonialCount={pendingTestimonialsCount ?? 0}
               />
             )}
           </div>
