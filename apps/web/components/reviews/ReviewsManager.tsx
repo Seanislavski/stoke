@@ -20,7 +20,12 @@ type Props = {
 
 export default function ReviewsManager({ communityId, slug, initialReviews }: Props) {
   const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews)
-  const [filter, setFilter] = useState<Filter>('pending')
+  // Default to Pending only when something IS pending. Otherwise the first thing
+  // a mod sees is an empty list with their reviews hidden one tab away, which
+  // reads as "there are none" rather than "none are waiting on you".
+  const [filter, setFilter] = useState<Filter>(
+    initialReviews.some(r => r.status === 'pending') ? 'pending' : 'all'
+  )
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [replyOpen, setReplyOpen] = useState<string | null>(null)
