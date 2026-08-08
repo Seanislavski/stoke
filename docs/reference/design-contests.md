@@ -229,22 +229,38 @@ the design gets **produced** and the winner gets a physical item (print-on-deman
 handles one-offs with no store) — and phrase selling as intent. A contest promise
 that slips is highly visible.
 
-### ⚠️⚠️ THE WHOLE CONTEST RUNS FROM DENMARK — the timezone fix now cuts the other way
-Sean is in Denmark **08/11 – 11/04/2026 (85 days)**, working throughout. The
-Sept 1 deadline is **day 22 of the trip**, so deadline, voting and winner all
-happen while he is on **CEST (UTC+2)** and the members are mostly US.
+### ⏱️ Timezones: the DISPLAY side is already solved; only the INPUT side isn't
+Sean is in Denmark **08/11 – 11/04/2026 (85 days)**, working throughout, so the
+Sept 1 deadline (**day 22**) plus voting and the winner all happen while he is on
+**CEST (UTC+2)**.
 
-- `ContestManager` converts `datetime-local` through **the browser's zone**. That
-  fix is correct — it's what stopped the original deadline being four hours
-  short — but it assumed *the organizer shares the members' timezone*. From
-  Denmark, typing "Sept 15, 11:59 PM" stores `21:59Z` = **5:59 PM ET**, and US
-  members silently lose most of the final day.
-- **Any deadline set from Denmark needs roughly +6h** over what feels right, or
-  set it in ET deliberately and verify the stored UTC value by probe.
+**The membership is global** — Sean: *"there is likely a person from most
+countries on the planet, so having a time offset is not a problem."* No single
+deadline can give everyone a full final day, and chasing one is the wrong goal.
+
+- ✅ **Members are fine.** `components/LocalDate.tsx` renders
+  `new Date(ts).toLocaleDateString()` — i.e. in **the viewer's own timezone**. A
+  member in Tokyo sees JST, Berlin sees CEST. Nobody converts anything. Do not
+  "fix" this into a fixed zone.
+- ⚠️ **The organizer's INPUT side is the real exposure.** `ContestManager`
+  converts `datetime-local` through **the browser's zone** — correct, and what
+  stopped the original deadline being four hours short, but it means *the same
+  typed value means different things depending on where the laptop is standing*.
+  "11:59 PM" typed in Denmark and typed at home are **six hours apart**. The
+  inconsistency is the bug, not the offset.
+- **Sean's lean: use Eastern Time as the canonical reference zone** — *"because
+  it is where I am from, and I started the community, but I'm not picky."*
+  Arbitrary-but-stable beats correct-but-drifting. Set deadlines in ET and verify
+  the stored UTC by probe.
 - **⚠️ The EXISTING deadline is already correct** (`2026-09-01T04:00:00Z`,
-  hand-corrected). It merely *displays* as 6:00 AM Sept 1 in Denmark instead of
-  midnight ET. **Do not "fix" it because it looks wrong** — that would recreate
-  the original bug.
+  hand-corrected = midnight ET). It merely *displays* as 6:00 AM Sept 1 in
+  Denmark. **Do not "fix" it because it looks wrong** — that recreates the
+  original bug.
+- 💡 Proposed, not built: an opt-in `withZone` prop on `LocalDate`
+  (`timeZoneName: 'short'`) for deadline displays only, so a member can tell the
+  time was localized *for them* rather than quoted in someone else's zone. 8
+  usages across 6 files, so keep it opt-in — zone labels would be noise in the
+  audit log.
 
 ### First thing on resume
 **The existing contest's brief is frozen** — `updateContest` exists but nothing
