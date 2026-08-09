@@ -3,10 +3,15 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ClaimCapture from '@/components/community/ClaimCapture'
+import { captureDestination, claimCopy } from '@/lib/claim'
 
 // Landing page for a Discord-capture claim link (sent only to the original
 // author's Discord DM). Claiming links the archived post to their Stoke profile.
 // Middleware sends logged-out visitors to signup with this path preserved.
+//
+// ⚠️ Serves BOTH kinds of capture. A testimonial has no question_id, so every
+// branch here has to account for it or the page describes a library archive
+// that doesn't exist and links to a tab the content isn't on.
 export default async function ClaimPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const supabase = await createClient()
@@ -16,7 +21,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, content, discord_author_name, consent_status, claimed_by, question_id, answer_id, community_id')
+    .select('id, content, discord_author_name, consent_status, claimed_by, question_id, answer_id, review_id, kind, community_id')
     .eq('claim_token', token)
     .maybeSingle()
 
@@ -28,16 +33,19 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
   const claimedByOther = !!capture?.claimed_by && !alreadyMine
   const claimable = capture && !capture.claimed_by && capture.consent_status !== 'declined'
 
+  // `kind` is the intent recorded at capture time; review_id is where it landed.
+  // Either is enough — a testimonial that hasn't been filed yet has only `kind`.
+  const isTestimonial = capture?.kind === 'testimonial' || !!capture?.review_id
+  const copy = claimCopy(isTestimonial)
+
   return (
     <div className="max-w-lg mx-auto py-16 px-4">
       <div className="bg-white border border-stone-200 rounded-xl p-8 space-y-5">
         <div className="text-center">
-          <p className="text-3xl mb-2">📚</p>
-          <h1 className="text-xl font-semibold text-stone-900">Claim your post</h1>
+          <p className="text-3xl mb-2">{copy.icon}</p>
+          <h1 className="text-xl font-semibold text-stone-900">{copy.heading}</h1>
           {community && (
-            <p className="text-sm text-stone-500 mt-1">
-              Archived in {community.name}’s library by Silas!, with your permission.
-            </p>
+            <p className="text-sm text-stone-500 mt-1">{copy.sub(community.name)}</p>
           )}
         </div>
 
@@ -47,17 +55,25 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             <Link href="/home" className="text-orange-600 hover:underline">Go home</Link>
           </p>
         ) : claimedByOther ? (
-          <p className="text-sm text-stone-500 text-center">This post has already been claimed.</p>
+          <p className="text-sm text-stone-500 text-center">
+            This {isTestimonial ? 'quote' : 'post'} has already been claimed.
+          </p>
         ) : alreadyMine ? (
           <div className="text-center space-y-2">
-            <p className="text-sm text-green-700 font-medium">✓ Already yours — this post is linked to your profile.</p>
+            <p className="text-sm text-green-700 font-medium">
+              ✓ Already claimed — credited to your profile.
+            </p>
             {community && (
-              <Link href={
-                capture.question_id
-                  ? `/communities/${community.slug}/questions/${capture.question_id}`
-                  : `/communities/${community.slug}?tab=qa`
-              } className="text-sm text-orange-600 hover:underline">
-                See it on Stoke →
+              <Link
+                href={captureDestination({
+                  slug: community.slug,
+                  questionId: capture.question_id,
+                  reviewId: capture.review_id,
+                  isTestimonial,
+                })}
+                className="text-sm text-orange-600 hover:underline"
+              >
+                {copy.seeIt}
               </Link>
             )}
           </div>
@@ -66,11 +82,8 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             <blockquote className="border-l-4 border-orange-200 bg-stone-50 rounded-r-lg p-3 text-sm text-stone-600 whitespace-pre-wrap max-h-60 overflow-y-auto">
               {capture.content}
             </blockquote>
-            <p className="text-xs text-stone-500 text-center">
-              Claiming links this post to your profile — your name here on Stoke replaces the
-              “shared on Discord” credit, and it stays yours.
-            </p>
-            {claimable && <ClaimCapture token={token} />}
+            <p className="text-xs text-stone-500 text-center">{copy.explain}</p>
+            {claimable && <ClaimCapture token={token} isTestimonial={isTestimonial} />}
           </>
         )}
       </div>

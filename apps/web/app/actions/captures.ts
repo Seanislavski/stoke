@@ -335,7 +335,17 @@ export async function claimCapturesForDiscordUser(
   return { claimed: captures.length }
 }
 
-export async function claimCapture(token: string): Promise<{ error?: string; slug?: string; questionId?: string | null }> {
+export async function claimCapture(token: string): Promise<{
+  error?: string
+  slug?: string
+  questionId?: string | null
+  reviewId?: string | null
+  // False only in the testimonial case where reattributeReview declined to run
+  // (the claimer already has a review in that scope). The claim is still
+  // recorded — but the quote keeps its Discord credit, and the page must say so
+  // rather than reporting success it didn't deliver.
+  credited?: boolean
+}> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not logged in' }
@@ -362,6 +372,7 @@ export async function claimCapture(token: string): Promise<{ error?: string; slu
     .eq('id', capture.id)
 
   // Re-attribute already-published content to the claimer's profile.
+  let credited = true
   if (capture.answer_id) {
     await admin.from('kb_answers')
       .update({ author_id: user.id, attribution: null })
@@ -371,16 +382,18 @@ export async function claimCapture(token: string): Promise<{ error?: string; slu
       .update({ asker_id: user.id, attribution: null })
       .eq('id', capture.question_id)
   } else if (capture.review_id) {
-    await reattributeReview(admin, capture.review_id, user.id)
+    credited = await reattributeReview(admin, capture.review_id, user.id)
   }
 
   logAction({
     actorId: user.id, communityId: capture.community_id, action: 'capture.claimed',
     targetId: capture.id, targetType: 'capture',
+    metadata: capture.review_id ? { review_id: capture.review_id, credited } : undefined,
   })
   if (community?.slug) {
     revalidatePath(`/communities/${community.slug}`)
     if (capture.question_id) revalidatePath(`/communities/${community.slug}/questions/${capture.question_id}`)
+    if (capture.review_id) revalidatePath(`/communities/${community.slug}/testimonials`)
   }
-  return { slug: community?.slug, questionId: capture.question_id }
+  return { slug: community?.slug, questionId: capture.question_id, reviewId: capture.review_id, credited }
 }
