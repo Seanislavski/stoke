@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Kind words said in a community\'s Discord can now be saved here too. A moderator captures the message, and the bot asks the author for permission first — credited, anonymous, or no thanks.',
       'Nothing is ever published without that permission, and a captured testimonial always shows where it came from.',
       'If you later sign in with Discord, testimonials you agreed to be credited for are linked to your profile automatically.',
+      'Prefer to sign up with an email address? Credited quotes come with a claim link that works whenever you get round to it, even months later.',
     ],
   },
   {
