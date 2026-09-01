@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState, useTransition } from 'react'
+import { dismissOnboarding } from '@/app/actions/community'
 
 type Props = {
+  communityId: string
   slug: string
   hasPost: boolean
   hasChannel: boolean
@@ -32,26 +34,20 @@ function Step({ done, label, href, description }: { done: boolean; label: string
   )
 }
 
-export default function OnboardingChecklist({ slug, hasPost, hasChannel, hasMember, hasEvent }: Props) {
-  const storageKey = `stoke_onboarding_dismissed_${slug}`
+export default function OnboardingChecklist({ communityId, slug, hasPost, hasChannel, hasMember, hasEvent }: Props) {
+  // The server already hides this once onboarding_dismissed_at is set; this is only
+  // so the box disappears immediately on click rather than after the revalidate.
   const [dismissed, setDismissed] = useState(false)
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    setDismissed(localStorage.getItem(storageKey) === '1')
-    setReady(true)
-  }, [storageKey])
+  const [pending, startTransition] = useTransition()
 
   const allDone = hasPost && hasChannel && hasMember && hasEvent
-  if (allDone) return null
-  // Wait until we've read localStorage so we never flash the box for someone who dismissed it.
-  if (!ready || dismissed) return null
+  if (allDone || dismissed) return null
 
   const doneCount = [hasPost, hasChannel, hasMember, hasEvent].filter(Boolean).length
 
   const dismiss = () => {
-    localStorage.setItem(storageKey, '1')
     setDismissed(true)
+    startTransition(() => void dismissOnboarding(communityId, slug))
   }
 
   return (
@@ -70,13 +66,15 @@ export default function OnboardingChecklist({ slug, hasPost, hasChannel, hasMemb
           <button
             type="button"
             onClick={dismiss}
+            disabled={pending}
             aria-label="Dismiss checklist"
-            title="Dismiss"
-            className="text-stone-300 hover:text-stone-500 transition-colors -mr-1 leading-none"
+            title="Dismiss for good"
+            className="flex items-center gap-1 text-xs font-medium text-stone-400 hover:text-stone-600 disabled:opacity-50 transition-colors -mr-1"
           >
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M5 5l10 10M15 5L5 15" />
             </svg>
+            Hide
           </button>
         </div>
       </div>

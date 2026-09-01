@@ -361,3 +361,23 @@ export async function rejectRequest(communityId: string, slug: string, userId: s
   revalidatePath(`/communities/${slug}/settings`)
   return { success: true }
 }
+
+// The getting-started checklist hides itself when all four steps are done, but an
+// organizer may simply not want it — e.g. an established community that will never
+// schedule an event. Stored on the community rather than in localStorage so the
+// dismissal survives a different browser, a different device, and cleared site data.
+export async function dismissOnboarding(communityId: string, slug: string) {
+  const caller = await getCallerRole(communityId)
+  if (!caller) return { error: 'Not authorized' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('communities')
+    .update({ onboarding_dismissed_at: new Date().toISOString() })
+    .eq('id', communityId)
+
+  if (error) return { error: 'Could not dismiss the checklist.' }
+
+  revalidatePath(`/communities/${slug}`)
+  return { success: true }
+}

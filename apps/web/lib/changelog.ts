@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-01',
+    title: 'Hide the getting-started checklist',
+    items: [
+      'Organizers can now hide the "Get your community started" checklist for good. The button is labelled Hide, and the choice sticks across every browser and device instead of only the one you clicked it in.',
+    ],
+  },
+  {
     date: '2026-08-08',
     title: 'Testimonials, in one place',
     items: [

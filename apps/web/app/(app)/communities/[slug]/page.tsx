@@ -42,7 +42,7 @@ export default async function CommunityPage({
 
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos, has_contests, show_discord_handles')
+    .select('id, name, slug, description, about, join_mode, is_listed, owner_id, category_id, image_url, banner_url, photos, has_contests, show_discord_handles, onboarding_dismissed_at')
     .eq('slug', slug)
     .single()
 
@@ -454,8 +454,9 @@ export default async function CommunityPage({
       )}
 
       {/* Onboarding checklist — organizers only, disappears when all steps done */}
-      {isMod && (
+      {isMod && !community.onboarding_dismissed_at && (
         <OnboardingChecklist
+          communityId={community.id}
           slug={slug}
           hasPost={onboardingPostCount > 0}
           hasChannel={onboardingChannelCount > 0}
