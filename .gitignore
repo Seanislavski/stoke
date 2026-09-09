@@ -23,3 +23,6 @@ supabase/.temp/
 .vercel
 *.stackdump
 .claude/settings.local.json
+
+# Library exports are backup artifacts containing member content, not source
+library-export/
