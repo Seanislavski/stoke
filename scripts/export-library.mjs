@@ -126,8 +126,10 @@ ordered.forEach((q, i) => {
 })
 
 const photoJobs = []
+let photosSeen = 0 // counted regardless of --photos, so the summary can't misreport
 function photoLines(photos, label) {
   if (!photos?.length) return []
+  photosSeen += photos.length
   return photos.map((url, i) => {
     if (!WANT_PHOTOS) return `![${label} image ${i + 1}](${url})`
     const name = `${label}-${i + 1}${(url.match(/\.(png|jpe?g|gif|webp)/i) || ['.jpg'])[0]}`
@@ -249,5 +251,8 @@ if (WANT_PHOTOS && photoJobs.length) {
 
 console.log(`\nExported "${community.name}" to ${OUT}`)
 console.log(`  ${ordered.length} questions, ${answers.length} answers, ${(cats ?? []).length} categories`)
-console.log(`  index.md · questions/ · library.json${WANT_PHOTOS ? ' · photos/' : ''}`)
-if (!WANT_PHOTOS) console.log('  (image links still point at Supabase — rerun with --photos to pull them local)')
+// Report what was actually written, not what the flags asked for — a summary
+// that names a photos/ folder nobody created is the interface lying.
+console.log(`  index.md · questions/ · library.json${WANT_PHOTOS && photoJobs.length ? ' · photos/' : ''}`)
+if (!photosSeen) console.log('  (no images in this library)')
+else if (!WANT_PHOTOS) console.log(`  (${photosSeen} image links still point at Supabase — rerun with --photos to pull them local)`)
