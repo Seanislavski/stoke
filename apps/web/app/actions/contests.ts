@@ -503,8 +503,9 @@ export async function setWinner(contestId: string, entryId: string | null) {
     })()
 
     // message_id doubles as the generic target id here, the same way the qotw
-    // notification stores a question id in it.
-    void admin.from('notifications').insert({
+    // notification stores a question id in it. Awaited, not voided: a Supabase
+    // query builder sends nothing until then() is called on it.
+    await admin.from('notifications').insert({
       user_id: w.author_id,
       type: 'contest_winner',
       actor_id: access.user.id,
