@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-21',
+    title: 'Celebrate your community’s milestones',
+    items: [
+      'When a community reaches 10, 25, 50, 100, 250, 500, 1,000 members and beyond, its page celebrates for a week — and organizers get a one-click, ready-to-edit announcement for the bulletin board.',
+      'Each milestone gives the community its own colour: a ring around its picture and a badge by the member count. Once earned, a colour is kept for good.',
+      'Members can see how close the community is to its next milestone.',
+    ],
+  },
+  {
     date: '2026-09-01',
     title: 'Hide the getting-started checklist',
     items: [

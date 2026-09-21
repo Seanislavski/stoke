@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { submitPost } from '@/app/actions/bulletin'
 import PhotoUploader from '@/components/PhotoUploader'
 
-type Props = { communityId: string; slug: string; isMod: boolean }
+// prefill opens the form with a suggested post (the milestone "Announce it"
+// button) — still fully editable, and nothing is published until they click.
+type Props = { communityId: string; slug: string; isMod: boolean; prefill?: { title: string; content: string } }
 
-export default function SubmitPostForm({ communityId, slug, isMod }: Props) {
-  const [open, setOpen] = useState(false)
+export default function SubmitPostForm({ communityId, slug, isMod, prefill }: Props) {
+  const [open, setOpen] = useState(!!prefill)
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
@@ -49,6 +51,7 @@ export default function SubmitPostForm({ communityId, slug, isMod }: Props) {
             type="text"
             required
             maxLength={120}
+            defaultValue={prefill?.title}
             placeholder="Title"
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
           />
@@ -56,6 +59,7 @@ export default function SubmitPostForm({ communityId, slug, isMod }: Props) {
             name="content"
             rows={4}
             maxLength={2000}
+            defaultValue={prefill?.content}
             placeholder="What would you like to share? (optional if adding photos)"
             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
           />

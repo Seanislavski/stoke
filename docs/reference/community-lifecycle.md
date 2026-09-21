@@ -58,3 +58,12 @@
 - **Eligibility:** community review = active member (mod/owner auto-publishes); platform review = any logged-in user; platform-scope "mod" = owner/platform_moderator only.
 - **Surfaces:** community Reviews tab (display-only, "manage in settings"), `ReviewsManager.tsx` in settings AND `/admin/reviews`, featured reviews on `preview/[slug]` + the landing page (**renders nothing when zero featured**). Member entry at `/feedback`.
 
+
+## Growth Milestones (09/21/2026)
+- **Thresholds** 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000 — single list in `apps/web/lib/milestones.ts` (with each tier's ring/chip/bar Tailwind classes). ⚠️ Also hard-coded in the migration's backfill; adding a threshold later does not backfill it.
+- **Table `community_milestones`** (`20260921000000_community_milestones.sql`): PK `(community_id, threshold)`, `reached_at`, `backfilled`. RLS on, no policies = service-role only. The backfill dates each existing milestone by the Nth active member's `joined_at` and sets `backfilled = true` so it gets a colour but no banner.
+- **Detection runs on the community page load** (`lib/milestones-server.ts` `recordMilestones`), NOT in join actions — members arrive via open join, approval, invite, bulk add and Discord, and one check per path would drift. The PK makes it idempotent; only the load whose upsert lands notifies. A bulk add crossing several notifies for the biggest only.
+- **Never un-recorded:** a community that shrinks keeps its colour ("tree rings").
+- **UI:** coloured ring on the avatar + "★ N club" chip in the header; progress bar "X to go until N" for members; `MilestoneBanner` for 7 days (`CELEBRATION_DAYS`) after a non-backfilled crossing; mods get **Announce it** → `?tab=bulletin&celebrate=N#new-post`, which opens `SubmitPostForm` with a `prefill` (validated against recorded milestones; nothing auto-posts).
+- **Bell:** type `milestone`, `message_id` = the threshold as text, sent to active organizers + moderators.
+- ⚠️ **DECIDED: colours show on a community's OWN page only, never in the directory** — side by side they would rank communities and make small ones look lesser. Don't add them to directory cards without re-asking Sean.

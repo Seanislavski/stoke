@@ -23,6 +23,10 @@ import ReviewForm from '@/components/reviews/ReviewForm'
 import ReviewList from '@/components/reviews/ReviewList'
 import { REVIEW_COLS, mapReview, type RawReview } from '@/lib/reviews'
 import OnboardingChecklist from '@/components/community/OnboardingChecklist'
+import MilestoneBanner from '@/components/community/MilestoneBanner'
+import ScrollToHash from '@/components/ScrollToHash'
+import { recordMilestones } from '@/lib/milestones-server'
+import { CELEBRATION_DAYS, MILESTONES, formatThreshold, milestoneFor, nextMilestone } from '@/lib/milestones'
 import LocalDate from '@/components/LocalDate'
 import { CONTEST_STATUS_LABELS, type ContestStatus } from '@/lib/contests'
 import { formatEventDate, formatEventTime, tzAbbrev, DEFAULT_TZ } from '@/lib/eventTime'
@@ -32,10 +36,10 @@ export default async function CommunityPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; celebrate?: string }>
 }) {
   const { slug } = await params
-  const { tab = 'bulletin' } = await searchParams
+  const { tab = 'bulletin', celebrate } = await searchParams
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -167,6 +171,26 @@ export default async function CommunityPage({
         admin.from('events').select('*', { count: 'exact', head: true }).eq('community_id', community.id).then(r => r.count ?? 0),
       ])
     : [0, 0, 0]
+
+  // Growth milestones. Non-members don't get the member list, so count for them.
+  const activeCount = members
+    ? members.length
+    : (await admin.from('community_members').select('*', { count: 'exact', head: true })
+        .eq('community_id', community.id).eq('status', 'active')).count ?? 0
+  const milestones = await recordMilestones(admin, community.id, activeCount)
+  const topReached = milestones.reduce((a, r) => Math.max(a, r.threshold), 0)
+  const tier = milestoneFor(topReached)
+  const upNext = nextMilestone(activeCount)
+  const prevThreshold = MILESTONES.filter(m => m.threshold <= activeCount).at(-1)?.threshold ?? 0
+  const celebrationCutoff = Date.now() - CELEBRATION_DAYS * 24 * 60 * 60 * 1000
+  const celebrating = milestones
+    .filter(r => !r.backfilled && new Date(r.reached_at).getTime() > celebrationCutoff)
+    .reduce((a, r) => Math.max(a, r.threshold), 0)
+  // "Announce it" lands on the bulletin with a prefilled post — only for a
+  // milestone this community has actually reached.
+  const celebrateN = isMod && celebrate && milestones.some(r => String(r.threshold) === celebrate)
+    ? Number(celebrate)
+    : null
 
   // Bulletin tab data
   const [publishedPosts, pendingPosts] = await Promise.all([
@@ -402,7 +426,7 @@ export default async function CommunityPage({
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
             {community.image_url && (
-              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-100 photo-pop">
+              <div className={`w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-100 photo-pop ${tier ? `ring-4 ring-offset-2 ${tier.ring}` : ''}`}>
                 <Image src={community.image_url} alt={community.name} width={64} height={64} className="w-full h-full object-cover" />
               </div>
             )}
@@ -421,7 +445,28 @@ export default async function CommunityPage({
                   <span>{members.length} {members.length === 1 ? 'member' : 'members'}</span>
                 </>
               )}
+              {tier && (
+                <span
+                  className={`px-2 py-0.5 rounded-full font-medium ${tier.chip}`}
+                  title={`Reached ${formatThreshold(tier.threshold)} members`}
+                >
+                  ★ {formatThreshold(tier.threshold)} club
+                </span>
+              )}
             </div>
+            {canSee && upNext && (
+              <div className="mt-3 max-w-xs">
+                <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${upNext.bar}`}
+                    style={{ width: `${Math.round(((activeCount - prevThreshold) / (upNext.threshold - prevThreshold)) * 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-stone-400">
+                  {upNext.threshold - activeCount} to go until {formatThreshold(upNext.threshold)} members
+                </p>
+              </div>
+            )}
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2">
@@ -444,6 +489,11 @@ export default async function CommunityPage({
           </div>
         </div>
       </div>
+
+      {/* Milestone celebration — for a week after crossing one */}
+      {canSee && celebrating > 0 && (
+        <MilestoneBanner threshold={celebrating} communityName={community.name} slug={slug} isMod={isMod} />
+      )}
 
       {/* About this community */}
       {community.about && (
@@ -562,7 +612,18 @@ export default async function CommunityPage({
                 </div>
               )}
 
-              <SubmitPostForm communityId={community.id} slug={community.slug} isMod={isMod} />
+              {celebrateN && <ScrollToHash />}
+              <div id="new-post" className="scroll-mt-20">
+              <SubmitPostForm
+                communityId={community.id}
+                slug={community.slug}
+                isMod={isMod}
+                prefill={celebrateN ? {
+                  title: `We're ${formatThreshold(celebrateN)} strong! 🎉`,
+                  content: `${community.name} just reached ${formatThreshold(celebrateN)} members. Thank you to everyone who has joined, shown up and helped each other along the way — and a warm welcome to our newest members!`,
+                } : undefined}
+              />
+              </div>
             </div>
           )}
 
