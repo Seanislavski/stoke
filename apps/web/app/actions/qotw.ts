@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { qotwLabel, QOTW_TEST_NUMBER } from '@/lib/qotw'
-import { ensureQotwCategory } from '@/lib/qotw-publish'
+import { ensureQotwCategory, announceFeaturedQuestion } from '@/lib/qotw-publish'
 import { sendEmail, qotwChosenHtml } from '@/lib/email'
 import { enqueueDiscordDm, APP_URL } from '@/lib/discord-outbox'
 
@@ -232,6 +232,7 @@ export async function publishExistingQuestion(questionId: string, communityId: s
   }
 
   logAction({ actorId: user.id, communityId, action: 'qotw.published', targetId: questionId, targetType: 'qotw' })
+  await announceFeaturedQuestion(admin, communityId, question, nextNumber)
   revalidate(slug)
   revalidatePath(`/communities/${slug}/questions/${questionId}`)
   return { ok: true, number: nextNumber }
@@ -312,6 +313,8 @@ export async function publishItem(itemId: string, communityId: string, slug: str
   }
 
   logAction({ actorId: user.id, communityId, action: 'qotw.published', targetId: q.id, targetType: 'qotw' })
+  // announceFeaturedQuestion skips the test sentinel itself, so asTest never posts.
+  await announceFeaturedQuestion(admin, communityId, { id: q.id, title: item.title, body: item.body }, nextNumber)
   revalidate(slug)
   return { ok: true, number: nextNumber, questionId: q.id }
 }

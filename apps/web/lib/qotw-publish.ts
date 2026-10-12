@@ -1,8 +1,39 @@
 import type { createAdminClient } from '@/lib/supabase/admin'
 import { logAction } from '@/lib/audit'
-import { findQotwCategoryId, QOTW_CATEGORY_NAME } from '@/lib/qotw'
+import { findQotwCategoryId, QOTW_CATEGORY_NAME, QOTW_TEST_NUMBER, qotwLabel } from '@/lib/qotw'
+import { enqueueDiscordPost, APP_URL } from '@/lib/discord-outbox'
 
 type Admin = ReturnType<typeof createAdminClient>
+
+/**
+ * Ask Silas to announce a newly published Featured Question in Discord. Called from
+ * every REAL publish path (cron, manual, promote-in-place). A test publish never
+ * announces — it would post a throwaway question to thousands of people.
+ */
+export async function announceFeaturedQuestion(
+  admin: Admin,
+  communityId: string,
+  question: { id: string; title: string; body: string | null },
+  number: number,
+): Promise<void> {
+  if (number === QOTW_TEST_NUMBER) return
+  const { data: c } = await admin.from('communities').select('name, slug').eq('id', communityId).single()
+  if (!c) return
+  await enqueueDiscordPost({
+    communityId,
+    kind: 'qotw_published',
+    questionId: question.id,
+    payload: {
+      community_name: c.name,
+      question_title: question.title,
+      question_body: question.body,
+      qotw_label: qotwLabel(number),
+      // The numbered link: most Discord readers are logged out, and /qotw/N is the
+      // one that lands on the public preview instead of a login wall.
+      qotw_url: `${APP_URL}/communities/${c.slug}/qotw/${number}`,
+    },
+  })
+}
 
 /**
  * Find the community's "Question of the Week" Q&A category, creating it if missing, so
@@ -71,5 +102,6 @@ export async function releaseDraft(
   if (upErr) return { error: upErr.message }
 
   logAction({ actorId: actorId ?? authorId, communityId, action: 'qotw.published', targetId: q.id, targetType: 'qotw' })
+  await announceFeaturedQuestion(admin, communityId, { id: q.id, title: item.title, body: item.body }, nextNumber)
   return { number: nextNumber, questionId: q.id }
 }
