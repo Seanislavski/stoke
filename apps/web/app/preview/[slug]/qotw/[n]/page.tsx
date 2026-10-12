@@ -56,8 +56,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, n } = await params
   const loaded = await loadQotw(slug, n)
-  if (!loaded?.question) return { title: 'Question of the Week' }
-  const desc = `Question of the Week in ${loaded.community.name} on Stoke — add your answer any time.`
+  if (!loaded?.question) return { title: 'Featured Question' }
+  const desc = `Featured Question in ${loaded.community.name} on Stoke — add your answer any time.`
   return {
     title: loaded.question.title,
     description: desc,
@@ -103,7 +103,7 @@ export default async function PublicQotwPage({
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-10 space-y-6">
         <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-6 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">⭐ Question of the Week · {qotwLabel(number)}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">⭐ {qotwLabel(number)}</p>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-stone-900">{question.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-400">
             <Link href={`/communities/${community.slug}`} className="hover:text-orange-600">{community.name}</Link>

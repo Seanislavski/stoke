@@ -196,7 +196,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                         <button
                           onClick={() => run(() => publishItem(item.id, communityId, slug, true))}
                           disabled={pending}
-                          title="Publish as a throwaway QotW-t preview — never uses a real number"
+                          title="Publish as a throwaway test — never uses a real number"
                           className="text-xs border border-stone-300 text-stone-600 px-3 py-1.5 rounded-lg font-medium hover:bg-stone-50 disabled:opacity-50">
                           Preview as test
                         </button>
@@ -204,7 +204,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                           onClick={() => run(() => publishItem(item.id, communityId, slug))}
                           disabled={pending}
                           className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50">
-                          Publish as QotW
+                          Publish as Featured
                         </button>
                       </div>
                     </div>
@@ -221,7 +221,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
       <section>
         <h2 className="text-base font-semibold text-stone-800 mb-3">Published <span className="text-stone-400 font-normal">({published.length})</span></h2>
         {published.length === 0 ? (
-          <p className="text-sm text-stone-400">Nothing published yet. Publish a draft to give it a permanent QotW link.</p>
+          <p className="text-sm text-stone-400">Nothing published yet. Publish a draft to give it a permanent link.</p>
         ) : (
           <div className="space-y-2">
             {published.map(item => (
@@ -238,7 +238,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
                     <button
                       onClick={() => {
                         const msg = item.number === 0
-                          ? 'Remove this QotW-t test? Your original question stays safe in the bank.'
+                          ? 'Remove this test? Your original question stays safe in the bank.'
                           : `Delete ${qotwLabel(item.number)} and its answers? This can’t be undone.`
                         if (confirm(msg)) run(() => deleteItem(item.id, communityId, slug))
                       }}

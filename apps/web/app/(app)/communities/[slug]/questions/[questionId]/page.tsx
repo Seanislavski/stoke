@@ -224,7 +224,7 @@ export default async function QuestionPage({
                   href={`/communities/${slug}/qotw`}
                   className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-700 whitespace-nowrap"
                 >
-                  Manage in QotW →
+                  Manage in Featured Questions →
                 </Link>
               ) : (
                 <DeleteItemButton

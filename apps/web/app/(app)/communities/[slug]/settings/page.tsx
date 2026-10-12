@@ -162,7 +162,7 @@ export default async function CommunitySettingsPage({
             { href: '#general', label: 'General' },
             { href: '#channels', label: 'Spaces' },
             { href: '#qa-categories', label: 'Q&A' },
-            { href: '#qotw', label: 'QotW' },
+            { href: '#qotw', label: 'Featured' },
             { href: '#contests', label: 'Contests' },
             { href: '#discord', label: 'Discord' },
             { href: '#reviews', label: 'Reviews' },
@@ -228,13 +228,13 @@ export default async function CommunitySettingsPage({
 
       {/* Question of the Week */}
       <section id="qotw" className="scroll-mt-28">
-        <h2 className="text-base font-semibold text-stone-800 mb-1">Question of the Week</h2>
+        <h2 className="text-base font-semibold text-stone-800 mb-1">Featured Question</h2>
         <p className="text-sm text-stone-500 mb-4">Stockpile questions ahead of time and publish one whenever you&apos;re ready. Each gets a permanent, deadline-free link to share.</p>
         <Link
           href={`/communities/${slug}/qotw`}
           className="inline-block text-sm bg-stone-800 text-white px-4 py-2 rounded-lg font-medium hover:bg-stone-900"
         >
-          Manage Question of the Week →
+          Manage Featured Questions →
         </Link>
       </section>
 

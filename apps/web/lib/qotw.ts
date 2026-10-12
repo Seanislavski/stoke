@@ -4,7 +4,11 @@
 // The current spotlight is simply the newest published question in that category;
 // past weeks accumulate there as an answerable archive.
 
-export const QOTW_CATEGORY_NAME = 'Question of the Week'
+export const QOTW_CATEGORY_NAME = 'Featured Question'
+
+// Renamed from "Question of the Week" on 10/12/2026 when the rotation went to every two
+// weeks. Older communities may still have a category with the old name, so it still matches.
+const LEGACY_CATEGORY_NAMES = ['question of the week']
 
 // A "preview as test" publish uses the sentinel number 0 → it renders as "QotW-t" and
 // never consumes a real number (real publishes are always max(number > 0) + 1 ≥ 1), so
@@ -12,7 +16,7 @@ export const QOTW_CATEGORY_NAME = 'Question of the Week'
 export const QOTW_TEST_NUMBER = 0
 
 export function qotwLabel(n: number): string {
-  return n === QOTW_TEST_NUMBER ? 'QotW-t' : `QotW-${n}`
+  return n === QOTW_TEST_NUMBER ? 'Featured Question (test)' : `Featured Question #${n}`
 }
 
 type NamedCategory = { id: string; name: string }
@@ -21,6 +25,6 @@ type NamedCategory = { id: string; name: string }
 export function findQotwCategoryId(categories: NamedCategory[]): string | null {
   const match = categories.find(
     c => c.name.trim().toLowerCase() === QOTW_CATEGORY_NAME.toLowerCase()
-  )
+  ) ?? categories.find(c => LEGACY_CATEGORY_NAMES.includes(c.name.trim().toLowerCase()))
   return match?.id ?? null
 }

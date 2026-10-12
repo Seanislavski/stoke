@@ -138,10 +138,10 @@ export async function publishExistingQuestion(questionId: string, communityId: s
   const { data: existingItem } = await admin
     .from('qotw_items').select('id, number')
     .eq('community_id', communityId).eq('question_id', questionId).maybeSingle()
-  if (existingItem) return { error: 'This question is already a Question of the Week.' }
+  if (existingItem) return { error: 'This question is already a Featured Question.' }
 
   const qotwCategoryId = await ensureQotwCategory(admin, communityId, user.id)
-  if (!qotwCategoryId) return { error: 'Could not set up the Question of the Week category.' }
+  if (!qotwCategoryId) return { error: 'Could not set up the Featured Question category.' }
 
   // Next real number (test sentinel 0 never inflates the count).
   const { data: maxRow } = await admin
@@ -226,7 +226,7 @@ export async function publishExistingQuestion(questionId: string, communityId: s
       ])
       const to = userData.user?.email
       if (to && c) {
-        await sendEmail(to, `Your question is the Question of the Week in ${c.name}`, qotwChosenHtml(c.name, c.slug, questionId, question.title, qotwLabel(nextNumber)))
+        await sendEmail(to, `Your question is the Featured Question in ${c.name}`, qotwChosenHtml(c.name, c.slug, questionId, question.title, qotwLabel(nextNumber)))
       }
     })()
   }
@@ -254,7 +254,7 @@ export async function publishItem(itemId: string, communityId: string, slug: str
   if (item.number != null) return { error: 'Already published' }
 
   const qotwCategoryId = await ensureQotwCategory(admin, communityId, user.id)
-  if (!qotwCategoryId) return { error: 'Could not set up the Question of the Week category.' }
+  if (!qotwCategoryId) return { error: 'Could not set up the Featured Question category.' }
 
   const { data: community } = await admin.from('communities').select('owner_id').eq('id', communityId).single()
   const authorId = community?.owner_id ?? user.id
@@ -263,7 +263,7 @@ export async function publishItem(itemId: string, communityId: string, slug: str
   if (asTest) {
     const { data: existingTest } = await admin.from('qotw_items')
       .select('id').eq('community_id', communityId).eq('number', QOTW_TEST_NUMBER).maybeSingle()
-    if (existingTest) return { error: 'A test (QotW-t) already exists — delete it first.' }
+    if (existingTest) return { error: 'A test Featured Question already exists — delete it first.' }
     nextNumber = QOTW_TEST_NUMBER
   } else {
     // Real numbers are always > 0, so the sentinel test (0) never inflates the count.

@@ -81,7 +81,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, questionId } = await params
   const loaded = await loadPublicQuestion(slug, questionId)
-  if (!loaded?.question) return { title: 'Question of the Week' }
+  if (!loaded?.question) return { title: 'Featured Question' }
   const desc = loaded.isQotw
     ? `Answer this week's question in ${loaded.community.name} on Stoke.`
     : `Answer this question in ${loaded.community.name} on Stoke.`
@@ -139,7 +139,7 @@ export default async function PublicQuestionPage({
         {/* Question */}
         <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
-            {isQotw ? '⭐ Question of the Week' : `${community.name} · Q&A`}
+            {isQotw ? '⭐ Featured Question' : `${community.name} · Q&A`}
           </p>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-stone-900">{question.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-400">

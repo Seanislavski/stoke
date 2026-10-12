@@ -153,7 +153,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                       <div className={`flex-1 min-w-0 ${!isUnread ? 'ml-3.5' : ''}`}>
                         {n.type === 'qotw' ? (
                           <p className="text-sm text-stone-800">
-                            ⭐ <span className="font-medium">Your question was chosen as Question of the Week!</span>
+                            ⭐ <span className="font-medium">Your question was chosen as the Featured Question!</span>
                           </p>
                         ) : n.type === 'milestone' ? (
                           // message_id holds the member-count threshold reached.

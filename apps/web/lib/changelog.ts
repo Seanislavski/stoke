@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-12',
+    title: 'Question of the Week is now the Featured Question',
+    items: [
+      'A new Featured Question goes up every two weeks instead of every week, so each one stays at the top longer and has more time to collect answers.',
+      'Older questions never close. You can still answer any of them, and every existing link still works.',
+    ],
+  },
+  {
     date: '2026-09-21',
     title: 'Celebrate your community’s milestones',
     items: [

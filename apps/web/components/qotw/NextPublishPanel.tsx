@@ -89,7 +89,7 @@ export default function NextPublishPanel({ next }: { next: NextPublish | null })
       {next.gateOpen && !overdue && (
         <p className="text-xs text-stone-500 mt-3 pt-3 border-t border-orange-100">
           ⏳ This question is already eligible — it publishes at the next daily 9:00 AM ET run
-          ({whenLabel}). Want it live sooner? Use <strong>Publish as QotW</strong> on it below.
+          ({whenLabel}). Want it live sooner? Use <strong>Publish as Featured</strong> on it below.
         </p>
       )}
     </div>

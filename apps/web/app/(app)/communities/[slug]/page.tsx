@@ -693,7 +693,7 @@ export default async function CommunityPage({
                   href={`/communities/${slug}/questions/${qotwSpotlight.id}`}
                   className="block rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 hover:border-orange-300 transition-colors"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">⭐ Question of the Week</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">⭐ Featured Question</p>
                   <h3 className="mt-1 text-lg font-semibold text-stone-900">{qotwSpotlight.title}</h3>
                   {qotwSpotlight.body && <p className="mt-1 text-sm text-stone-600 line-clamp-2">{qotwSpotlight.body}</p>}
                   <p className="mt-3 text-sm font-medium text-orange-600">

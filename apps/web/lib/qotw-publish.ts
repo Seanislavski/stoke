@@ -43,7 +43,7 @@ export async function releaseDraft(
   if (!authorId) return { error: 'No author available' }
 
   const qotwCategoryId = await ensureQotwCategory(admin, communityId, authorId)
-  if (!qotwCategoryId) return { error: 'Could not set up the Question of the Week category.' }
+  if (!qotwCategoryId) return { error: 'Could not set up the Featured Question category.' }
 
   // Real numbers are always > 0, so the sentinel test (0) never inflates the count.
   const { data: maxRow } = await admin

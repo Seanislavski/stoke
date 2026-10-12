@@ -77,7 +77,7 @@ export default async function QotwManagePage({
         ← Back to {community.name}
       </Link>
       <div>
-        <h1 className="text-xl font-semibold text-stone-900">Question of the Week</h1>
+        <h1 className="text-xl font-semibold text-stone-900">Featured Question</h1>
         <p className="text-sm text-stone-500 mt-1">
           Write questions ahead of time, then publish one when you&apos;re ready. Every published question keeps a
           permanent <strong>/qotw/N</strong> link and stays open to answers — no deadlines.
@@ -87,7 +87,7 @@ export default async function QotwManagePage({
       {currentQotw ? (
         <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
           <div className="text-xs font-medium uppercase tracking-wide text-orange-600">
-            ⭐ Current Question of the Week · {qotwLabel(currentQotw.number)}
+            ⭐ Current: {qotwLabel(currentQotw.number)}
           </div>
           <p className="mt-1 text-base font-medium text-stone-900">{currentQotw.title}</p>
           <Link
@@ -99,7 +99,7 @@ export default async function QotwManagePage({
         </div>
       ) : (
         <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-500">
-          No Question of the Week has been published yet. Publish one from your queue below.
+          No Featured Question has been published yet. Publish one from your queue below.
         </div>
       )}
 

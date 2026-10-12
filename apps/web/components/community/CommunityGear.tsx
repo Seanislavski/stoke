@@ -43,7 +43,7 @@ export default function CommunityGear({
 
   const items: { href: string; label: string; badge?: number }[] = [
     { href: `/communities/${slug}/moderation`, label: 'Review queue', badge: reviewQueueCount ?? pendingCount },
-    { href: `/communities/${slug}/qotw`, label: 'Question of the Week' },
+    { href: `/communities/${slug}/qotw`, label: 'Featured Question' },
     { href: `/communities/${slug}/testimonials`, label: 'Testimonials', badge: testimonialCount },
     { href: `/communities/${slug}/settings`, label: 'Settings' },
     { href: `/communities/${slug}/settings#audit-log`, label: 'Audit log' },
