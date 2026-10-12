@@ -19,7 +19,7 @@ export async function ensureQotwCategory(admin: Admin, communityId: string, user
   const { data: created } = await admin.from('kb_categories').insert({
     community_id: communityId,
     name: QOTW_CATEGORY_NAME,
-    description: "This week's question — add your answer.",
+    description: 'Our current featured question — add your answer any time.',
     position: (last?.position ?? -1) + 1,
     created_by: userId,
   }).select('id').single()
