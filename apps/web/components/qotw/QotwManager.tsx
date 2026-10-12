@@ -43,7 +43,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
   // Keep the local queue in sync when the server data changes (after add/delete/publish).
   useEffect(() => { setOrder(bank) }, [bank])
 
-  // The next draft the weekly auto-rotation will publish = the first UNDATED draft
+  // The next draft the auto-rotation will publish = the first UNDATED draft
   // in queue order (dated drafts jump the line on their own day instead).
   const nextUpId = order.find(i => !i.planned_for)?.id ?? null
 
@@ -120,8 +120,8 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
             </button>
           </div>
           <p className="text-xs text-stone-400">
-            Set a date to auto-publish this question that day. Leave it blank and it joins the weekly auto-rotation (the next
-            undated draft publishes once ~7 days have passed since the last one). You can always publish any draft manually below.
+            Set a date to auto-publish this question that day. Leave it blank and it joins the auto-rotation (the next
+            undated draft publishes once ~14 days have passed since the last one). You can always publish any draft manually below.
           </p>
         </form>
       </section>
@@ -130,7 +130,7 @@ export default function QotwManager({ communityId, slug, bank, published }: Prop
       <section>
         <h2 className="text-base font-semibold text-stone-800 mb-1">Queue <span className="text-stone-400 font-normal">({order.length})</span></h2>
         <p className="text-sm text-stone-500 mb-3">
-          Questions publish automatically <strong>top to bottom</strong> — one per week (~7 days apart). Use the arrows to
+          Questions publish automatically <strong>top to bottom</strong> — one every two weeks (~14 days apart). Use the arrows to
           reorder. Give any question a date to make it jump the line and publish that day instead.
         </p>
         {order.length === 0 ? (

@@ -36,7 +36,7 @@ export default function NextPublishPanel({ next }: { next: NextPublish | null })
     return (
       <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
         <p className="text-sm text-stone-500">
-          Nothing queued to auto-publish. Add a draft below and it&apos;ll join the weekly rotation.
+          Nothing queued to auto-publish. Add a draft below and it&apos;ll join the every-two-weeks rotation.
         </p>
       </div>
     )
@@ -64,7 +64,7 @@ export default function NextPublishPanel({ next }: { next: NextPublish | null })
           <p className="text-xs text-stone-500 mt-0.5">
             {next.reason === 'date'
               ? 'Scheduled by date'
-              : 'Weekly rotation (next undated draft)'}
+              : 'Every-two-weeks rotation (next undated draft)'}
             {' · '}
             {whenLabel}
           </p>

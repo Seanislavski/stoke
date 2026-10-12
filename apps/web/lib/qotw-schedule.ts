@@ -5,14 +5,14 @@
 // The daily cron (cron-job.org, America/New_York) hits /api/cron/qotw-publish once a day
 // at QOTW_CRON_HOUR_ET. On each run, per community it publishes at most one draft:
 //   1. Date wins — a draft whose planned_for date has arrived.
-//   2. Else rotate — the next undated draft, once the weekly gap has elapsed.
+//   2. Else rotate — the next undated draft, once the two-week gap has elapsed.
 //
 // The rotate gate is compared at DATE granularity (not to-the-millisecond) so a daily
 // cron reliably catches it on the eligible day instead of missing by minutes.
 
 import { wallTimeToUtcIso, DEFAULT_TZ } from './eventTime'
 
-export const ROTATE_GAP_MS = 7 * 24 * 60 * 60 * 1000
+export const ROTATE_GAP_MS = 14 * 24 * 60 * 60 * 1000 // every two weeks (was 7 days until 10/12/2026)
 export const QOTW_CRON_HOUR_ET = 9 // the daily cron fires ~9:00 AM America/New_York
 const ET = DEFAULT_TZ // 'America/New_York'
 
@@ -35,8 +35,8 @@ function cronRunAt(dateStr: string): Date {
 }
 
 /**
- * The date the weekly rotate gate opens for a community, given its last QotW's
- * published_at. Date-granularity: date(last + 7d). Null last → gate already open (today).
+ * The date the rotate gate opens for a community, given its last QotW's
+ * published_at. Date-granularity: date(last + 14d). Null last → gate already open (today).
  */
 export function rotateEligibleDate(lastPublishedAtISO: string | null, now = new Date()): string {
   if (!lastPublishedAtISO) return utcDateStr(now)
@@ -68,7 +68,7 @@ export function nextCronSwitch(eligibleDateStr: string, now = new Date()): Date 
  * Resolve what a community's NEXT auto-publish will be and exactly when it fires.
  * Returns null when there are no drafts to publish.
  *
- *  - rotate: the next undated draft, at the first 9am-ET run on/after date(last + 7d)
+ *  - rotate: the next undated draft, at the first 9am-ET run on/after date(last + 14d)
  *  - date:   the earliest dated draft, at the first 9am-ET run on/after its planned_for
  * Whichever comes first wins (mirrors the cron's per-run "date wins, else rotate").
  */

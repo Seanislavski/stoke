@@ -12,7 +12,7 @@ import { revalidatePath } from 'next/cache'
 // Hybrid model, per community, at most ONE release per run:
 //   1. Date wins — a bank draft whose `planned_for` date has arrived is published
 //      (earliest-dated first).
-//   2. Else rotate — if no dated draft is due AND it's been >= 7 days since the community's
+//   2. Else rotate — if no dated draft is due AND it's been >= 14 days since the community's
 //      last QotW, the next undated draft (bank order) is published.
 // Idempotent: publishing assigns a number, so a draft is never picked twice.
 //
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => (a.planned_for! < b.planned_for! ? -1 : a.planned_for! > b.planned_for! ? 1 : a.position - b.position))
     let toRelease: Draft | null = due[0] ?? null
 
-    // 2. Else rotate: next undated draft if the weekly gap has elapsed (date-level).
+    // 2. Else rotate: next undated draft if the two-week gap has elapsed (date-level).
     if (!toRelease) {
       const { data: last } = await admin
         .from('qotw_items')
