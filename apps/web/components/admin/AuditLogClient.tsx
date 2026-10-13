@@ -97,6 +97,8 @@ export default function AuditLogClient({ entries }: { entries: Entry[] }) {
                 const gone = entry.action.endsWith('.deleted') || entry.action.endsWith('.rejected')
                 if (type === 'question' && communitySlug && entry.target_id && !gone) return `/communities/${communitySlug}/questions/${entry.target_id}`
                 if (type === 'answer' && communitySlug && typeof meta?.question_id === 'string' && !gone) return `/communities/${communitySlug}/questions/${meta.question_id}#answer-${entry.target_id}`
+                if (type === 'story' && communitySlug && entry.target_id && !gone) return `/communities/${communitySlug}/stories/${entry.target_id}`
+                if (type === 'story_reply' && communitySlug && typeof meta?.story_id === 'string' && !gone) return `/communities/${communitySlug}/stories/${meta.story_id}#reply-${entry.target_id}`
                 // Reviews/testimonials: the community's testimonials page, or the
                 // platform queue for a review of Stoke itself (community_id null).
                 if (type === 'review' && !gone) {

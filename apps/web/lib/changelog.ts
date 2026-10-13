@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-13',
+    title: 'Stories: share your experience',
+    items: [
+      'Every community now has a Stories tab, where members share real experiences in their own words. A moderator reads each story before it goes up.',
+      'You can post a story anonymously. Other members see "Anonymous member", while moderators can still see who wrote it.',
+      'Reply to a story, or tap 💛 Me too when it sounds like you. Only the person who wrote the story sees how many people said "me too".',
+      'Stories are for members only. They never appear on a community’s public page.',
+    ],
+  },
+  {
     date: '2026-10-12',
     title: 'Question of the Week is now the Featured Question',
     items: [

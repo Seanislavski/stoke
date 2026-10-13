@@ -98,6 +98,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/preview/${cSlug}/contests/${cId}`, request.url))
   }
 
+  // A story URL, e.g. /communities/{slug}/stories/{id}. Stories are members-only and
+  // personal, so a logged-out visitor gets the community's public preview (with its
+  // Join button) — never the story, and never a bare login wall.
+  const communityStoryMatch = pathname.match(/^\/communities\/([^/]+)\/stories\/[^/]+\/?$/)
+  if (!user && communityStoryMatch) {
+    return NextResponse.rewrite(new URL(`/preview/${communityStoryMatch[1]}`, request.url))
+  }
+
   // Logged-in users shouldn't see the public preview — send them to the full page
   if (user && isPreviewPage) {
     const target = pathname.replace(/^\/preview\//, '/communities/').replace(/\/$/, '')

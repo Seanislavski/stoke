@@ -28,6 +28,8 @@ import ScrollToHash from '@/components/ScrollToHash'
 import { recordMilestones } from '@/lib/milestones-server'
 import { CELEBRATION_DAYS, MILESTONES, formatThreshold, milestoneFor, nextMilestone } from '@/lib/milestones'
 import LocalDate from '@/components/LocalDate'
+import ShareStoryForm from '@/components/stories/ShareStoryForm'
+import { storyByline, type Byline } from '@/lib/stories'
 import { CONTEST_STATUS_LABELS, type ContestStatus } from '@/lib/contests'
 import { formatEventDate, formatEventTime, tzAbbrev, DEFAULT_TZ } from '@/lib/eventTime'
 
@@ -92,6 +94,7 @@ export default async function CommunityPage({
     { count: pendingAnswersCount },
     { count: pendingCapturesCount },
     { count: pendingTestimonialsCount },
+    { count: pendingStoriesCount },
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
@@ -155,11 +158,18 @@ export default async function CommunityPage({
           .in('consent_status', ['granted_credited', 'granted_anon'])
           .is('review_id', null).is('dismissed_at', null)
       : Promise.resolve({ count: 0 }),
+    // ⚠️ Mirrors the Stories section of the review queue (moderation/page.tsx).
+    isMod
+      ? admin.from('stories')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('status', 'pending')
+      : Promise.resolve({ count: 0 }),
   ])
 
   // Total items waiting on a mod — drives the gear badge. Each contributing
   // count belongs to exactly one destination in the gear menu.
-  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0) + (pendingCapturesCount ?? 0)
+  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0) + (pendingCapturesCount ?? 0) + (pendingStoriesCount ?? 0)
   const reviewQueueCount = totalPending
   const gearBadgeCount = totalPending + (pendingTestimonialsCount ?? 0)
 
@@ -312,6 +322,37 @@ export default async function CommunityPage({
   const myProfile = myMember ? (Array.isArray(myMember.profiles) ? myMember.profiles[0] : myMember.profiles) : null
   const myUsername = (myProfile as { username?: string } | null)?.username ?? null
 
+  // Stories tab data. Bylines are resolved HERE, on the server, so an anonymous
+  // author's profile never reaches the page for anyone but mods.
+  let storyCards: { id: string; title: string; body: string; when: string; byline: Byline; replies: number }[] = []
+  if (tab === 'stories' && canSee) {
+    const { data: rows } = await admin.from('stories')
+      .select('id, title, body, is_anonymous, author_id, published_at, created_at')
+      .eq('community_id', community.id).eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(100)
+    const list = rows ?? []
+    if (list.length > 0) {
+      const ids = list.map(s => s.id)
+      const [{ data: authorRows }, { data: replyRows }] = await Promise.all([
+        admin.from('profiles').select('id, username, display_name').in('id', [...new Set(list.map(s => s.author_id))]),
+        admin.from('story_replies').select('story_id').in('story_id', ids),
+      ])
+      const authorById = new Map((authorRows ?? []).map(p => [p.id, p]))
+      const replyCount = new Map<string, number>()
+      for (const r of replyRows ?? []) replyCount.set(r.story_id, (replyCount.get(r.story_id) ?? 0) + 1)
+      const viewer = { id: user!.id, isMod }
+      storyCards = list.map(s => ({
+        id: s.id,
+        title: s.title,
+        body: s.body,
+        when: s.published_at ?? s.created_at,
+        byline: storyByline(s, authorById.get(s.author_id) ?? null, viewer),
+        replies: replyCount.get(s.id) ?? 0,
+      }))
+    }
+  }
+
   // Events tab data
   let events: Event[] | null = null
   let rsvpCountMap: Record<string, { yes: number; maybe: number; no: number }> = {}
@@ -401,6 +442,7 @@ export default async function CommunityPage({
     { key: 'bulletin', label: 'Bulletin' },
     { key: 'events', label: 'Events' },
     { key: 'qa', label: 'Q&A' },
+    { key: 'stories', label: 'Stories' },
     { key: 'channels', label: 'Channels' },
     { key: 'reviews', label: 'Reviews' },
     ...(community.has_contests ? [{ key: 'contests', label: 'Contests' }] : []),
@@ -759,6 +801,48 @@ export default async function CommunityPage({
               ) : (
                 <div className="bg-white rounded-xl border border-stone-200 p-6 text-center text-stone-400 text-sm">
                   No channels yet.{isMod ? ' Create one in community settings.' : ''}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stories tab — members-only; never part of the public preview */}
+          {tab === 'stories' && (
+            <div className="space-y-5">
+              <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+                <p className="text-sm text-stone-600">
+                  Real experiences from members, in their own words. Read, reply, or tap 💛 <em>Me too</em> when a story sounds like you.
+                  Only members can see these.
+                </p>
+                <ShareStoryForm communityId={community.id} slug={slug} isMod={isMod} />
+              </div>
+
+              {isMod && (pendingStoriesCount ?? 0) > 0 && (
+                <Link href={`/communities/${slug}/moderation`} className="block text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 hover:border-amber-300">
+                  {pendingStoriesCount} {pendingStoriesCount === 1 ? 'story is' : 'stories are'} waiting for review →
+                </Link>
+              )}
+
+              {storyCards.length === 0 ? (
+                <p className="text-sm text-stone-400">No stories yet. Yours could be the first.</p>
+              ) : (
+                <div className="space-y-3">
+                  {storyCards.map(s => (
+                    <Link
+                      key={s.id}
+                      href={`/communities/${slug}/stories/${s.id}`}
+                      className="block bg-white border border-stone-200 rounded-xl p-5 hover:border-orange-300 transition-colors"
+                    >
+                      <h3 className="font-semibold text-stone-900">{s.title}</h3>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {s.byline.label} · <LocalDate ts={s.when} dateOnly />
+                      </p>
+                      <p className="text-sm text-stone-600 mt-2 line-clamp-3 whitespace-pre-wrap">{s.body}</p>
+                      <p className="text-xs font-medium text-orange-600 mt-2">
+                        {s.replies === 0 ? 'Be the first to reply →' : `${s.replies} ${s.replies === 1 ? 'reply' : 'replies'} · Read →`}
+                      </p>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>

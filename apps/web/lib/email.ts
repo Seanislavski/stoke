@@ -111,6 +111,28 @@ export function kbQuestionSubmittedHtml(communityName: string, communitySlug: st
   `)
 }
 
+// Story titles are member-written, so they are escaped before going into HTML.
+function escapeHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+export function storySubmittedHtml(communityName: string, storyTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">A new story is awaiting review in <strong>${escapeHtml(communityName)}</strong>:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${escapeHtml(storyTitle)}</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">Stories can be personal — please read it with care.</p>
+  `)
+}
+
+export function storyApprovedHtml(communityName: string, communitySlug: string, storyId: string, storyTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">Your story was published in <strong>${escapeHtml(communityName)}</strong>:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${escapeHtml(storyTitle)}</p>
+    <p style="margin:0;color:#78716c;font-size:14px;">Members can now read it and reply. Thank you for sharing it.</p>
+    ${btn('See your story', `${BASE_URL}/communities/${communitySlug}/stories/${storyId}`)}
+  `)
+}
+
 export function kbQuestionApprovedHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string) {
   return wrap(`
     <p style="margin:0 0 8px;">Your question was published in <strong>${communityName}</strong>:</p>

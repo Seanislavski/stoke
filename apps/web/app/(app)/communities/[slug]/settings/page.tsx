@@ -368,6 +368,8 @@ export default async function CommunitySettingsPage({
                 const gone = entry.action.endsWith('.deleted') || entry.action.endsWith('.rejected')
                 if (type === 'question' && slug && entry.target_id && !gone) return `/communities/${slug}/questions/${entry.target_id}`
                 if (type === 'answer' && slug && typeof meta?.question_id === 'string' && !gone) return `/communities/${slug}/questions/${meta.question_id}#answer-${entry.target_id}`
+                if (type === 'story' && slug && entry.target_id && !gone) return `/communities/${slug}/stories/${entry.target_id}`
+                if (type === 'story_reply' && slug && typeof meta?.story_id === 'string' && !gone) return `/communities/${slug}/stories/${meta.story_id}#reply-${entry.target_id}`
                 // Reviews/testimonials — mirrored in components/admin/AuditLogClient.tsx.
                 if (type === 'review' && slug && !gone) return `/communities/${slug}/testimonials`
                 if ((type === 'event') && slug) return `/communities/${slug}?tab=events`

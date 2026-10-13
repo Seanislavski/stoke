@@ -84,6 +84,9 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       router.push(`/communities/${n.community.slug}/questions/${n.message_id}`)
     } else if (n.type === 'contest_winner' && n.community && n.message_id) {
       router.push(`/communities/${n.community.slug}/contests/${n.message_id}`)
+    } else if (n.type === 'story_reply' && n.community && n.message_id) {
+      // message_id holds the story id.
+      router.push(`/communities/${n.community.slug}/stories/${n.message_id}`)
     } else if (n.type === 'milestone' && n.community) {
       router.push(`/communities/${n.community.slug}`)
     } else if (n.community && n.channel_id && n.message_id) {
@@ -159,6 +162,10 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                           // message_id holds the member-count threshold reached.
                           <p className="text-sm text-stone-800">
                             🎉 <span className="font-medium">Your community reached {Number(n.message_id).toLocaleString('en-US')} members!</span>
+                          </p>
+                        ) : n.type === 'story_reply' ? (
+                          <p className="text-sm text-stone-800">
+                            💬 <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span> replied to your story
                           </p>
                         ) : n.type === 'contest_winner' ? (
                           <p className="text-sm text-stone-800">

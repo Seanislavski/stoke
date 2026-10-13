@@ -11,6 +11,8 @@ import QueueActions from '@/components/community/QueueActions'
 import CaptureActions from '@/components/community/CaptureActions'
 import { approveRequest, rejectRequest } from '@/app/actions/community'
 import { approveReview, rejectReview } from '@/app/actions/reviews'
+import { approveStory, rejectStory } from '@/app/actions/stories'
+import { storyByline } from '@/lib/stories'
 
 type Profile = { username: string; display_name: string | null }
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -104,7 +106,18 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
     : { data: [] as { id: string; title: string }[] }
   const titleById = new Map((qTitles ?? []).map(q => [q.id, q.title]))
 
-  const total = reqRows.length + postRows.length + questionRows.length + answerRows.length + reviewRows.length + captureRows.length
+  // ⚠️ Mirrors the pendingStoriesCount on the community page (the gear badge).
+  const { data: storyRowsRaw } = await admin.from('stories')
+    .select('id, title, body, is_anonymous, author_id, created_at')
+    .eq('community_id', community.id).eq('status', 'pending')
+    .order('created_at', { ascending: true })
+  const storyRows = storyRowsRaw ?? []
+  const { data: storyAuthors } = storyRows.length
+    ? await admin.from('profiles').select('id, username, display_name').in('id', [...new Set(storyRows.map(s => s.author_id))])
+    : { data: [] as { id: string; username: string; display_name: string | null }[] }
+  const storyAuthorById = new Map((storyAuthors ?? []).map(p => [p.id, p]))
+
+  const total = reqRows.length + postRows.length + questionRows.length + answerRows.length + reviewRows.length + captureRows.length + storyRows.length
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6 px-4">
@@ -216,6 +229,26 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
                     communityId={community.id}
                     slug={slug}
                     questions={publishedQuestions}
+                  />
+                </Card>
+              ))}
+            </Section>
+          )}
+
+          {/* Stories — personal; anonymous ones show the author to mods only */}
+          {storyRows.length > 0 && (
+            <Section title="Stories" count={storyRows.length}>
+              {storyRows.map(s => (
+                <Card key={s.id}>
+                  <Meta name={storyByline(s, storyAuthorById.get(s.author_id) ?? null, { id: user.id, isMod: true }).label} date={s.created_at} />
+                  <Link href={`/communities/${slug}/stories/${s.id}`} className="font-medium text-stone-800 text-sm mt-1 block hover:text-orange-600">
+                    {s.title}
+                  </Link>
+                  <p className="text-stone-600 text-sm mt-1 whitespace-pre-wrap line-clamp-6">{s.body}</p>
+                  <QueueActions
+                    approve={approveStory.bind(null, s.id, community.id, slug)}
+                    reject={rejectStory.bind(null, s.id, community.id, slug)}
+                    approveLabel="Publish"
                   />
                 </Card>
               ))}
