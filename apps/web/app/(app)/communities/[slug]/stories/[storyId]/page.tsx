@@ -144,6 +144,7 @@ export default async function StoryPage({
                 ? 'No one has said "me too" yet.'
                 : `${metooCount} ${metooCount === 1 ? 'person' : 'people'} said "me too".`}
               <span className="block text-xs text-stone-400">Only you can see this.</span>
+              <span className="block text-xs text-stone-400 mt-1">🔔 You&apos;ll be notified of every reply.</span>
             </p>
           ) : <span />}
           {(isAuthor || isMod) && (
