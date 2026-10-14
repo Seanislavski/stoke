@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction, logPhotos } from '@/lib/audit'
 import { sendEmail, kbQuestionSubmittedHtml, kbQuestionApprovedHtml, kbAnswerSubmittedHtml, kbAnswerApprovedHtml } from '@/lib/email'
+import { follow, notifyFollowers } from '@/lib/follows'
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,8 @@ export async function submitQuestion(communityId: string, slug: string, formData
 
   if (error) return { error: error.message }
   logAction({ actorId: user.id, communityId, action: autoPublish ? 'question.created' : 'question.submitted', targetId: inserted.id, targetType: 'question' })
+  // Askers follow their own question, so they hear about answers.
+  await follow(user.id, communityId, { kind: 'question', id: inserted.id })
 
   if (!autoPublish) {
     void (async () => {
@@ -290,6 +293,11 @@ export async function submitAnswer(questionId: string, communityId: string, slug
 
   if (error) return { error: error.message }
   logAction({ actorId: user.id, communityId, action: autoPublish ? 'answer.created' : 'answer.submitted', targetId: inserted.id, targetType: 'answer', metadata: { question_id: questionId } })
+  // Answering a question follows it.
+  await follow(user.id, communityId, { kind: 'question', id: questionId })
+  if (autoPublish) {
+    await notifyFollowers({ target: { kind: 'question', id: questionId }, communityId, type: 'follow_answer', actorId: user.id, skip: [user.id] })
+  }
 
   if (!autoPublish) {
     void (async () => {
@@ -312,6 +320,11 @@ export async function approveAnswer(answerId: string, communityId: string, slug:
 
   const admin = createAdminClient()
   const { data: a } = await admin.from('kb_answers').select('author_id, question_id').eq('id', answerId).single()
+  // An answer that was live before (a member edited it, sending it back to review)
+  // isn't news to followers. Checked before this approval is logged.
+  const { count: priorPublishes } = await admin.from('audit_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('target_id', answerId).in('action', ['answer.approved', 'answer.created'])
   await admin.from('kb_answers').update({ status: 'published', approved_by: user.id, published_at: new Date().toISOString() }).eq('id', answerId)
   logAction({ actorId: user.id, communityId, action: 'answer.approved', targetId: answerId, targetType: 'answer', metadata: a ? { question_id: a.question_id } : undefined })
 
@@ -324,6 +337,9 @@ export async function approveAnswer(answerId: string, communityId: string, slug:
       ])
       if (to && q && c) await sendEmail(to, `Your answer was published in ${c.name}`, kbAnswerApprovedHtml(c.name, c.slug, a.question_id, q.title))
     })()
+    if (!priorPublishes) {
+      await notifyFollowers({ target: { kind: 'question', id: a.question_id }, communityId, type: 'follow_answer', actorId: a.author_id, skip: [a.author_id, user.id] })
+    }
     revalidatePath(`/communities/${slug}/questions/${a.question_id}`)
   }
   revalidatePath(`/communities/${slug}`)

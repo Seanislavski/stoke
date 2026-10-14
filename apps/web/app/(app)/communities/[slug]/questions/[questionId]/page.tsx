@@ -19,6 +19,8 @@ import QuestionJoinGate from '@/components/knowledge/QuestionJoinGate'
 import { deleteQuestion, deleteAnswer } from '@/app/actions/knowledge'
 import { getYouTubeId } from '@/lib/embeds'
 import { qotwLabel } from '@/lib/qotw'
+import FollowButton from '@/components/FollowButton'
+import { isFollowing } from '@/lib/follows'
 
 type Profile = { username: string; display_name: string | null }
 
@@ -192,6 +194,7 @@ export default async function QuestionPage({
   // A QotW question is edit-locked to mods (protects the featured/numbered link). Otherwise
   // the asker edits their own; a member's edit re-queues, a mod's stays live.
   const canEditQuestion = isMod || (isAsker && !isQotw)
+  const following = question.status === 'published' ? await isFollowing(user!.id, { kind: 'question', id: question.id }) : false
   const questionWillRequeue = !isMod && question.status === 'published'
 
   return (
@@ -252,6 +255,9 @@ export default async function QuestionPage({
               </Link>
             )}
             <span>{date}</span>
+            {question.status === 'published' && (
+              <FollowButton kind="question" targetId={question.id} communityId={community.id} initialOn={following} />
+            )}
           </div>
           {question.body && <RichContent content={question.body} className="text-stone-600 text-sm mt-3 whitespace-pre-wrap" />}
         </EditQuestion>

@@ -84,6 +84,12 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       router.push(`/communities/${n.community.slug}/questions/${n.message_id}`)
     } else if (n.type === 'contest_winner' && n.community && n.message_id) {
       router.push(`/communities/${n.community.slug}/contests/${n.message_id}`)
+    } else if (n.type === 'follow_answer' && n.community && n.message_id) {
+      // message_id holds the followed question's id.
+      router.push(`/communities/${n.community.slug}/questions/${n.message_id}`)
+    } else if (n.type === 'follow_story_reply' && n.community && n.message_id) {
+      // message_id holds the followed story's id.
+      router.push(`/communities/${n.community.slug}/stories/${n.message_id}`)
     } else if (n.type === 'story_reply' && n.community && n.message_id) {
       // message_id holds the story id.
       router.push(`/communities/${n.community.slug}/stories/${n.message_id}`)
@@ -166,6 +172,15 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                         ) : n.type === 'story_reply' ? (
                           <p className="text-sm text-stone-800">
                             💬 <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span> replied to your story
+                          </p>
+                        ) : n.type === 'follow_answer' ? (
+                          <p className="text-sm text-stone-800">
+                            🔔 <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span> answered a question you follow
+                          </p>
+                        ) : n.type === 'follow_story_reply' ? (
+                          // No actor = an anonymous story's own author (or a deleted account); never guess.
+                          <p className="text-sm text-stone-800">
+                            🔔 <span className="font-medium">{actor?.display_name ?? actor?.username ?? 'Someone'}</span> replied to a story you follow
                           </p>
                         ) : n.type === 'contest_winner' ? (
                           <p className="text-sm text-stone-800">

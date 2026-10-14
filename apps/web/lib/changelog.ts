@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-14',
+    title: 'Follow questions and stories',
+    items: [
+      'Tap 🔕 Follow on any question or story and your bell will tell you when it gets a new answer or reply.',
+      'You follow automatically when you ask or answer a question, or reply to a story. Tap 🔔 Following to stop.',
+      'Askers now hear when their question gets an answer.',
+    ],
+  },
+  {
     date: '2026-10-13',
     title: 'Stories: share your experience',
     items: [

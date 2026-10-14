@@ -9,6 +9,8 @@ import DeleteItemButton from '@/components/DeleteItemButton'
 import QueueActions from '@/components/community/QueueActions'
 import MeTooButton from '@/components/stories/MeTooButton'
 import StoryReplyForm from '@/components/stories/StoryReplyForm'
+import FollowButton from '@/components/FollowButton'
+import { isFollowing } from '@/lib/follows'
 import { approveStory, rejectStory, deleteStory, deleteStoryReply } from '@/app/actions/stories'
 import { storyByline, replyByline, type Byline } from '@/lib/stories'
 
@@ -74,7 +76,7 @@ export default async function StoryPage({
   // Unpublished stories are visible only to their author and to mods.
   if (story.status !== 'published' && !isMod && !isAuthor) notFound()
 
-  const [{ data: replyRows }, { data: mine }, metooCount] = await Promise.all([
+  const [{ data: replyRows }, { data: mine }, metooCount, following] = await Promise.all([
     story.status === 'published'
       ? admin.from('story_replies').select('id, body, author_id, created_at').eq('story_id', story.id).order('created_at', { ascending: true })
       : Promise.resolve({ data: [] as { id: string; body: string; author_id: string; created_at: string }[] }),
@@ -83,6 +85,8 @@ export default async function StoryPage({
     isAuthor
       ? admin.from('story_metoo').select('*', { count: 'exact', head: true }).eq('story_id', story.id).then(r => r.count ?? 0)
       : Promise.resolve(0),
+    // The author always hears about replies, so they get no follow button.
+    story.status === 'published' && !isAuthor ? isFollowing(user.id, { kind: 'story', id: story.id }) : Promise.resolve(false),
   ])
   const replies = replyRows ?? []
 
@@ -130,7 +134,10 @@ export default async function StoryPage({
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100">
           {story.status === 'published' && !isAuthor ? (
-            <MeTooButton storyId={story.id} communityId={community.id} slug={slug} initialOn={!!mine} />
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <MeTooButton storyId={story.id} communityId={community.id} slug={slug} initialOn={!!mine} />
+              <FollowButton kind="story" targetId={story.id} communityId={community.id} initialOn={following} />
+            </span>
           ) : story.status === 'published' && isAuthor ? (
             <p className="text-sm text-stone-500">
               💛 {metooCount === 0

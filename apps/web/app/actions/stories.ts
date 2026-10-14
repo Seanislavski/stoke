@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { sendEmail, storySubmittedHtml, storyApprovedHtml } from '@/lib/email'
+import { follow, notifyFollowers } from '@/lib/follows'
 
 // Stories: members share their own experiences. A new story waits for a mod;
 // replies appear immediately. Anonymous stories hide the author from members
@@ -172,7 +173,7 @@ export async function submitStoryReply(storyId: string, communityId: string, slu
 
   const admin = createAdminClient()
   const { data: story } = await admin.from('stories')
-    .select('author_id, status').eq('id', storyId).eq('community_id', communityId).maybeSingle()
+    .select('author_id, status, is_anonymous').eq('id', storyId).eq('community_id', communityId).maybeSingle()
   if (!story || story.status !== 'published') return { error: 'This story is not open for replies' }
 
   const { data: inserted, error } = await admin.from('story_replies').insert({
@@ -195,6 +196,18 @@ export async function submitStoryReply(storyId: string, communityId: string, slu
       message_id: storyId,
     })
   }
+
+  // Replying follows the story (its author already hears about every reply).
+  const byAuthor = story.author_id === user.id
+  if (!byAuthor) await follow(user.id, communityId, { kind: 'story', id: storyId })
+  await notifyFollowers({
+    target: { kind: 'story', id: storyId },
+    communityId,
+    type: 'follow_story_reply',
+    // Naming the author of an anonymous story would unmask them.
+    actorId: story.is_anonymous && byAuthor ? null : user.id,
+    skip: [user.id, story.author_id],
+  })
 
   revalidate(slug, storyId)
   return { id: inserted.id }
