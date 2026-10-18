@@ -151,6 +151,14 @@ export async function deleteStory(storyId: string, communityId: string, slug: st
   if (!story) return { error: 'Story not found' }
   if (story.author_id !== user.id && !isMod) return { error: 'Not authorized' }
 
+  // ⚠️ Delete ≠ discard, same rule as the Q&A and testimonial captures.
+  // `discord_captures.story_id` is ON DELETE SET NULL, so deleting a captured
+  // story would drop it straight back into the review queue as if it had never
+  // been filed. Mark the capture dismissed FIRST — the consent record survives.
+  await admin.from('discord_captures')
+    .update({ dismissed_at: new Date().toISOString() })
+    .eq('story_id', storyId)
+
   // Replies and me-toos go with it (on delete cascade).
   const { error } = await admin.from('stories').delete().eq('id', storyId)
   if (error) return { error: error.message }
