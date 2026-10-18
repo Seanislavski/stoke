@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { answerCountLabel } from '@/lib/answer-label'
 
 export type BoardQuestion = {
   id: string
@@ -13,6 +14,7 @@ export type BoardQuestion = {
   created_at: string
   answer_count: number
   has_accepted: boolean
+  answered_by_me: boolean
 }
 
 type Category = { id: string; name: string }
@@ -109,7 +111,7 @@ export default function KnowledgeBoard({ slug, questions, categories }: Props) {
                   )}
                   {item.asker_username && <span>{item.asker_name ?? item.asker_username}</span>}
                   <span>{date}</span>
-                  <span>· {item.answer_count} {item.answer_count === 1 ? 'answer' : 'answers'}</span>
+                  <span>· {answerCountLabel(item.answer_count, item.answered_by_me)}</span>
                 </div>
               </Link>
             )

@@ -18,6 +18,7 @@ import { deletePost } from '@/app/actions/bulletin'
 import AskQuestionForm from '@/components/knowledge/AskQuestionForm'
 import KnowledgeBoard, { type BoardQuestion } from '@/components/knowledge/KnowledgeBoard'
 import { findQotwCategoryId } from '@/lib/qotw'
+import { answerCountLabel } from '@/lib/answer-label'
 import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import ReviewForm from '@/components/reviews/ReviewForm'
 import ReviewList from '@/components/reviews/ReviewList'
@@ -258,19 +259,21 @@ export default async function CommunityPage({
       : Promise.resolve([]),
     (tab === 'qa' && canSee)
       ? admin.from('kb_answers')
-          .select('question_id, is_accepted')
+          .select('question_id, is_accepted, author_id')
           .eq('community_id', community.id)
           .eq('status', 'published')
           .then(r => r.data ?? [])
       : Promise.resolve([]),
   ])
 
-  // Tally answer counts + accepted flag per question
+  // Tally answer counts + accepted flag per question, and which ones the viewer answered
   const answerCounts: Record<string, number> = {}
   const hasAccepted: Record<string, boolean> = {}
-  for (const row of kbAnswerRows as { question_id: string; is_accepted: boolean }[]) {
+  const answeredByMe: Record<string, boolean> = {}
+  for (const row of kbAnswerRows as { question_id: string; is_accepted: boolean; author_id: string }[]) {
     answerCounts[row.question_id] = (answerCounts[row.question_id] ?? 0) + 1
     if (row.is_accepted) hasAccepted[row.question_id] = true
+    if (user && row.author_id === user.id) answeredByMe[row.question_id] = true
   }
 
   const boardQuestions: BoardQuestion[] = (kbPublishedRaw as Array<{
@@ -288,6 +291,7 @@ export default async function CommunityPage({
       created_at: q.created_at,
       answer_count: answerCounts[q.id] ?? 0,
       has_accepted: hasAccepted[q.id] ?? false,
+      answered_by_me: answeredByMe[q.id] ?? false,
     }
   })
 
@@ -739,7 +743,8 @@ export default async function CommunityPage({
                   <h3 className="mt-1 text-lg font-semibold text-stone-900">{qotwSpotlight.title}</h3>
                   {qotwSpotlight.body && <p className="mt-1 text-sm text-stone-600 line-clamp-2">{qotwSpotlight.body}</p>}
                   <p className="mt-3 text-sm font-medium text-orange-600">
-                    {qotwSpotlight.answer_count} {qotwSpotlight.answer_count === 1 ? 'answer' : 'answers'} · Add yours →
+                    {answerCountLabel(qotwSpotlight.answer_count, qotwSpotlight.answered_by_me)}
+                    {qotwSpotlight.answered_by_me ? ' →' : ' · Add yours →'}
                   </p>
                 </Link>
               )}

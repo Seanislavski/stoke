@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-18',
+    title: 'See where you’ve already answered',
+    items: [
+      'Questions you’ve answered now say so in Q&A: "1 answer (yours)" or "13 answers (including yours)".',
+    ],
+  },
+  {
     date: '2026-10-14',
     title: 'Follow questions and stories',
     items: [
