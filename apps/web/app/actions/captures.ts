@@ -34,7 +34,7 @@ async function loadFilableCapture(captureId: string, communityId: string) {
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, content, photos, consent_status, discord_author_name, question_id, answer_id, review_id, claimed_by')
+    .select('id, content, photos, consent_status, discord_author_name, question_id, answer_id, review_id, story_id, claimed_by')
     .eq('id', captureId)
     .eq('community_id', communityId)
     .single()
@@ -42,7 +42,7 @@ async function loadFilableCapture(captureId: string, communityId: string) {
   if (!['granted_credited', 'granted_anon'].includes(capture.consent_status)) {
     return { capture: null, error: 'The author has not granted permission for this capture' }
   }
-  if (capture.question_id || capture.answer_id || capture.review_id) {
+  if (capture.question_id || capture.answer_id || capture.review_id || capture.story_id) {
     return { capture: null, error: 'This capture has already been published' }
   }
   return { capture, error: null }
@@ -212,6 +212,57 @@ export async function publishCaptureAsTestimonial(
   return {}
 }
 
+// ─── stories ───────────────────────────────────────────────────────────────────
+// Same funnel again, landing in `stories`. The mod writes the title here, as for
+// a captured question — a Discord message has none. Published straight away
+// (capturing it was the mod's curation), and an anonymous consent becomes an
+// anonymous story, so the existing story byline rules hide it the usual way.
+// Stories carry no photos, so a story capture is text only.
+export async function publishCaptureAsStory(
+  captureId: string,
+  communityId: string,
+  slug: string,
+  title: string
+): Promise<{ error?: string }> {
+  const { user, allowed } = await requireMod(communityId)
+  if (!user || !allowed) return { error: 'Not authorized' }
+  const trimmed = title.trim()
+  if (!trimmed) return { error: 'A story title is required' }
+  if (trimmed.length > 200) return { error: 'The title is too long (200 characters max)' }
+
+  const { capture, error } = await loadFilableCapture(captureId, communityId)
+  if (!capture) return { error: error! }
+  if (!capture.content?.trim()) return { error: 'This capture has no text to publish as a story' }
+
+  const admin = createAdminClient()
+  const now = new Date().toISOString()
+  const { data: story, error: sErr } = await admin.from('stories').insert({
+    community_id: communityId,
+    author_id: capture.claimed_by ?? SILAS_USER_ID,
+    title: trimmed,
+    body: capture.content,
+    is_anonymous: capture.consent_status === 'granted_anon',
+    status: 'published',
+    approved_by: user.id,
+    published_at: now,
+    attribution: capture.claimed_by ? null : attributionFor(capture),
+  }).select('id').single()
+  if (sErr) return { error: sErr.message }
+
+  await admin.from('discord_captures')
+    .update({ story_id: story.id })
+    .eq('id', captureId)
+
+  logAction({
+    actorId: user.id, communityId, action: 'capture.published',
+    targetId: story.id, targetType: 'story', metadata: { capture_id: captureId },
+  })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath(`/communities/${slug}/stories/${story.id}`)
+  revalidatePath(`/communities/${slug}/moderation`)
+  return {}
+}
+
 // Removes an unfiled capture from the inbox. The consent record travels with the
 // row, so this is only offered before publishing — published captures keep their
 // row (and its consent trail) permanently.
@@ -226,10 +277,10 @@ export async function discardCapture(
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, question_id, answer_id, review_id')
+    .select('id, question_id, answer_id, review_id, story_id')
     .eq('id', captureId).eq('community_id', communityId).single()
   if (!capture) return { error: 'Capture not found' }
-  if (capture.question_id || capture.answer_id || capture.review_id) return { error: 'Already published — delete the content itself instead' }
+  if (capture.question_id || capture.answer_id || capture.review_id || capture.story_id) return { error: 'Already published — delete the content itself instead' }
 
   await admin.from('discord_captures').delete().eq('id', captureId)
   logAction({ actorId: user.id, communityId, action: 'capture.discarded', targetId: captureId, targetType: 'capture' })
@@ -284,7 +335,7 @@ export async function claimCapturesForDiscordUser(
 
   const { data: captures } = await admin
     .from('discord_captures')
-    .select('id, community_id, question_id, answer_id, review_id')
+    .select('id, community_id, question_id, answer_id, review_id, story_id')
     .eq('discord_author_id', discordUserId)
     .is('claimed_by', null)
     // Declined captures were never published and must stay unclaimable; pending
@@ -315,6 +366,10 @@ export async function claimCapturesForDiscordUser(
         .eq('id', capture.question_id)
     } else if (capture.review_id) {
       await reattributeReview(admin, capture.review_id, userId)
+    } else if (capture.story_id) {
+      await admin.from('stories')
+        .update({ author_id: userId, attribution: null })
+        .eq('id', capture.story_id)
     }
 
     logAction({
@@ -340,6 +395,7 @@ export async function claimCapture(token: string): Promise<{
   slug?: string
   questionId?: string | null
   reviewId?: string | null
+  storyId?: string | null
   // False only in the testimonial case where reattributeReview declined to run
   // (the claimer already has a review in that scope). The claim is still
   // recorded — but the quote keeps its Discord credit, and the page must say so
@@ -353,7 +409,7 @@ export async function claimCapture(token: string): Promise<{
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, community_id, consent_status, claimed_by, question_id, answer_id, review_id')
+    .select('id, community_id, consent_status, claimed_by, question_id, answer_id, review_id, story_id')
     .eq('claim_token', token)
     .maybeSingle()
   if (!capture) return { error: 'This claim link isn’t valid.' }
@@ -383,6 +439,10 @@ export async function claimCapture(token: string): Promise<{
       .eq('id', capture.question_id)
   } else if (capture.review_id) {
     credited = await reattributeReview(admin, capture.review_id, user.id)
+  } else if (capture.story_id) {
+    await admin.from('stories')
+      .update({ author_id: user.id, attribution: null })
+      .eq('id', capture.story_id)
   }
 
   logAction({
@@ -394,6 +454,7 @@ export async function claimCapture(token: string): Promise<{
     revalidatePath(`/communities/${community.slug}`)
     if (capture.question_id) revalidatePath(`/communities/${community.slug}/questions/${capture.question_id}`)
     if (capture.review_id) revalidatePath(`/communities/${community.slug}/testimonials`)
+    if (capture.story_id) revalidatePath(`/communities/${community.slug}/stories/${capture.story_id}`)
   }
-  return { slug: community?.slug, questionId: capture.question_id, reviewId: capture.review_id, credited }
+  return { slug: community?.slug, questionId: capture.question_id, reviewId: capture.review_id, storyId: capture.story_id, credited }
 }

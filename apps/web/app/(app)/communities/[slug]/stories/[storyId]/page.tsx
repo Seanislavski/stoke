@@ -39,7 +39,7 @@ export default async function StoryPage({
     admin.from('community_members').select('role, status').eq('community_id', community.id).eq('user_id', user.id).maybeSingle(),
     admin.from('platform_roles').select('role').eq('user_id', user.id).in('role', ['owner', 'platform_moderator']).maybeSingle(),
     admin.from('stories')
-      .select('id, title, body, is_anonymous, status, author_id, created_at, published_at')
+      .select('id, title, body, is_anonymous, status, author_id, attribution, created_at, published_at')
       .eq('id', storyId).eq('community_id', community.id).maybeSingle(),
   ])
   if (!story) notFound()

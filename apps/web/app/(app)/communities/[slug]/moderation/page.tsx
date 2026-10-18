@@ -9,6 +9,7 @@ import QuestionModActions from '@/components/knowledge/QuestionModActions'
 import AnswerModActions from '@/components/knowledge/AnswerModActions'
 import QueueActions from '@/components/community/QueueActions'
 import CaptureActions from '@/components/community/CaptureActions'
+import StoryCaptureActions from '@/components/community/StoryCaptureActions'
 import { approveRequest, rejectRequest } from '@/app/actions/community'
 import { approveReview, rejectReview } from '@/app/actions/reviews'
 import { approveStory, rejectStory } from '@/app/actions/stories'
@@ -108,7 +109,7 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
 
   // ⚠️ Mirrors the pendingStoriesCount on the community page (the gear badge).
   const { data: storyRowsRaw } = await admin.from('stories')
-    .select('id, title, body, is_anonymous, author_id, created_at')
+    .select('id, title, body, is_anonymous, author_id, attribution, created_at')
     .eq('community_id', community.id).eq('status', 'pending')
     .order('created_at', { ascending: true })
   const storyRows = storyRowsRaw ?? []
@@ -117,7 +118,18 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
     : { data: [] as { id: string; username: string; display_name: string | null }[] }
   const storyAuthorById = new Map((storyAuthors ?? []).map(p => [p.id, p]))
 
-  const total = reqRows.length + postRows.length + questionRows.length + answerRows.length + reviewRows.length + captureRows.length + storyRows.length
+  // Discord captures meant for Stories, waiting for a mod to title and publish.
+  // ⚠️ Mirrors pendingStoryCapturesCount on the community page (the gear badge).
+  const { data: storyCaptureRowsRaw } = await admin.from('discord_captures')
+    .select('id, content, discord_author_name, discord_message_url, consent_status, consent_answered_at')
+    .eq('community_id', community.id)
+    .eq('kind', 'story')
+    .in('consent_status', ['granted_credited', 'granted_anon'])
+    .is('story_id', null).is('dismissed_at', null)
+    .order('consent_answered_at', { ascending: true })
+  const storyCaptureRows = storyCaptureRowsRaw ?? []
+
+  const total = reqRows.length + postRows.length + questionRows.length + answerRows.length + reviewRows.length + captureRows.length + storyRows.length + storyCaptureRows.length
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6 px-4">
@@ -230,6 +242,29 @@ export default async function ModerationPage({ params }: { params: Promise<{ slu
                     slug={slug}
                     questions={publishedQuestions}
                   />
+                </Card>
+              ))}
+            </Section>
+          )}
+
+          {/* Discord stories — consent granted, waiting for a title */}
+          {storyCaptureRows.length > 0 && (
+            <Section title="Discord stories" count={storyCaptureRows.length}>
+              {storyCaptureRows.map(c => (
+                <Card key={c.id}>
+                  <p className="text-xs text-stone-400">
+                    <span className="font-medium text-stone-600">
+                      {c.consent_status === 'granted_credited' ? c.discord_author_name : 'Anonymous (by request)'}
+                    </span>
+                    {' '}· shared on Discord
+                    {c.consent_answered_at && <> · consented {when(c.consent_answered_at)}</>}
+                    {' · '}
+                    <a href={c.discord_message_url} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">
+                      original ↗
+                    </a>
+                  </p>
+                  <p className="text-stone-600 text-sm mt-2 whitespace-pre-wrap line-clamp-6">{c.content}</p>
+                  <StoryCaptureActions captureId={c.id} communityId={community.id} slug={slug} />
                 </Card>
               ))}
             </Section>

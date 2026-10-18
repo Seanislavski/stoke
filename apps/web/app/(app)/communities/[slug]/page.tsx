@@ -96,6 +96,7 @@ export default async function CommunityPage({
     { count: pendingCapturesCount },
     { count: pendingTestimonialsCount },
     { count: pendingStoriesCount },
+    { count: pendingStoryCapturesCount },
   ] = await Promise.all([
     canSee
       ? admin.from('community_members')
@@ -166,11 +167,20 @@ export default async function CommunityPage({
           .eq('community_id', community.id)
           .eq('status', 'pending')
       : Promise.resolve({ count: 0 }),
+    // ⚠️ Mirrors the Discord stories section of the review queue (moderation/page.tsx).
+    isMod
+      ? admin.from('discord_captures')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', community.id)
+          .eq('kind', 'story')
+          .in('consent_status', ['granted_credited', 'granted_anon'])
+          .is('story_id', null).is('dismissed_at', null)
+      : Promise.resolve({ count: 0 }),
   ])
 
   // Total items waiting on a mod — drives the gear badge. Each contributing
   // count belongs to exactly one destination in the gear menu.
-  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0) + (pendingCapturesCount ?? 0) + (pendingStoriesCount ?? 0)
+  const totalPending = (pendingCount ?? 0) + (pendingReviewsCount ?? 0) + (pendingPostsCount ?? 0) + (pendingQuestionsCount ?? 0) + (pendingAnswersCount ?? 0) + (pendingCapturesCount ?? 0) + (pendingStoriesCount ?? 0) + (pendingStoryCapturesCount ?? 0)
   const reviewQueueCount = totalPending
   const gearBadgeCount = totalPending + (pendingTestimonialsCount ?? 0)
 
@@ -331,7 +341,7 @@ export default async function CommunityPage({
   let storyCards: { id: string; title: string; body: string; when: string; byline: Byline; replies: number }[] = []
   if (tab === 'stories' && canSee) {
     const { data: rows } = await admin.from('stories')
-      .select('id, title, body, is_anonymous, author_id, published_at, created_at')
+      .select('id, title, body, is_anonymous, author_id, attribution, published_at, created_at')
       .eq('community_id', community.id).eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(100)

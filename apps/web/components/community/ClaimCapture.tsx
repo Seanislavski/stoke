@@ -3,23 +3,24 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { claimCapture } from '@/app/actions/captures'
-import { captureDestination, claimCopy } from '@/lib/claim'
+import { captureDestination, claimCopy, type CaptureKind } from '@/lib/claim'
 
 type Result = {
   slug?: string
   questionId?: string | null
   reviewId?: string | null
+  storyId?: string | null
   credited?: boolean
 }
 
-export default function ClaimCapture({ token, isTestimonial = false }: { token: string; isTestimonial?: boolean }) {
+export default function ClaimCapture({ token, kind = 'qa' }: { token: string; kind?: CaptureKind }) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<Result | null>(null)
-  const copy = claimCopy(isTestimonial)
+  const copy = claimCopy(kind)
 
   if (result) {
-    const href = captureDestination({ ...result, isTestimonial })
+    const href = captureDestination({ ...result, kind })
     // reattributeReview declines when the claimer already has a review in this
     // scope (one review per person). The claim is recorded either way, but the
     // quote keeps its Discord credit — say that instead of "credited to you".
@@ -57,7 +58,7 @@ export default function ClaimCapture({ token, isTestimonial = false }: { token: 
         }}
         className="bg-orange-600 text-white text-sm px-5 py-2.5 rounded-lg hover:bg-orange-700 disabled:opacity-50"
       >
-        {pending ? 'Claiming…' : isTestimonial ? 'Claim this quote' : 'Claim this post'}
+        {pending ? 'Claiming…' : `Claim this ${copy.noun}`}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

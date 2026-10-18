@@ -13,10 +13,17 @@ function nameOf(p: Profile) {
 
 /** How the story's author appears to this viewer. */
 export function storyByline(
-  story: { is_anonymous: boolean; author_id: string },
+  story: { is_anonymous: boolean; author_id: string; attribution?: string | null },
   author: Profile,
   viewer: { id: string; isMod: boolean },
 ): Byline {
+  // Captured from Discord and not yet claimed: the author row is the Silas
+  // system user, so the credit comes from `attribution` instead. Never name
+  // Silas — mods of an anonymous capture see only that it came from Discord.
+  if (story.attribution) {
+    if (!story.is_anonymous) return { label: `${story.attribution} · shared on Discord`, link: null }
+    return { label: viewer.isMod ? 'Anonymous · shared on Discord' : 'Anonymous member', link: null }
+  }
   if (!story.is_anonymous) {
     return { label: nameOf(author), link: author ? `/profile/${author.username}` : null }
   }

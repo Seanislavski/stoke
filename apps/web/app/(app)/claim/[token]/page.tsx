@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ClaimCapture from '@/components/community/ClaimCapture'
-import { captureDestination, claimCopy } from '@/lib/claim'
+import { captureDestination, claimCopy, type CaptureKind } from '@/lib/claim'
 
 // Landing page for a Discord-capture claim link (sent only to the original
 // author's Discord DM). Claiming links the archived post to their Stoke profile.
@@ -21,7 +21,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
   const admin = createAdminClient()
   const { data: capture } = await admin
     .from('discord_captures')
-    .select('id, content, discord_author_name, consent_status, claimed_by, question_id, answer_id, review_id, kind, community_id')
+    .select('id, content, discord_author_name, consent_status, claimed_by, question_id, answer_id, review_id, story_id, kind, community_id')
     .eq('claim_token', token)
     .maybeSingle()
 
@@ -33,10 +33,13 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
   const claimedByOther = !!capture?.claimed_by && !alreadyMine
   const claimable = capture && !capture.claimed_by && capture.consent_status !== 'declined'
 
-  // `kind` is the intent recorded at capture time; review_id is where it landed.
-  // Either is enough — a testimonial that hasn't been filed yet has only `kind`.
-  const isTestimonial = capture?.kind === 'testimonial' || !!capture?.review_id
-  const copy = claimCopy(isTestimonial)
+  // `kind` is the intent recorded at capture time; review_id / story_id is where
+  // it landed. Either is enough — a capture not yet filed has only `kind`.
+  const kind: CaptureKind =
+    capture?.kind === 'testimonial' || capture?.review_id ? 'testimonial'
+    : capture?.kind === 'story' || capture?.story_id ? 'story'
+    : 'qa'
+  const copy = claimCopy(kind)
 
   return (
     <div className="max-w-lg mx-auto py-16 px-4">
@@ -56,7 +59,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
           </p>
         ) : claimedByOther ? (
           <p className="text-sm text-stone-500 text-center">
-            This {isTestimonial ? 'quote' : 'post'} has already been claimed.
+            This {copy.noun} has already been claimed.
           </p>
         ) : alreadyMine ? (
           <div className="text-center space-y-2">
@@ -69,7 +72,8 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
                   slug: community.slug,
                   questionId: capture.question_id,
                   reviewId: capture.review_id,
-                  isTestimonial,
+                  storyId: capture.story_id,
+                  kind,
                 })}
                 className="text-sm text-orange-600 hover:underline"
               >
@@ -83,7 +87,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
               {capture.content}
             </blockquote>
             <p className="text-xs text-stone-500 text-center">{copy.explain}</p>
-            {claimable && <ClaimCapture token={token} isTestimonial={isTestimonial} />}
+            {claimable && <ClaimCapture token={token} kind={kind} />}
           </>
         )}
       </div>
