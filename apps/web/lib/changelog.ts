@@ -12,6 +12,14 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-18',
+    title: 'Stories from Discord',
+    items: [
+      'Moderators can now bring a story someone shared on Discord into the community’s Stories, even one spread over several messages, but only if the person who wrote it says yes.',
+      'They choose whether it shows their name or appears anonymously. A story shared with their name reads "shared on Discord" until they claim it on Stoke.',
+    ],
+  },
+  {
+    date: '2026-10-18',
     title: 'See where you’ve already answered',
     items: [
       'Questions you’ve answered now say so in Q&A: "1 answer (yours)" or "13 answers (including yours)".',
