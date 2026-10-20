@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-20',
+    title: 'Hear when your question is answered',
+    items: [
+      'When someone answers a question you asked, you now get an email as well as a notification. Stop following the question if you’d rather not.',
+      'Everyone who asked or answered a question before following existed now follows it too, so new answers to older questions reach you.',
+    ],
+  },
+  {
     date: '2026-10-18',
     title: 'Stories from Discord',
     items: [

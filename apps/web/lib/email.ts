@@ -158,6 +158,15 @@ export function kbAnswerApprovedHtml(communityName: string, communitySlug: strin
   `)
 }
 
+export function kbNewAnswerHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string) {
+  return wrap(`
+    <p style="margin:0 0 8px;">Your question in <strong>${communityName}</strong> has a new answer:</p>
+    <p style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-left:3px solid #f97316;color:#57534e;">${questionTitle}</p>
+    ${btn('Read the answer', `${BASE_URL}/communities/${communitySlug}/questions/${questionId}`)}
+    <p style="margin:16px 0 0;color:#78716c;font-size:13px;">Don't want these? Use the Follow button on the question to stop following it.</p>
+  `)
+}
+
 export function qotwChosenHtml(communityName: string, communitySlug: string, questionId: string, questionTitle: string, numberLabel: string) {
   return wrap(`
     <p style="margin:0 0 8px;font-size:17px;">⭐ Your question was chosen as the <strong>Featured Question</strong> in <strong>${communityName}</strong>!</p>

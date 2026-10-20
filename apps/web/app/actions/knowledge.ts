@@ -4,8 +4,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction, logPhotos } from '@/lib/audit'
-import { sendEmail, kbQuestionSubmittedHtml, kbQuestionApprovedHtml, kbAnswerSubmittedHtml, kbAnswerApprovedHtml } from '@/lib/email'
+import { sendEmail, kbQuestionSubmittedHtml, kbQuestionApprovedHtml, kbAnswerSubmittedHtml, kbAnswerApprovedHtml, kbNewAnswerHtml } from '@/lib/email'
 import { follow, notifyFollowers } from '@/lib/follows'
+import { SILAS_USER_ID } from '@/lib/silas'
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,23 @@ async function emailFor(userId: string) {
   const admin = createAdminClient()
   const { data } = await admin.auth.admin.getUserById(userId)
   return data.user?.email ?? null
+}
+
+// A new answer went live: email the person who asked, on top of their bell.
+// Only while they still follow the question (unfollowing is the opt-out) and are
+// still in the community. Never the Silas! bot (unclaimed Discord captures).
+async function emailAskerNewAnswer(questionId: string, communityId: string, skip: string[]) {
+  const admin = createAdminClient()
+  const { data: q } = await admin.from('kb_questions').select('asker_id, title').eq('id', questionId).single()
+  if (!q?.asker_id || q.asker_id === SILAS_USER_ID || skip.includes(q.asker_id)) return
+  const [{ data: following }, { data: member }, { data: c }] = await Promise.all([
+    admin.from('follows').select('user_id').eq('user_id', q.asker_id).eq('question_id', questionId).maybeSingle(),
+    admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', q.asker_id).eq('status', 'active').maybeSingle(),
+    admin.from('communities').select('name, slug, owner_id').eq('id', communityId).single(),
+  ])
+  if (!following || !c || (!member && c.owner_id !== q.asker_id)) return
+  const to = await emailFor(q.asker_id)
+  if (to) await sendEmail(to, `New answer to your question in ${c.name}`, kbNewAnswerHtml(c.name, c.slug, questionId, q.title))
 }
 
 // ─── questions ───────────────────────────────────────────────────────────────────
@@ -297,6 +315,7 @@ export async function submitAnswer(questionId: string, communityId: string, slug
   await follow(user.id, communityId, { kind: 'question', id: questionId })
   if (autoPublish) {
     await notifyFollowers({ target: { kind: 'question', id: questionId }, communityId, type: 'follow_answer', actorId: user.id, skip: [user.id] })
+    void emailAskerNewAnswer(questionId, communityId, [user.id])
   }
 
   if (!autoPublish) {
@@ -339,6 +358,7 @@ export async function approveAnswer(answerId: string, communityId: string, slug:
     })()
     if (!priorPublishes) {
       await notifyFollowers({ target: { kind: 'question', id: a.question_id }, communityId, type: 'follow_answer', actorId: a.author_id, skip: [a.author_id, user.id] })
+      void emailAskerNewAnswer(a.question_id, communityId, [a.author_id, user.id])
     }
     revalidatePath(`/communities/${slug}/questions/${a.question_id}`)
   }
