@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       .from('event_rsvps')
       .select('user_id')
       .eq('event_id', event.id)
-      .in('status', ['going', 'maybe'])
+      .in('status', ['yes', 'maybe']) // stored values are yes/maybe/no (RsvpButton)
 
     if (rsvps && rsvps.length > 0) {
       const subject = `Reminder: ${event.title} starts in 30 minutes`

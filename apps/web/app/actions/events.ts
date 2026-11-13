@@ -4,8 +4,265 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAction, logPhotos } from '@/lib/audit'
-import { wallTimeToUtcIso, DEFAULT_TZ } from '@/lib/eventTime'
-import { generateForSeries, type Frequency, type EndType, type SeriesRow } from '@/lib/eventSeries'
+import { wallTimeToUtcIso, isValidTimeZone, DEFAULT_TZ } from '@/lib/eventTime'
+import { generateForSeries, advanceWall, type Frequency, type EndType, type SeriesRow } from '@/lib/eventSeries'
+import { sendEmail, eventChangedHtml } from '@/lib/email'
+
+type Admin = ReturnType<typeof createAdminClient>
+
+// RSVP statuses that mean "expect me" — the ones told about changes and reminded.
+// Stored values are 'yes' | 'maybe' | 'no' (see RsvpButton).
+const ATTENDING = ['yes', 'maybe']
+
+// The zone the form's wall-clock times are in: the picker's value if it is a
+// real zone, else the user's profile zone, else ET.
+async function resolveFormTz(admin: Admin, userId: string, formData: FormData): Promise<string> {
+  const picked = formData.get('tz') as string | null
+  if (isValidTimeZone(picked)) return picked
+  const { data: profile } = await admin.from('profiles').select('timezone').eq('id', userId).maybeSingle()
+  return profile?.timezone || DEFAULT_TZ
+}
+
+// Creator of the event, community organizer/moderator, community owner, or
+// platform staff — the same people who can delete it.
+async function canManageEvent(admin: Admin, userId: string, communityId: string, role: string | undefined, createdBy: string) {
+  const [{ data: communityRow }, { data: platformRole }] = await Promise.all([
+    admin.from('communities').select('owner_id, slug, name').eq('id', communityId).single(),
+    admin.from('platform_roles').select('role').eq('user_id', userId).in('role', ['owner', 'platform_moderator']).maybeSingle(),
+  ])
+  const allowed = createdBy === userId
+    || ['organizer', 'moderator'].includes(role ?? '')
+    || communityRow?.owner_id === userId
+    || !!platformRole
+  return { allowed, community: communityRow }
+}
+
+type EventRow = {
+  id: string
+  community_id: string
+  title: string
+  description: string | null
+  starts_at: string
+  ends_at: string | null
+  location_type: string
+  location_online: string | null
+  location_address: string | null
+  photos: string[] | null
+  created_by: string
+  series_id: string | null
+}
+
+function sameInstant(a: string | null, b: string | null) {
+  if (!a || !b) return !a && !b
+  return new Date(a).getTime() === new Date(b).getTime()
+}
+
+function describeLocation(type: string, online: string | null, address: string | null): string | null {
+  if (type === 'in_person') return address || 'In person'
+  if (type === 'hybrid') return [address, online].filter(Boolean).join(' · ') || 'Hybrid'
+  return online || 'Online'
+}
+
+// The rows an edit touches: just this one, or (for a series) this and every later
+// occurrence, earliest first.
+async function affectedRows(admin: Admin, event: EventRow, scope: 'one' | 'future'): Promise<EventRow[]> {
+  if (!event.series_id || scope === 'one') return [event]
+  const { data } = await admin.from('events').select('*')
+    .eq('series_id', event.series_id).gte('starts_at', event.starts_at)
+    .order('starts_at', { ascending: true })
+  return (data ?? []) as EventRow[]
+}
+
+// Distinct members (other than the editor) who RSVP'd Going/Maybe to any of the
+// rows that have not ended yet. Shared by the warning and the send, so the number
+// the editor is shown is the number that gets told.
+async function attendeesToNotify(admin: Admin, rows: EventRow[], editorId: string): Promise<string[]> {
+  const now = Date.now()
+  const upcoming = rows.filter(r => new Date(r.ends_at ?? r.starts_at).getTime() >= now).map(r => r.id)
+  if (!upcoming.length) return []
+  const { data } = await admin.from('event_rsvps').select('user_id')
+    .in('event_id', upcoming).in('status', ATTENDING)
+  return [...new Set((data ?? []).map(r => r.user_id as string))].filter(id => id !== editorId)
+}
+
+// How many people the edit form should warn about before saving a time/place change.
+export async function countEventChangeRecipients(
+  eventId: string,
+  communityId: string,
+  scope: 'one' | 'future',
+): Promise<{ count: number; error?: string }> {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  const admin = createAdminClient()
+  const { data: event } = await admin.from('events').select('*').eq('id', eventId).single()
+  if (!event || event.community_id !== communityId) return { count: 0, error: 'Event not found' }
+  const { allowed } = await canManageEvent(admin, user.id, communityId, membership?.role, event.created_by)
+  if (!allowed) return { count: 0, error: 'Not authorized' }
+  const rows = await affectedRows(admin, event as EventRow, scope)
+  return { count: (await attendeesToNotify(admin, rows, user.id)).length }
+}
+
+// scope (for recurring events):
+//   'one'    – just this occurrence
+//   'future' – this occurrence and all later ones; the series itself is re-anchored
+//              on this occurrence so dates generated later follow the new pattern.
+// Members who RSVP'd are told (bell + email) only when the time or location of
+// the edited occurrence changed — a wording fix notifies no one.
+export async function updateEvent(
+  eventId: string,
+  communityId: string,
+  scope: 'one' | 'future',
+  formData: FormData,
+): Promise<{ error?: string; notified?: number }> {
+  const { user, membership } = await getMembershipOrThrow(communityId)
+  const admin = createAdminClient()
+
+  const { data: eventData } = await admin.from('events').select('*').eq('id', eventId).single()
+  const event = eventData as EventRow | null
+  if (!event || event.community_id !== communityId) return { error: 'Event not found' }
+  const { allowed, community } = await canManageEvent(admin, user.id, communityId, membership?.role, event.created_by)
+  if (!allowed) return { error: 'Not authorized' }
+
+  const title = ((formData.get('title') as string) || '').trim()
+  if (!title) return { error: 'The event needs a title.' }
+  const description = (formData.get('description') as string) || null
+  const locationType = (formData.get('location_type') as string) || 'online'
+  const locationOnline = locationType === 'in_person' ? null : ((formData.get('location_online') as string) || null)
+  const locationAddress = locationType === 'online' ? null : ((formData.get('location_address') as string) || null)
+  const photosRaw = formData.get('photos') as string | null
+  const photos: string[] = photosRaw ? JSON.parse(photosRaw) : []
+
+  const startWall = formData.get('starts_at') as string
+  const endWall = (formData.get('ends_at') as string) || ''
+  if (!startWall) return { error: 'The event needs a start time.' }
+  const tz = await resolveFormTz(admin, user.id, formData)
+  const startsAt = wallTimeToUtcIso(startWall, tz)
+  const endsAt = endWall ? wallTimeToUtcIso(endWall, tz) : null
+  if (endsAt && new Date(endsAt) <= new Date(startsAt)) return { error: 'End time must be after start time.' }
+  const durationMinutes = endsAt ? Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000) : null
+
+  // Decided against the occurrence being edited — the same comparison the form
+  // makes when it decides whether to show the warning.
+  const timeChanged = !sameInstant(event.starts_at, startsAt) || !sameInstant(event.ends_at, endsAt)
+  const locationChanged = event.location_type !== locationType
+    || (event.location_online ?? null) !== locationOnline
+    || (event.location_address ?? null) !== locationAddress
+
+  const rows = await affectedRows(admin, event, scope)
+  // Who to tell is worked out BEFORE the update, from the old times — a change
+  // that moves an event into the past must still reach the people expecting it.
+  const recipients = (timeChanged || locationChanged) ? await attendeesToNotify(admin, rows, user.id) : []
+
+  const content = {
+    title,
+    description,
+    location_type: locationType,
+    location_online: locationOnline,
+    location_address: locationAddress,
+    photos,
+  }
+
+  if (!event.series_id || scope === 'one') {
+    const { error } = await admin.from('events').update({
+      ...content,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      // A new time needs a new reminder.
+      ...(timeChanged ? { reminder_sent_at: null } : {}),
+      updated_at: new Date().toISOString(),
+    }).eq('id', eventId)
+    if (error) return { error: 'Could not save the event. Please try again.' }
+  } else {
+    const { data: seriesData } = await admin.from('event_series').select('*').eq('id', event.series_id).single()
+    const series = seriesData as SeriesRow | null
+    if (!series) return { error: 'Could not find the repeating series for this event.' }
+
+    // Re-time every affected occurrence from the new anchor, keeping its RSVPs
+    // (rows are updated in place, never deleted and re-created).
+    for (let j = 0; j < rows.length; j++) {
+      const s = j === 0 ? startsAt : wallTimeToUtcIso(advanceWall(startWall, series.frequency, j), tz)
+      const e = durationMinutes != null ? new Date(new Date(s).getTime() + durationMinutes * 60000).toISOString() : null
+      const moved = !sameInstant(rows[j].starts_at, s) || !sameInstant(rows[j].ends_at, e)
+      const { error } = await admin.from('events').update({
+        ...content,
+        starts_at: s,
+        ends_at: e,
+        ...(moved ? { reminder_sent_at: null } : {}),
+        updated_at: new Date().toISOString(),
+      }).eq('id', rows[j].id)
+      if (error) return { error: 'Could not save every date in the series. Please try again.' }
+    }
+
+    // Re-anchor the series on this occurrence: index 0 is now this event, so the
+    // generator resumes after the rows that already exist. A "repeat N times"
+    // series keeps the same number of dates still to come.
+    const alreadyBefore = Math.max(0, series.generated_count - rows.length)
+    await admin.from('event_series').update({
+      ...content,
+      tz,
+      start_wall: startWall,
+      duration_minutes: durationMinutes,
+      generated_count: rows.length,
+      occurrence_count: series.end_type === 'count' && series.occurrence_count != null
+        ? Math.max(rows.length, series.occurrence_count - alreadyBefore)
+        : series.occurrence_count,
+    }).eq('id', series.id)
+  }
+
+  const oldPhotos = event.photos ?? []
+  const added = photos.filter(p => !oldPhotos.includes(p))
+  const removed = oldPhotos.filter(p => !photos.includes(p))
+  logAction({
+    actorId: user.id, communityId, action: 'event.edited', targetId: eventId, targetType: 'event',
+    metadata: {
+      scope: event.series_id ? scope : 'one',
+      time_changed: timeChanged,
+      location_changed: locationChanged,
+      notified: recipients.length,
+      ...(timeChanged ? { before: event.starts_at, after: startsAt } : {}),
+    },
+  })
+  if (added.length || removed.length) {
+    logPhotos({ actorId: user.id, communityId, added, removed, source: 'event', parentId: event.series_id ?? eventId })
+  }
+
+  if (recipients.length) {
+    await admin.from('notifications').insert(recipients.map(user_id => ({
+      user_id,
+      type: 'event_changed',
+      actor_id: user.id,
+      community_id: communityId,
+      message_id: eventId, // generic target id: the edited event
+    })))
+
+    const location = describeLocation(locationType, locationOnline, locationAddress)
+    const appliesToFollowing = !!event.series_id && scope === 'future' && rows.length > 1
+    void (async () => {
+      for (const userId of recipients) {
+        const [{ data: authUser }, { data: prof }] = await Promise.all([
+          admin.auth.admin.getUserById(userId),
+          admin.from('profiles').select('timezone').eq('id', userId).maybeSingle(),
+        ])
+        const email = authUser.user?.email
+        if (!email) continue
+        await sendEmail(email, `Changed: ${title}`, eventChangedHtml({
+          eventTitle: title,
+          communityName: community?.name ?? 'your community',
+          communitySlug: community?.slug ?? '',
+          startsAt,
+          endsAt,
+          tz: prof?.timezone || undefined,
+          timeChanged,
+          location,
+          locationChanged,
+          appliesToFollowing,
+        }))
+      }
+    })()
+  }
+
+  revalidatePath(`/communities/${community?.slug}`)
+  return { notified: recipients.length }
+}
 
 async function getMembershipOrThrow(communityId: string) {
   const supabase = await createClient()
@@ -46,10 +303,9 @@ export async function createEvent(communityId: string, formData: FormData) {
   const locationOnline = (formData.get('location_online') as string) || null
   const locationAddress = (formData.get('location_address') as string) || null
 
-  // Interpret the entered wall-clock time in the creator's timezone.
-  const { data: creatorProfile } = await admin
-    .from('profiles').select('timezone').eq('id', user.id).maybeSingle()
-  const tz = creatorProfile?.timezone || DEFAULT_TZ
+  // Interpret the entered wall-clock time in the zone picked on the form,
+  // falling back to the creator's profile zone.
+  const tz = await resolveFormTz(admin, user.id, formData)
 
   const template = {
     community_id: communityId,

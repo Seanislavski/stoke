@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-12',
+    title: 'Edit events, and pick their time zone',
+    items: [
+      'Organizers can now edit an event after posting it. For a repeating event, you choose whether the change applies to just that date or to that date and all the ones after it.',
+      'When creating or editing an event you can choose the time zone it’s in, and the form shows the time back to you so you can check it before saving. Members still see every event in their own time zone.',
+      'If an event’s time or place changes, everyone who said Going or Maybe gets a notification and an email.',
+      'The reminder email sent 30 minutes before an event now reaches people who said Going, not only Maybe.',
+    ],
+  },
+  {
     date: '2026-10-20',
     title: 'Hear when your question is answered',
     items: [

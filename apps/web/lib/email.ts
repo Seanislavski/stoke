@@ -221,3 +221,39 @@ export function eventReminderHtml(eventTitle: string, communityName: string, com
     ${btn('View event', `${BASE_URL}/communities/${communitySlug}`)}
   `)
 }
+
+// Sent to members who RSVP'd Going/Maybe when an organizer changes the time or
+// location. `location` is a plain description ("Online", an address, a link).
+export function eventChangedHtml(opts: {
+  eventTitle: string
+  communityName: string
+  communitySlug: string
+  startsAt: string
+  endsAt: string | null
+  tz?: string
+  timeChanged: boolean
+  location: string | null
+  locationChanged: boolean
+  appliesToFollowing: boolean
+}) {
+  const tz = opts.tz || DEFAULT_TZ
+  const when = new Date(opts.startsAt).toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: tz,
+  })
+  const until = opts.endsAt
+    ? ' – ' + new Date(opts.endsAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz })
+    : ''
+  const zone = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+    .formatToParts(new Date(opts.startsAt)).find(p => p.type === 'timeZoneName')?.value ?? ''
+  const row = (label: string, value: string, changed: boolean) =>
+    `<p style="margin:0 0 6px;font-size:14px;"><span style="color:#78716c;">${label}:</span> <strong>${escapeHtml(value)}</strong>${changed ? ' <span style="color:#f97316;font-size:12px;font-weight:600;">CHANGED</span>' : ''}</p>`
+  return wrap(`
+    <p style="margin:0 0 6px;color:#78716c;font-size:13px;">An event you RSVP'd to has changed</p>
+    <p style="margin:0 0 4px;font-size:18px;font-weight:700;">${escapeHtml(opts.eventTitle)}</p>
+    <p style="margin:0 0 16px;color:#78716c;font-size:14px;">${escapeHtml(opts.communityName)}</p>
+    ${row('When', `${when}${until} ${zone}`.trim(), opts.timeChanged)}
+    ${opts.location ? row('Where', opts.location, opts.locationChanged) : ''}
+    ${opts.appliesToFollowing ? '<p style="margin:12px 0 0;color:#78716c;font-size:13px;">This change also applies to the later dates in this repeating event.</p>' : ''}
+    ${btn('View event', `${BASE_URL}/communities/${opts.communitySlug}?tab=events`)}
+  `)
+}

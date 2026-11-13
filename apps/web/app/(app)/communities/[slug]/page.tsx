@@ -10,6 +10,7 @@ import ModActions from '@/components/bulletin/ModActions'
 import CreateEventButton from '@/components/events/CreateEventButton'
 import RsvpButton from '@/components/events/RsvpButton'
 import EventDeleteControl from '@/components/events/EventDeleteControl'
+import EventEditButton from '@/components/events/EventEditButton'
 import DeleteItemButton from '@/components/DeleteItemButton'
 import RichContent from '@/components/RichContent'
 import PhotoGallery from '@/components/PhotoGallery'
@@ -372,6 +373,8 @@ export default async function CommunityPage({
   let rsvpCountMap: Record<string, { yes: number; maybe: number; no: number }> = {}
   let myRsvpMap: Record<string, string> = {}
   let viewerTz = DEFAULT_TZ
+  // A repeating event's own zone, so editing it opens in the zone it was set in.
+  const seriesTzMap: Record<string, string> = {}
 
   if (tab === 'events' && canSee) {
     const { data: viewerProfile } = await admin
@@ -388,6 +391,11 @@ export default async function CommunityPage({
 
     if (events?.length) {
       const eventIds = events.map(e => e.id)
+      const seriesIds = [...new Set(events.map(e => e.series_id).filter((id): id is string => !!id))]
+      if (seriesIds.length) {
+        const { data: seriesRows } = await admin.from('event_series').select('id, tz').in('id', seriesIds)
+        for (const s of seriesRows ?? []) seriesTzMap[s.id] = s.tz
+      }
       const [{ data: allRsvps }, { data: myRsvps }] = await Promise.all([
         admin.from('event_rsvps').select('event_id, status').in('event_id', eventIds),
         admin.from('event_rsvps').select('event_id, status').eq('user_id', user!.id).in('event_id', eventIds),
@@ -687,7 +695,7 @@ export default async function CommunityPage({
           {tab === 'events' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                {isMod && <CreateEventButton communityId={community.id} />}
+                {isMod && <CreateEventButton communityId={community.id} defaultTz={viewerTz} />}
               </div>
 
               {!events?.length ? (
@@ -708,6 +716,7 @@ export default async function CommunityPage({
                           counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
                           canDelete={event.created_by === user!.id || isMod}
                           viewerTz={viewerTz}
+                          seriesTz={event.series_id ? seriesTzMap[event.series_id] : undefined}
                           ongoing={new Date(event.starts_at) <= now}
                         />
                       ))}
@@ -730,6 +739,7 @@ export default async function CommunityPage({
                             counts={rsvpCountMap[event.id] ?? { yes: 0, maybe: 0, no: 0 }}
                             canDelete={event.created_by === user!.id || isMod}
                             viewerTz={viewerTz}
+                            seriesTz={event.series_id ? seriesTzMap[event.series_id] : undefined}
                             past
                           />
                         ))}
@@ -1050,6 +1060,7 @@ function EventCard({
   counts,
   canDelete,
   viewerTz,
+  seriesTz,
   past = false,
   ongoing = false,
 }: {
@@ -1059,6 +1070,7 @@ function EventCard({
   counts: { yes: number; maybe: number; no: number }
   canDelete: boolean
   viewerTz: string
+  seriesTz?: string
   past?: boolean
   ongoing?: boolean
 }) {
@@ -1081,11 +1093,19 @@ function EventCard({
               {event.title}
             </h3>
             {canDelete && (
-              <EventDeleteControl
-                eventId={event.id}
-                communityId={communityId}
-                isSeries={!!event.series_id}
-              />
+              <span className="flex shrink-0 items-center gap-3">
+                <EventEditButton
+                  communityId={communityId}
+                  event={event}
+                  defaultTz={viewerTz}
+                  eventTz={seriesTz ?? viewerTz}
+                />
+                <EventDeleteControl
+                  eventId={event.id}
+                  communityId={communityId}
+                  isSeries={!!event.series_id}
+                />
+              </span>
             )}
           </div>
           <p className="text-sm text-stone-500 mt-0.5">

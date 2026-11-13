@@ -93,6 +93,8 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     } else if (n.type === 'story_reply' && n.community && n.message_id) {
       // message_id holds the story id.
       router.push(`/communities/${n.community.slug}/stories/${n.message_id}`)
+    } else if (n.type === 'event_changed' && n.community) {
+      router.push(`/communities/${n.community.slug}?tab=events`)
     } else if (n.type === 'milestone' && n.community) {
       router.push(`/communities/${n.community.slug}`)
     } else if (n.community && n.channel_id && n.message_id) {
@@ -163,6 +165,11 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                         {n.type === 'qotw' ? (
                           <p className="text-sm text-stone-800">
                             ⭐ <span className="font-medium">Your question was chosen as the Featured Question!</span>
+                          </p>
+                        ) : n.type === 'event_changed' ? (
+                          // message_id holds the edited event's id.
+                          <p className="text-sm text-stone-800">
+                            📅 <span className="font-medium">An event you RSVP&apos;d to has changed</span>
                           </p>
                         ) : n.type === 'milestone' ? (
                           // message_id holds the member-count threshold reached.

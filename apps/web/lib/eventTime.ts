@@ -30,7 +30,31 @@ export function wallTimeToUtcIso(wall: string, tz: string = DEFAULT_TZ): string 
   const [h, mi] = timePart.split(':').map(Number)
   const naiveUtc = Date.UTC(y, mo - 1, day, h, mi)   // pretend wall time is UTC
   const offset = tzOffsetMs(new Date(naiveUtc), tz)  // that zone's offset near it
-  return new Date(naiveUtc - offset).toISOString()
+  // Re-check the offset at the instant we landed on: within hours of a clock
+  // change the first guess uses the wrong side's offset (e.g. 03:30 ET on the
+  // spring-forward night came out as 04:30 EDT).
+  const offset2 = tzOffsetMs(new Date(naiveUtc - offset), tz)
+  return new Date(naiveUtc - (offset2 === offset ? offset : offset2)).toISOString()
+}
+
+// The reverse: a UTC instant as the wall-clock "YYYY-MM-DDTHH:mm" it reads as in
+// `tz`. Used to pre-fill <input datetime-local> when editing an event.
+export function utcIsoToWall(iso: string, tz: string = DEFAULT_TZ): string {
+  const d = new Date(iso)
+  const shifted = new Date(d.getTime() + tzOffsetMs(d, tz))
+  return shifted.toISOString().slice(0, 16)
+}
+
+// True for a zone name Intl recognizes ("Europe/Copenhagen"); false for junk.
+// Form input is untrusted, and an unknown zone would make Intl throw.
+export function isValidTimeZone(tz: string | null | undefined): tz is string {
+  if (!tz) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // Display an instant (UTC ISO) in the given timezone.

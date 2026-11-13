@@ -133,6 +133,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'review.reply_removed': 'Removed a review reply',
   'review.deleted': 'Deleted a review',
   'event.created': 'Created event',
+  'event.edited': 'Edited event',
   'event.deleted': 'Deleted event',
   'invite.created': 'Created invite link',
   'invite.revoked': 'Revoked invite link',
