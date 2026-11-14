@@ -40,7 +40,10 @@
 - Stripe Dahlia API: period end is `subscription.billing_schedules[0].bill_until.computed_timestamp` (NOT `current_period_end` — removed in Dahlia)
 - Redirect URLs: use `NEXT_PUBLIC_APP_URL` env var — `new URL(request.url).origin` returns `0.0.0.0:8080` on Railway
 - Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID` (`price_1TdxO1LKsDKZpMglNvKLKgjq`), `STRIPE_PRO_PRICE_ID` (`price_1TdxPSLKsDKZpMgl3vprkfwD`), `NEXT_PUBLIC_APP_URL=https://stoke.community`
-- Webhook endpoint: `https://web-production-3d840.up.railway.app/api/webhooks/stripe`; events: `customer.subscription.created/updated/deleted`, `invoice.payment_failed`
+- ⚠️ **10/29/2026: the LIVE Stripe account had NO webhook endpoint at all**, so subscriptions never synced. Created in live as `https://stoke.community/api/webhooks/stripe` with the 4 events below; new `STRIPE_WEBHOOK_SECRET` in Railway. Stripe's webhooks now live under **Workbench → Webhooks** (dashboard.stripe.com/webhooks) with no "Send test event"; the first real event proves the secret. The "Ko-fi [Test mode]" sandbox is NOT Stoke's.
+- ⚠️ **10/29/2026: Supabase legacy JWT keys are DISABLED.** Railway uses `sb_secret_` (in `SUPABASE_SERVICE_ROLE_KEY`) and `sb_publishable_` (in `NEXT_PUBLIC_SUPABASE_ANON_KEY`); the var names were kept. Local `apps/web/.env.local` and `apps/server/.env` were updated to the new keys on 11/01/2026.
+- ⚠️ **11/13/2026: `STRIPE_WEBHOOK_SECRET` on Railway had a leading space**, so every signature check failed. `c3037a1` trims it in code; the missed events were resent.
+- Webhook endpoint (old note): `https://web-production-3d840.up.railway.app/api/webhooks/stripe`; events: `customer.subscription.created/updated/deleted`, `invoice.payment_failed`
 - Supabase tables: `subscriptions` (user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end, cancel_at_period_end), `stripe_webhook_events` (stripe_event_id)
 
 
