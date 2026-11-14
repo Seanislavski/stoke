@@ -10,7 +10,7 @@ export default async function ProfileSettingsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, username, display_name, bio, avatar_url, show_memberships, timezone, discord_username, show_discord, discord_user_id')
+    .select('id, username, display_name, bio, avatar_url, show_memberships, timezone, discord_username, show_discord, discord_user_id, notify_whats_new')
     .eq('id', user.id)
     .single()
 

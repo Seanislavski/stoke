@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-13',
+    title: 'Hear about new features',
+    items: [
+      'Want to know when something new lands? Turn on "Tell me about new features" in your profile settings and you\'ll get a notification each time this page gets a new entry.',
+    ],
+  },
+  {
     date: '2026-11-12',
     title: 'Edit events, and pick their time zone',
     items: [

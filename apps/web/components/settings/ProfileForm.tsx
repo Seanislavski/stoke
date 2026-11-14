@@ -16,6 +16,7 @@ type Profile = {
   timezone: string
   discord_username: string | null
   show_discord: boolean
+  notify_whats_new: boolean
 }
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
@@ -219,6 +220,22 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
           />
           <label htmlFor="show_memberships" className="text-sm text-stone-700">
             Show my community memberships on my public profile
+          </label>
+        </div>
+
+        <div className="flex items-start gap-3">
+          <input
+            id="notify_whats_new"
+            name="notify_whats_new"
+            type="checkbox"
+            defaultChecked={profile.notify_whats_new}
+            className="mt-0.5 w-4 h-4 rounded border-stone-300 text-orange-500 focus:ring-orange-400"
+          />
+          <label htmlFor="notify_whats_new" className="text-sm text-stone-700">
+            Tell me about new features
+            <span className="block text-xs text-stone-400">
+              You&apos;ll get a notification when something new is added to <a href="/changelog" className="underline hover:text-stone-600">What&apos;s new</a>.
+            </span>
           </label>
         </div>
 

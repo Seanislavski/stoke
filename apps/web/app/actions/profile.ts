@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { normalizeDiscordUsername } from '@/lib/discord-handle'
+import { latestChangelogDate } from '@/lib/whats-new'
 
 // Basic sanity check that a string is a real IANA zone the runtime knows.
 function isValidTimeZone(tz: string): boolean {
@@ -37,6 +38,14 @@ export async function updateProfile(formData: FormData) {
     // Clearing the handle also clears the opt-in, so a re-added handle is never
     // silently published on the strength of a checkbox ticked months earlier.
     show_discord: discord.value ? formData.get('show_discord') === 'on' : false,
+  }
+  // Turning the "What's new" heads-up ON starts from the current entry, so the first
+  // bell is for the next new feature rather than one that shipped before they asked.
+  const notifyWhatsNew = formData.get('notify_whats_new') === 'on'
+  update.notify_whats_new = notifyWhatsNew
+  if (notifyWhatsNew) {
+    const { data: prev } = await supabase.from('profiles').select('notify_whats_new').eq('id', user.id).single()
+    if (!prev?.notify_whats_new) update.whats_new_notified = latestChangelogDate()
   }
   // Setting a timezone explicitly counts as detected so auto-detection stops.
   if (timezoneRaw && isValidTimeZone(timezoneRaw)) {

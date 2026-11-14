@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { markNotificationRead, markAllNotificationsRead } from '@/app/actions/mentions'
+import { CHANGELOG } from '@/lib/changelog'
 
 type Notification = {
   id: string
@@ -93,6 +94,8 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     } else if (n.type === 'story_reply' && n.community && n.message_id) {
       // message_id holds the story id.
       router.push(`/communities/${n.community.slug}/stories/${n.message_id}`)
+    } else if (n.type === 'whats_new') {
+      router.push('/changelog')
     } else if (n.type === 'event_changed' && n.community) {
       router.push(`/communities/${n.community.slug}?tab=events`)
     } else if (n.type === 'milestone' && n.community) {
@@ -165,6 +168,11 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                         {n.type === 'qotw' ? (
                           <p className="text-sm text-stone-800">
                             ⭐ <span className="font-medium">Your question was chosen as the Featured Question!</span>
+                          </p>
+                        ) : n.type === 'whats_new' ? (
+                          // message_id holds the changelog entry's date; first match is the newest that day.
+                          <p className="text-sm text-stone-800">
+                            ✨ New on Stoke: <span className="font-medium">{CHANGELOG.find(e => e.date === n.message_id)?.title ?? "see what's new"}</span>
                           </p>
                         ) : n.type === 'event_changed' ? (
                           // message_id holds the edited event's id.

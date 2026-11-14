@@ -59,12 +59,17 @@ export default async function ChangelogPage() {
           <p className="text-lg text-stone-600 leading-relaxed">
             The latest features and improvements on Stoke.
           </p>
+          {user && (
+            <p className="mt-3 text-sm text-stone-500">
+              Want a heads-up? Turn on <Link href="/settings/profile" className="text-orange-600 hover:underline">&ldquo;Tell me about new features&rdquo;</Link> in your settings.
+            </p>
+          )}
         </section>
 
         <section className="max-w-2xl mx-auto px-4 pb-20">
           <ol className="relative border-l border-stone-200 ml-3">
             {CHANGELOG.map(entry => (
-              <li key={entry.date} className="mb-10 ml-6">
+              <li key={`${entry.date}-${entry.title}`} className="mb-10 ml-6">
                 <span className="absolute -left-1.5 w-3 h-3 rounded-full bg-orange-400 border-2 border-stone-50" />
                 <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">{fmt(entry.date)}</p>
                 <h2 className="text-lg font-semibold text-stone-900 mt-1 mb-3">{entry.title}</h2>
